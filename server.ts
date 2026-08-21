@@ -173,6 +173,18 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
+  // Explicit static file serving for /models with binary content-type
+  const modelsPath = path.join(process.cwd(), "public", "models");
+  app.use("/models", express.static(modelsPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".vrm")) {
+        res.setHeader("Content-Type", "model/gltf-binary");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      }
+    }
+  }));
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -182,8 +194,20 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".vrm")) {
+          res.setHeader("Content-Type", "model/gltf-binary");
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          res.setHeader("Access-Control-Allow-Origin", "*");
+        }
+      }
+    }));
+    app.get("*", (req, res, next) => {
+      // Don't intercept static assets or API
+      if (req.path.startsWith("/api") || req.path.startsWith("/models") || req.path.match(/\.(vrm|gltf|glb|svg|png|jpg|jpeg|json|css|js|wasm|ico)$/i)) {
+        return res.status(404).send("File not found");
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
