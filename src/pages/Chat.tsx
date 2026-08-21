@@ -1,19 +1,29 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile } from "lucide-react";
+import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getRapport, saveRapport } from "../lib/storage";
 import { t, Language, getLanguage } from "../lib/i18n";
+import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
+interface LiveSubtitle {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
+const ACCENT_COLOR = '#4DE8D4';
+
 const emotionColors: Record<Emotion, string> = {
-  warm: '#4DE8D4', // Brighter cyan
-  playful: '#4DE8D4', // Brighter cyan
-  thoughtful: '#B392F0', // Soft violet
-  calm: '#B392F0', // Soft violet
-  excited: '#FF9B9B', // Warm coral
+  warm: '#4DE8D4',
+  playful: '#4DE8D4',
+  thoughtful: '#4DE8D4',
+  calm: '#4DE8D4',
+  excited: '#4DE8D4',
 };
 
 export default function Chat() {
@@ -21,6 +31,9 @@ export default function Chat() {
   const [isRightOpen, setIsRightOpen] = useState(false);
   
   const [messages, setMessages] = useState<{id: string, role: string, content: string, timestamp: number}[]>([]);
+  const [subtitles, setSubtitles] = useState<LiveSubtitle[]>([]);
+  const subtitleTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('warm');
@@ -47,7 +60,6 @@ export default function Chat() {
   // Focus management references
   const leftDrawerRef = useRef<HTMLDivElement>(null);
   const rightDrawerRef = useRef<HTMLDivElement>(null);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
 
@@ -57,6 +69,40 @@ export default function Chat() {
   const isLoadingRef = useRef(isLoading);
   const messagesRef = useRef(messages);
 
+  const triggerSubtitle = (role: 'user' | 'model', text: string) => {
+    if (!text || !text.trim()) return;
+    const id = crypto.randomUUID();
+    const newSub: LiveSubtitle = {
+      id,
+      role,
+      text: text.trim(),
+      timestamp: Date.now()
+    };
+
+    // Calculate dynamic duration proportional to length
+    const duration = role === 'user'
+      ? Math.max(3800, Math.min(8500, 2400 + text.length * 45))
+      : Math.max(5000, Math.min(14000, 3000 + text.length * 65));
+
+    setSubtitles(prev => {
+      const next = [...prev, newSub];
+      return next.slice(-2); // Display only the 1-2 most recent lines
+    });
+
+    const timer = setTimeout(() => {
+      setSubtitles(prev => prev.filter(s => s.id !== id));
+      delete subtitleTimersRef.current[id];
+    }, duration);
+
+    subtitleTimersRef.current[id] = timer;
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(subtitleTimersRef.current).forEach(t => clearTimeout(t));
+    };
+  }, []);
+
   useEffect(() => { isCallModeRef.current = isCallMode; }, [isCallMode]);
   useEffect(() => { isLyraSpeakingRef.current = isLyraSpeaking; }, [isLyraSpeaking]);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
@@ -65,7 +111,16 @@ export default function Chat() {
   useEffect(() => {
     async function loadData() {
       const msgs = await getMessages();
-      setMessages(msgs.sort((a, b) => a.timestamp - b.timestamp));
+      const sorted = msgs.sort((a, b) => a.timestamp - b.timestamp);
+      setMessages(sorted);
+      
+      // If there is a recent conversation message, show as live initial subtitle
+      if (sorted.length > 0) {
+        const last = sorted[sorted.length - 1];
+        if (Date.now() - last.timestamp < 1000 * 60 * 15) {
+          triggerSubtitle(last.role as any, last.content);
+        }
+      }
       
       const comp = await getCompanion();
       companionProfileRef.current = comp;
@@ -73,6 +128,30 @@ export default function Chat() {
         if (comp.scenery) setScenery(comp.scenery);
         if (comp.outfit) setOutfit(comp.outfit);
         if (comp.language) setLang(comp.language as Language);
+        
+        // Auto-sanitize voice if male or invalid
+        const sanitizeVoice = async () => {
+          if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+          const allVoices = window.speechSynthesis.getVoices();
+          const targetPrefix = (comp.language || "en").split("-")[0];
+          const allowed = filterAllowedVoices(allVoices, targetPrefix);
+          if (allowed.length > 0) {
+            const isInvalid = !comp.voiceUri || !allowed.some(v => v.voiceURI === comp.voiceUri) || isStoredVoiceInvalid(comp.voiceUri, allVoices);
+            if (isInvalid) {
+              const def = getDefaultFemaleVoice(allowed);
+              if (def) {
+                comp.voiceUri = def.voiceURI;
+                companionProfileRef.current = comp;
+                await saveCompanion(comp);
+              }
+            }
+          }
+        };
+
+        sanitizeVoice();
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.onvoiceschanged = sanitizeVoice;
+        }
       }
       
       const r = await getRapport();
@@ -185,15 +264,21 @@ export default function Chat() {
     window.speechSynthesis.cancel();
     if (isMuted || !companionProfileRef.current) return;
     
-    const { voiceUri, pitch, rate } = companionProfileRef.current;
+    const { voiceUri, pitch, rate, language } = companionProfileRef.current;
     const utterance = new SpeechSynthesisUtterance(text);
     
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => v.voiceURI === voiceUri);
+    const allVoices = window.speechSynthesis.getVoices();
+    const targetPrefix = (language || "en").split("-")[0];
+    const allowed = filterAllowedVoices(allVoices, targetPrefix);
+    
+    let voice = allowed.find(v => v.voiceURI === voiceUri);
+    if (!voice) {
+      voice = getDefaultFemaleVoice(allowed) || undefined;
+    }
     if (voice) utterance.voice = voice;
     
-    utterance.pitch = pitch ?? 1;
-    utterance.rate = rate ?? 1;
+    utterance.pitch = pitch ?? 1.05;
+    utterance.rate = rate ?? 0.98;
     
     const visemes = ['aa', 'ih', 'ou', 'ee', 'oh'];
     let vIndex = 0;
@@ -224,12 +309,6 @@ export default function Chat() {
 
     window.speechSynthesis.speak(utterance);
   };
-
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [messages, isLoading]);
 
   useEffect(() => {
     if (isLeftOpen && leftDrawerRef.current) leftDrawerRef.current.focus();
@@ -304,6 +383,7 @@ export default function Chat() {
 
     const currentMessages = messagesRef.current;
     setMessages(prev => [...prev, userMsg]);
+    triggerSubtitle('user', textToSend.trim());
     setIsLoading(true);
     await saveMessage(userMsg);
 
@@ -354,6 +434,7 @@ export default function Chat() {
       };
 
       setMessages(prev => [...prev, modelMsg]);
+      triggerSubtitle('model', replyText);
       await saveMessage(modelMsg);
       speakText(replyText);
 
@@ -398,6 +479,7 @@ export default function Chat() {
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, fallbackMsg]);
+      triggerSubtitle('model', fallbackMsg.content);
       await saveMessage(fallbackMsg);
       speakText(fallbackMsg.content);
     } finally {
@@ -481,11 +563,11 @@ export default function Chat() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto"
+              className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto"
             >
-              <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative">
-                <h2 className="text-xl font-display font-bold text-white mb-3">Important Notice</h2>
-                <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+              <div className="bg-[#0A0A0D]/95 backdrop-blur-[24px] border border-white/[0.12] rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+                <h2 className="text-2xl font-display font-bold text-white mb-3 tracking-tight">Important Notice</h2>
+                <p className="text-gray-300 text-sm mb-6 leading-relaxed">
                   Lyra is an AI companion designed for entertainment and conversation. She is not human and does not have real feelings or thoughts. 
                   <br/><br/>
                   Please be aware that AI can make mistakes or generate inappropriate content, though she has safety guardrails in place. Do not rely on Lyra for professional, medical, or crisis advice.
@@ -495,8 +577,7 @@ export default function Chat() {
                     localStorage.setItem('ai_disclosure_accepted', 'true');
                     setShowDisclosure(false);
                   }}
-                  className="w-full py-3 rounded-xl text-black font-semibold transition-colors"
-                  style={{ backgroundColor: accentColor }}
+                  className="w-full py-3.5 rounded-xl text-[#0A0A0D] bg-[#4DE8D4] hover:bg-[#63f2df] font-bold text-sm transition-all shadow-[0_0_20px_rgba(77,232,212,0.3)]"
                 >
                   I Understand
                 </button>
@@ -505,41 +586,76 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* CHAT BUBBLES */}
-        <motion.div 
-          ref={chatScrollRef}
-          animate={{ opacity: isCallMode ? 0 : 1 }}
-          className="absolute inset-0 z-1 pointer-events-none overflow-y-auto pb-[120px] pt-[100px] px-4 flex flex-col gap-4 max-w-3xl mx-auto w-full scroll-smooth"
-        >
-          {messages.map((msg) => (
-            <div 
-              key={msg.id} 
-              className={`max-w-[80%] p-4 rounded-2xl backdrop-blur-md border border-white/[0.08] pointer-events-auto ${
-                msg.role === 'user' 
-                  ? 'self-end bg-white/[0.08] rounded-br-sm' 
-                  : 'self-start bg-black/40 rounded-bl-sm'
-              }`}
-            >
-              <p className="text-sm md:text-base leading-relaxed text-gray-100">{msg.content}</p>
-            </div>
-          ))}
-          
-          {isLoading && (
-            <div className="self-start max-w-[80%] p-4 rounded-2xl rounded-bl-sm bg-black/40 backdrop-blur-md border border-white/[0.08] pointer-events-auto flex items-center gap-3">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: accentColor }} />
-              <span className="text-sm text-gray-400">Lyra is thinking...</span>
-            </div>
-          )}
-        </motion.div>
+        {/* FLOATING SUBTITLE OVERLAY (Near chest area, live conversational overlay) */}
+        <div className="absolute top-[42%] sm:top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-4 sm:px-6 pointer-events-none z-20 flex flex-col items-center gap-3">
+          <AnimatePresence mode="popLayout">
+            {subtitles.map((sub) => (
+              <motion.div
+                key={sub.id}
+                layout
+                initial={{ opacity: 0, y: 20, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ 
+                  opacity: 0, 
+                  y: -24, 
+                  scale: 0.95, 
+                  filter: "blur(4px)",
+                  transition: { duration: 0.45, ease: "easeOut" } 
+                }}
+                transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
+                  sub.role === 'user'
+                    ? 'bg-[#0A0A0D]/85 backdrop-blur-[24px] border border-white/10 px-5 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)]'
+                    : 'bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-[#4DE8D4]/40 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(77,232,212,0.15)]'
+                }`}
+              >
+                {sub.role === 'user' ? (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-mono tracking-widest uppercase text-gray-400 mb-0.5">
+                      You
+                    </span>
+                    <p className="text-sm sm:text-base font-normal text-gray-200 tracking-wide leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                      {sub.text}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1.5 mb-1.5 text-xs font-display font-semibold tracking-wider uppercase text-white">
+                      <Sparkles className="w-3.5 h-3.5 text-[#4DE8D4]" />
+                      <span>Lyra</span>
+                    </div>
+                    <p className="text-base sm:text-lg font-medium text-white tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+                      {sub.text}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+
+            {isLoading && (
+              <motion.div
+                key="thinking-indicator"
+                layout
+                initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.95, transition: { duration: 0.25 } }}
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-[#4DE8D4]/30 shadow-[0_4px_20px_rgba(0,0,0,0.7)]"
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#4DE8D4]" />
+                <span className="text-xs font-mono text-gray-300 tracking-wide">Lyra is thinking...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* BOTTOM INPUT DOCK */}
         <motion.div 
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
           className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none"
         >
-          <div className="max-w-3xl mx-auto pointer-events-auto flex items-end gap-2 bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-2.5 shadow-2xl relative">
+          <div className="max-w-3xl mx-auto pointer-events-auto flex items-end gap-2.5 bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-3 shadow-2xl relative">
             {micError && (
-               <div className="absolute -top-10 left-4 bg-black/80 text-red-400 text-xs px-3 py-1.5 rounded-full border border-red-500/20">
+               <div className="absolute -top-10 left-4 bg-black/90 text-red-400 text-xs px-3 py-1.5 rounded-full border border-red-500/20">
                  {micError}
                </div>
             )}
@@ -550,24 +666,24 @@ export default function Chat() {
                 if (!isListening && !isLyraSpeaking) toggleMic();
               }}
               disabled={rapportScore < 100}
-              className={`p-3 transition-colors rounded-full ${rapportScore < 100 ? 'text-gray-600 cursor-not-allowed opacity-50' : 'text-gray-400 hover:bg-white/[0.04]'}`}
+              className={`p-3 transition-colors rounded-full ${rapportScore < 100 ? 'text-gray-600 cursor-not-allowed opacity-50' : 'text-gray-400 hover:bg-white/[0.06]'}`}
               title={rapportScore < 100 ? "Unlock at Tier 2" : "Call Mode"}
             >
-              <Phone className="w-5 h-5" style={{ color: rapportScore < 100 ? '#666' : accentColor }} />
+              <Phone className="w-5 h-5" style={{ color: rapportScore < 100 ? '#666' : '#4DE8D4' }} />
             </button>
             
             <button 
               onClick={() => setIsMuted(!isMuted)}
-              className="p-3 text-gray-400 transition-colors rounded-full hover:bg-white/[0.04]" 
+              className="p-3 text-gray-400 transition-colors rounded-full hover:bg-white/[0.06]" 
               title={isMuted ? "Unmute Voice" : "Mute Voice"}
             >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" style={{ color: accentColor }} />}
+              {isMuted ? <VolumeX className="w-5 h-5 text-gray-500" /> : <Volume2 className="w-5 h-5 text-[#4DE8D4]" />}
             </button>
 
             <div className="relative">
               <button
                 onClick={() => setShowGestureMenu(!showGestureMenu)}
-                className={`p-3 transition-colors rounded-full ${showGestureMenu ? 'bg-white/[0.08] text-white' : 'text-gray-400 hover:bg-white/[0.04]'}`}
+                className={`p-3 transition-colors rounded-full ${showGestureMenu ? 'bg-white/[0.08] text-white' : 'text-gray-400 hover:bg-white/[0.06]'}`}
                 title="Gestures"
               >
                 <Smile className="w-5 h-5" />
@@ -584,7 +700,7 @@ export default function Chat() {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#1A1A24] border border-white/[0.08] rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-1 z-50"
+                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#0A0A0D]/95 backdrop-blur-[24px] border border-white/[0.12] rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-1 z-50"
                     >
                       {[
                         { id: 'wave', label: 'Wave', text: 'gives a little wave' },
@@ -596,7 +712,7 @@ export default function Chat() {
                         <button
                           key={g.id}
                           onClick={() => triggerGesture(g.id, g.text)}
-                          className="px-3 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.08] transition-colors whitespace-nowrap"
+                          className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.08] transition-colors whitespace-nowrap"
                         >
                           {g.label}
                         </button>
@@ -609,7 +725,7 @@ export default function Chat() {
 
             <button 
               onClick={toggleMic}
-              className={`p-3 transition-colors rounded-full ${isListening ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:bg-white/[0.04]'}`}
+              className={`p-3 transition-colors rounded-full ${isListening ? 'bg-[#4DE8D4]/20 text-[#4DE8D4] border border-[#4DE8D4]/40' : 'text-gray-400 hover:bg-white/[0.06]'}`}
               title="Tap to Listen"
             >
               {isListening ? <Mic className="w-5 h-5 animate-pulse" /> : <MicOff className="w-5 h-5" />}
@@ -631,8 +747,7 @@ export default function Chat() {
             <button 
               onClick={handleSend}
               disabled={isLoading || (!inputText.trim() && !isListening)}
-              className="p-3 text-[#0A0A0D] rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: accentColor, boxShadow: `0 0 15px ${accentColor}4D` }}
+              className="p-3 text-[#0A0A0D] rounded-full transition-all bg-[#4DE8D4] hover:bg-[#63f2df] shadow-[0_0_15px_rgba(77,232,212,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -647,17 +762,16 @@ export default function Chat() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-20 pointer-events-auto"
+            className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-20 pointer-events-auto bg-[#0A0A0D]/40 backdrop-blur-sm"
             onClick={() => setIsCallMode(false)}
           >
-            <div className="absolute top-12 text-white/50 text-sm tracking-widest uppercase font-mono">
+            <div className="absolute top-12 text-gray-400 text-xs tracking-widest uppercase font-mono bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
               Tap anywhere to exit call
             </div>
             
             <div className="relative w-24 h-24 flex items-center justify-center">
               <motion.div 
-                className="absolute inset-0 rounded-full border-2"
-                style={{ borderColor: accentColor }}
+                className="absolute inset-0 rounded-full border-2 border-[#4DE8D4]"
                 animate={{ 
                   scale: isLyraSpeaking ? speechPulse : (isListening ? 1.1 : 1), 
                   opacity: isLyraSpeaking ? 0.8 : (isListening ? 0.3 : 0.1) 
@@ -665,18 +779,17 @@ export default function Chat() {
                 transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
               />
               <motion.div 
-                className="w-12 h-12 rounded-full"
-                style={{ backgroundColor: accentColor, boxShadow: `0 0 20px ${accentColor}` }}
+                className="w-12 h-12 rounded-full bg-[#4DE8D4] shadow-[0_0_24px_#4DE8D4]"
                 animate={{ 
                   scale: isLyraSpeaking ? 1.2 : 1, 
                   opacity: isLyraSpeaking ? 1 : 0.5 
                 }}
               />
               {!isLyraSpeaking && isListening && (
-                <div className="absolute -bottom-8 text-xs font-mono text-white/50">Listening...</div>
+                <div className="absolute -bottom-8 text-xs font-mono text-gray-300">Listening...</div>
               )}
               {!isLyraSpeaking && !isListening && isLoading && (
-                <div className="absolute -bottom-8 text-xs font-mono text-white/50">Thinking...</div>
+                <div className="absolute -bottom-8 text-xs font-mono text-gray-300">Thinking...</div>
               )}
             </div>
           </motion.div>
@@ -693,18 +806,18 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 left-0 bottom-0 w-[320px] max-w-[85vw] z-50 bg-white/[0.04] backdrop-blur-[24px] border-r border-white/[0.08] flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.5)]"
+            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[#0A0A0D]/95 backdrop-blur-[24px] border-r border-white/[0.08] flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-white/[0.08]">
-              <h2 className="font-display font-semibold text-xl text-white">Menu</h2>
-              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.04] transition-colors">
+              <h2 className="font-display font-bold text-2xl text-white">Menu</h2>
+              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Status Label */}
             <div className="p-6 border-b border-white/[0.08]">
-              <div className="text-xs font-mono text-gray-500 uppercase tracking-widest mb-3">Lyra's Status</div>
+              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-3">Lyra's Status</div>
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#4DE8D4] shadow-[0_0_10px_#4DE8D4]" />
                 <span className="text-sm font-medium text-gray-200">Reflective & Attentive</span>
@@ -713,62 +826,71 @@ export default function Chat() {
 
             {/* Scenery Switcher */}
             <div className="p-6 border-b border-white/[0.08]">
-              <div className="text-xs font-mono text-gray-500 uppercase tracking-widest mb-3">Environment</div>
-              <div className="flex gap-2">
+              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-3">Environment</div>
+              <div className="grid grid-cols-4 gap-2">
                 {[
-                  { id: 'neutral', class: 'bg-[#111116]', label: 'Neutral' },
-                  { id: 'cozy', class: 'bg-gradient-to-t from-[#2a1a15] to-[#7a4c35]', label: 'Cozy' },
-                  { id: 'dusk', class: 'bg-gradient-to-t from-[#0f172a] to-[#312e81]', label: 'Dusk' },
-                  { id: 'night', class: 'bg-gradient-to-b from-[#020617] to-[#000000]', label: 'Night' }
+                  { id: 'neutral', label: 'Neutral' },
+                  { id: 'cozy', label: 'Cozy' },
+                  { id: 'dusk', label: 'Dusk' },
+                  { id: 'night', label: 'Night' }
                 ].map(scene => (
                   <button
                     key={scene.id}
                     onClick={() => handleSceneryChange(scene.id)}
-                    className={`relative w-12 h-12 rounded-xl border-2 transition-all overflow-hidden ${scenery === scene.id ? 'border-[#4DE8D4] scale-110 shadow-lg' : 'border-transparent hover:border-white/20'}`}
-                    title={scene.label}
+                    className={`py-2 px-2 rounded-xl text-xs font-medium border transition-all text-center ${
+                      scenery === scene.id 
+                        ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] text-white shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
+                        : 'bg-white/[0.04] border-white/[0.08] text-gray-300 hover:border-white/20'
+                    }`}
                   >
-                    <div className={`absolute inset-0 ${scene.class}`} />
+                    {scene.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Wardrobe Switcher (Lazy loaded on demand) */}
+            {/* Wardrobe Switcher */}
             <div className="p-6 border-b border-white/[0.08]">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">Wardrobe</div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-gray-400">On-Demand</span>
+                <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider">Wardrobe</div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4DE8D4]/10 text-[#4DE8D4] border border-[#4DE8D4]/30">3D VRM</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: '/models/lyra.vrm', label: 'Default', bg: 'from-teal-950/40 to-slate-900' },
-                  { id: '/models/lyra_casual.vrm', label: 'Casual', bg: 'from-amber-950/40 to-slate-900' },
-                  { id: '/models/lyra_dress.vrm', label: 'Elegance', bg: 'from-purple-950/40 to-slate-900' }
+                  { id: '/models/lyra.vrm', label: 'Default' },
+                  { id: '/models/lyra_casual.vrm', label: 'Casual' },
+                  { id: '/models/lyra_dress.vrm', label: 'Elegance' }
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => handleOutfitChange(item.id)}
-                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-center transition-all bg-gradient-to-b ${item.bg} ${outfit === item.id ? 'border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)] scale-105' : 'border-white/[0.06] hover:border-white/20'}`}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all ${
+                      outfit === item.id 
+                        ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
+                        : 'bg-white/[0.04] border-white/[0.08] hover:border-white/20'
+                    }`}
                   >
-                    <span className="text-xs font-medium text-white truncate w-full">{item.label}</span>
+                    <span className={`text-xs font-medium truncate w-full ${outfit === item.id ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                      {item.label}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* History */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="px-2 text-xs font-mono text-gray-500 uppercase tracking-widest mb-4 mt-2">Recent Memories</div>
-              <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-4">Recent Memories</div>
+              <div className="space-y-3">
                 {memories.length === 0 ? (
-                  <div className="px-2 text-sm text-gray-500">No memories yet.</div>
+                  <div className="text-sm text-gray-400">No memories yet.</div>
                 ) : (
                   [...memories].reverse().slice(0, 5).map((mem: any) => (
-                    <div key={mem.id} className="flex items-start gap-4 p-3 rounded-2xl hover:bg-white/[0.06] transition-colors group">
-                      <MessageSquare className="w-4 h-4 text-gray-500 group-hover:text-[#4DE8D4] mt-0.5 transition-colors shrink-0" />
+                    <div key={mem.id} className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.06] hover:border-[#4DE8D4]/20 transition-all group">
+                      <MessageSquare className="w-4 h-4 text-gray-400 group-hover:text-[#4DE8D4] mt-0.5 transition-colors shrink-0" />
                       <div>
-                        <div className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors line-clamp-2">{mem.content}</div>
-                        <div className="text-xs text-gray-500 mt-1">Stored recently</div>
+                        <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors line-clamp-2 leading-relaxed">{mem.content}</div>
+                        <div className="text-xs text-gray-400 mt-1 font-mono">Stored recently</div>
                       </div>
                     </div>
                   ))
@@ -777,10 +899,10 @@ export default function Chat() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/[0.08]">
-              <Link to="/settings" className="flex items-center gap-3 p-4 rounded-2xl hover:bg-white/[0.06] transition-colors text-gray-300 hover:text-white group">
-                <Settings className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-                <span className="font-medium">Settings</span>
+            <div className="p-6 border-t border-white/[0.08]">
+              <Link to="/settings" className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors text-gray-200 hover:text-white group">
+                <Settings className="w-5 h-5 text-gray-400 group-hover:text-[#4DE8D4] transition-colors" />
+                <span className="font-medium text-sm">Settings & Privacy</span>
               </Link>
             </div>
           </motion.aside>
@@ -797,53 +919,53 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 right-0 bottom-0 w-[360px] max-w-[85vw] z-50 bg-white/[0.04] backdrop-blur-[24px] border-l border-white/[0.08] flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.5)]"
+            className="fixed top-0 right-0 bottom-0 w-[380px] max-w-[88vw] z-50 bg-[#0A0A0D]/95 backdrop-blur-[24px] border-l border-white/[0.08] flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-white/[0.08]">
-              <h2 className="font-display font-semibold text-xl text-white">Rapport</h2>
-              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.04] transition-colors">
+              <h2 className="font-display font-bold text-2xl text-white">Rapport</h2>
+              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="flex flex-col items-center text-center mb-8 mt-4">
-                <div className="w-20 h-20 rounded-full bg-[#4DE8D4]/5 flex items-center justify-center mb-5 border border-[#4DE8D4]/20 shadow-[0_0_30px_rgba(77,232,212,0.1)]">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex flex-col items-center text-center pt-2">
+                <div className="w-20 h-20 rounded-full bg-[#4DE8D4]/10 flex items-center justify-center mb-4 border border-[#4DE8D4]/30 shadow-[0_0_30px_rgba(77,232,212,0.15)]">
                   <Heart className="w-10 h-10 text-[#4DE8D4] fill-[#4DE8D4]/20" />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-white mb-2">{rapportTier}</h3>
-                <p className="text-[#4DE8D4]/70 font-mono text-sm tracking-wide">
+                <h3 className="font-display text-3xl font-bold text-white mb-2">{rapportTier}</h3>
+                <p className="text-[#4DE8D4] font-mono text-sm tracking-wide">
                   {rapportScore >= 300 ? 'Max Tier Reached' : `${100 - rapportProgress}% to Next Tier`}
                 </p>
               </div>
 
               <div className="space-y-6">
-                <div className="bg-black/40 border border-white/[0.04] rounded-3xl p-6">
-                  <h4 className="text-xs font-semibold text-[#4DE8D4] uppercase tracking-widest mb-4">Current Benefits</h4>
+                <div className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6">
+                  <h4 className="text-xs font-display font-semibold text-[#4DE8D4] uppercase tracking-wider mb-4">Current Benefits</h4>
                   <ul className="space-y-4">
                     <li className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-300 leading-relaxed">
+                      <p className="text-sm text-gray-200 leading-relaxed">
                         Lyra initiates topics related to your personal goals and challenges.
                       </p>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        Voice-call mode is now available for hands-free conversations.
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        Voice-call mode is available for hands-free conversations.
                       </p>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        Extended personality range: Lyra may express subtle vulnerability and humor.
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        Extended emotional range with responsive gestures and expressions.
                       </p>
                     </li>
                   </ul>
                 </div>
 
-                <div className="text-xs text-gray-400 leading-relaxed bg-[#4DE8D4]/5 border border-[#4DE8D4]/10 rounded-2xl p-5">
-                  <span className="block font-semibold text-[#4DE8D4] mb-1">System Note</span>
+                <div className="text-xs text-gray-300 leading-relaxed bg-[#4DE8D4]/5 border border-[#4DE8D4]/20 rounded-2xl p-5">
+                  <span className="block font-semibold text-[#4DE8D4] mb-1 font-display">System Note</span>
                   Rapport strictly influences conversational depth, emotional range, and communication modalities. It does not alter appearance, avatar features, or clothing.
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { Volume2, Sparkles, ArrowRight, Check, Heart, MessageSquare, Compass, Sh
 import CompanionStage from "../components/CompanionStage";
 import { saveLocalProfile, saveCompanion, saveMemory, getCompanion } from "../lib/storage";
 import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
+import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
 
 const VIBE_OPTIONS = [
   { id: "Warm & Gentle", label: "Warm & Gentle", desc: "Cozy, supportive, empathetic", icon: Heart },
@@ -48,21 +49,14 @@ export default function Onboarding() {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       const allVoices = window.speechSynthesis.getVoices();
       const targetPrefix = lang.split("-")[0];
-      const filtered = allVoices.filter(v => v.lang.startsWith(targetPrefix));
-      const options = filtered.length > 0 ? filtered : allVoices;
-      setVoices(options);
+      const allowed = filterAllowedVoices(allVoices, targetPrefix);
+      setVoices(allowed);
 
-      if (options.length > 0) {
-        const preferred =
-          options.find(
-            v =>
-              v.name.toLowerCase().includes("female") ||
-              v.name.toLowerCase().includes("samantha") ||
-              v.name.toLowerCase().includes("zira") ||
-              v.name.toLowerCase().includes("aditi") ||
-              v.name.toLowerCase().includes("google")
-          ) || options[0];
-        setSelectedVoiceUri(preferred.voiceURI);
+      if (allowed.length > 0) {
+        const defaultVoice = getDefaultFemaleVoice(allowed);
+        if (defaultVoice && (!selectedVoiceUri || !allowed.some(v => v.voiceURI === selectedVoiceUri))) {
+          setSelectedVoiceUri(defaultVoice.voiceURI);
+        }
       }
     };
 
@@ -70,7 +64,7 @@ export default function Onboarding() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [lang]);
+  }, [lang, selectedVoiceUri]);
 
   const speakWelcomeLine = (textToSpeak?: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -293,11 +287,11 @@ export default function Onboarding() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.96 }}
               transition={{ duration: 0.45, ease: "easeOut" }}
-              className="w-full bg-[#121217]/85 backdrop-blur-[28px] border border-white/[0.12] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col"
+              className="w-full bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-white/[0.1] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
             >
               {/* Presence Badge */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="inline-flex items-center gap-2 bg-[#4DE8D4]/10 border border-[#4DE8D4]/30 px-3 py-1 rounded-full">
+              <div className="flex items-center justify-between mb-6">
+                <div className="inline-flex items-center gap-2 bg-[#4DE8D4]/10 border border-[#4DE8D4]/30 px-3.5 py-1.5 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-[#4DE8D4] animate-pulse" />
                   <span className="text-xs font-mono text-[#4DE8D4] uppercase tracking-wider font-semibold">
                     First Meeting
@@ -306,7 +300,7 @@ export default function Onboarding() {
 
                 <button
                   onClick={() => speakWelcomeLine()}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all ${
+                  className={`flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-full border transition-all ${
                     isSpeaking
                       ? "bg-[#4DE8D4]/20 border-[#4DE8D4] text-[#4DE8D4] animate-pulse"
                       : "bg-white/[0.04] border-white/10 text-gray-300 hover:border-white/30"
@@ -319,11 +313,11 @@ export default function Onboarding() {
               </div>
 
               {/* Spoken Subtitle */}
-              <div className="mb-6">
-                <h1 className="font-display text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
+              <div className="mb-8">
+                <h1 className="font-display text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
                   {t("onboarding_step1_greeting", lang)}
                 </h1>
-                <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+                <p className="text-gray-300 text-base md:text-lg leading-relaxed">
                   {t("onboarding_step1_sub", lang)}
                 </p>
               </div>
@@ -347,13 +341,13 @@ export default function Onboarding() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.96 }}
               transition={{ duration: 0.45, ease: "easeOut" }}
-              className="w-full bg-[#121217]/90 backdrop-blur-[28px] border border-white/[0.12] rounded-3xl p-6 md:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[82vh] overflow-y-auto"
+              className="w-full bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-white/[0.1] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col max-h-[82vh] overflow-y-auto"
             >
-              <div className="mb-4">
-                <h2 className="font-display text-xl md:text-2xl font-bold text-white mb-1">
+              <div className="mb-6">
+                <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
                   {t("onboarding_step2_title", lang)}
                 </h2>
-                <p className="text-gray-400 text-xs md:text-sm">
+                <p className="text-gray-400 text-sm leading-relaxed">
                   {lang === "hi-IN"
                     ? "लायरा आपकी पसंद के अनुसार अपनी बातचीत को ढालेगी।"
                     : "This helps Lyra naturally tune her conversations with you."}
@@ -361,8 +355,8 @@ export default function Onboarding() {
               </div>
 
               {/* Name Input */}
-              <div className="mb-5">
-                <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-2">
+              <div className="mb-6">
+                <label className="block text-xs font-display font-semibold text-gray-300 uppercase tracking-wider mb-2">
                   {t("onboarding_step2_name", lang)}
                 </label>
                 <input
@@ -371,16 +365,16 @@ export default function Onboarding() {
                   onChange={e => setUserName(e.target.value)}
                   placeholder={t("onboarding_step2_name_placeholder", lang)}
                   maxLength={30}
-                  className="w-full bg-black/50 border border-white/[0.12] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DE8D4] focus:ring-1 focus:ring-[#4DE8D4] transition-all font-body text-sm"
+                  className="w-full bg-black/50 border border-white/[0.12] rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DE8D4] focus:ring-1 focus:ring-[#4DE8D4] transition-all font-body text-base"
                 />
               </div>
 
               {/* Vibe Selection */}
-              <div className="mb-5">
-                <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-2">
+              <div className="mb-6">
+                <label className="block text-xs font-display font-semibold text-gray-300 uppercase tracking-wider mb-2">
                   {t("onboarding_step2_vibe", lang)}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   {VIBE_OPTIONS.map(vibe => {
                     const Icon = vibe.icon;
                     const isSelected = selectedVibe === vibe.id;
@@ -389,19 +383,19 @@ export default function Onboarding() {
                         key={vibe.id}
                         type="button"
                         onClick={() => setSelectedVibe(vibe.id)}
-                        className={`flex flex-col text-left p-2.5 rounded-xl border transition-all ${
+                        className={`flex flex-col text-left p-3 rounded-xl border transition-all ${
                           isSelected
                             ? "bg-[#4DE8D4]/15 border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)]"
-                            : "bg-black/40 border-white/[0.08] hover:border-white/20"
+                            : "bg-white/[0.03] border-white/[0.08] hover:border-white/20"
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#4DE8D4]" : "text-gray-400"}`} />
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon className={`w-4 h-4 ${isSelected ? "text-[#4DE8D4]" : "text-gray-400"}`} />
                           <span className={`text-xs font-semibold ${isSelected ? "text-white" : "text-gray-300"}`}>
                             {vibe.label}
                           </span>
                         </div>
-                        <span className="text-[10px] text-gray-400 leading-tight line-clamp-1">{vibe.desc}</span>
+                        <span className="text-[11px] text-gray-400 leading-snug line-clamp-1">{vibe.desc}</span>
                       </button>
                     );
                   })}
@@ -409,11 +403,11 @@ export default function Onboarding() {
               </div>
 
               {/* Interest Tags */}
-              <div className="mb-6">
-                <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-2">
+              <div className="mb-8">
+                <label className="block text-xs font-display font-semibold text-gray-300 uppercase tracking-wider mb-2">
                   {t("onboarding_step2_topics", lang)}
                 </label>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {INTEREST_TAGS.map(tag => {
                     const active = selectedInterests.includes(tag);
                     return (
@@ -421,9 +415,9 @@ export default function Onboarding() {
                         key={tag}
                         type="button"
                         onClick={() => toggleInterest(tag)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        className={`px-3.5 py-2 rounded-full text-xs font-medium border transition-all ${
                           active
-                            ? "bg-[#4DE8D4] text-[#0A0A0D] border-[#4DE8D4] font-semibold"
+                            ? "bg-[#4DE8D4] text-[#0A0A0D] border-[#4DE8D4] font-semibold shadow-[0_0_10px_rgba(77,232,212,0.3)]"
                             : "bg-white/[0.04] text-gray-300 border-white/[0.08] hover:border-white/20"
                         }`}
                       >
@@ -437,7 +431,7 @@ export default function Onboarding() {
               {/* Continue CTA */}
               <button
                 onClick={goToStep3}
-                className="w-full group inline-flex items-center justify-center gap-2 bg-[#4DE8D4] text-[#0A0A0D] py-3.5 px-6 rounded-2xl font-bold text-sm md:text-base transition-all hover:bg-[#63f2df] hover:shadow-[0_0_25px_rgba(77,232,212,0.4)]"
+                className="w-full group inline-flex items-center justify-center gap-2 bg-[#4DE8D4] text-[#0A0A0D] py-4 px-6 rounded-2xl font-bold text-base transition-all hover:bg-[#63f2df] hover:shadow-[0_0_25px_rgba(77,232,212,0.4)]"
               >
                 <span>{t("onboarding_step2_cta", lang)}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -453,26 +447,26 @@ export default function Onboarding() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.96 }}
               transition={{ duration: 0.45, ease: "easeOut" }}
-              className="w-full bg-[#121217]/90 backdrop-blur-[28px] border border-white/[0.12] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col items-center text-center"
+              className="w-full bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-white/[0.1] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col items-center text-center"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#4DE8D4]/15 border border-[#4DE8D4]/40 flex items-center justify-center mb-4 text-[#4DE8D4] shadow-[0_0_20px_rgba(77,232,212,0.3)]">
-                <Sparkles className="w-6 h-6" />
+              <div className="w-14 h-14 rounded-2xl bg-[#4DE8D4]/15 border border-[#4DE8D4]/40 flex items-center justify-center mb-4 text-[#4DE8D4] shadow-[0_0_20px_rgba(77,232,212,0.3)]">
+                <Sparkles className="w-7 h-7" />
               </div>
 
-              <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-2">
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
                 {t("onboarding_step3_title", lang)}
               </h2>
 
-              <p className="text-gray-300 text-sm md:text-base mb-6 max-w-sm leading-relaxed">
+              <p className="text-gray-300 text-base md:text-lg mb-6 max-w-sm leading-relaxed">
                 {lang === "hi-IN"
                   ? `नमस्ते ${userName.trim() || "दोस्त"}! लायरा आपसे बात करने के लिए तैयार है।`
                   : `Hello, ${userName.trim() || "Friend"}! Lyra is tuned to your rhythm and ready for your first conversation.`}
               </p>
 
               {/* Seed Context Summary */}
-              <div className="w-full bg-black/40 border border-white/[0.08] rounded-2xl p-3.5 mb-6 text-left flex flex-col gap-1.5 text-xs text-gray-300">
+              <div className="w-full bg-black/40 border border-white/[0.08] rounded-2xl p-4 mb-6 text-left flex flex-col gap-2 text-xs text-gray-300">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 font-mono">Companion Name:</span>
+                  <span className="text-gray-400 font-mono">Companion:</span>
                   <span className="font-semibold text-white">Lyra</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -480,7 +474,7 @@ export default function Onboarding() {
                   <span className="font-semibold text-[#4DE8D4]">{userName.trim() || "Friend"}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 font-mono">Tone / Vibe:</span>
+                  <span className="text-gray-400 font-mono">Conversational Vibe:</span>
                   <span className="font-semibold text-white">{selectedVibe}</span>
                 </div>
               </div>

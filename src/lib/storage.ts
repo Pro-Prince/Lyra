@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { isStoredVoiceInvalid } from './voiceAllowlist';
 
 interface LyraDB extends DBSchema {
   companion: {
@@ -87,7 +88,7 @@ export async function getCompanion(): Promise<any> {
           userName: data.user_name || '',
           vibe: data.vibe || 'Warm & Gentle',
           interests: data.interests || [],
-          voiceUri: data.voice_uri || '',
+          voiceUri: data.voice_uri && !isStoredVoiceInvalid(data.voice_uri, []) ? data.voice_uri : '',
           pitch: data.pitch !== null ? Number(data.pitch) : 1.05,
           rate: data.rate !== null ? Number(data.rate) : 0.98,
           language: data.language || 'en-US',
@@ -109,7 +110,12 @@ export async function getCompanion(): Promise<any> {
 
   // Local fallback
   const db = await getIDB();
-  return db.get('companion', 'current');
+  const localComp = await db.get('companion', 'current');
+  if (localComp && localComp.voiceUri && isStoredVoiceInvalid(localComp.voiceUri, [])) {
+    localComp.voiceUri = '';
+    await db.put('companion', localComp, 'current');
+  }
+  return localComp;
 }
 
 export async function saveCompanion(data: any): Promise<void> {

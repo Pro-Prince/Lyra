@@ -4,6 +4,7 @@ import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, g
 import { useAuth } from "../context/AuthContext";
 import { Trash2, Play, Heart, AlertTriangle, User, LogOut, ShieldCheck } from "lucide-react";
 import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
+import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -58,22 +59,38 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
-    const updateVoices = () => {
+    const updateVoices = async () => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       const allVoices = window.speechSynthesis.getVoices();
       const targetPrefix = lang.split('-')[0];
-      const filteredVoices = allVoices.filter(v => v.lang.startsWith(targetPrefix));
-      const options = filteredVoices.length > 0 ? filteredVoices : allVoices;
-      setVoices(options);
+      const allowed = filterAllowedVoices(allVoices, targetPrefix);
+      setVoices(allowed);
       
-      // Only set default if we don't have one selected OR if the selected one doesn't match the new language
-      if (options.length > 0 && (!selectedVoiceUri || !options.find(v => v.voiceURI === selectedVoiceUri))) {
-        const defaultVoice = options.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('aditi')) || options[0];
-        setSelectedVoiceUri(defaultVoice.voiceURI);
+      // Determine if current selection is invalid or male
+      const isInvalid = !selectedVoiceUri || !allowed.some(v => v.voiceURI === selectedVoiceUri) || isStoredVoiceInvalid(selectedVoiceUri, allVoices);
+      
+      if (allowed.length > 0 && isInvalid) {
+        const defaultVoice = getDefaultFemaleVoice(allowed);
+        if (defaultVoice) {
+          setSelectedVoiceUri(defaultVoice.voiceURI);
+          // Persist sanitized default voice to storage if previous was male or invalid
+          try {
+            const comp = await getCompanion() || {};
+            if (comp.voiceUri !== defaultVoice.voiceURI) {
+              comp.voiceUri = defaultVoice.voiceURI;
+              await saveCompanion(comp);
+            }
+          } catch (e) {
+            console.error("Error auto-sanitizing voice in settings:", e);
+          }
+        }
       }
     };
 
     updateVoices();
-    window.speechSynthesis.onvoiceschanged = updateVoices;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
   }, [selectedVoiceUri, lang]);
 
   const handleLanguageChange = async (newLang: Language) => {
@@ -128,40 +145,42 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0A0A0D] text-white p-4 font-body overflow-y-auto">
+    <div className="flex flex-col min-h-screen bg-[#0A0A0D] text-white p-4 sm:p-8 font-body overflow-y-auto">
       <header className="flex items-center gap-4 mb-8 max-w-5xl mx-auto w-full pt-4">
-        <Link to="/chat" className="text-gray-400 hover:text-white transition-colors">← Back to Chat</Link>
-        <h1 className="text-2xl font-bold font-display">{t('settings_title', lang)}</h1>
+        <Link to="/chat" className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1.5">
+          <span>←</span> Back to Chat
+        </Link>
+        <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight text-white">{t('settings_title', lang)}</h1>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto w-full pb-10">
-        <div className="flex-1 space-y-6">
+      <div className="flex flex-col lg:flex-row gap-8 max-w-5xl mx-auto w-full pb-16">
+        <div className="flex-1 space-y-8">
           {/* General Settings */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 text-[#4DE8D4]">{t('settings_language', lang)}</h2>
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_language', lang)}</h2>
             <div className="space-y-6">
               <div>
                 <select 
                   value={lang}
                   onChange={(e) => handleLanguageChange(e.target.value as Language)}
-                  className="w-full bg-black/40 border border-white/[0.08] text-white rounded-xl p-3 focus:outline-none focus:border-[#4DE8D4] transition-colors"
+                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors"
                 >
                   <option value="en-US">English</option>
-                  <option value="hi-IN">Hindi</option>
+                  <option value="hi-IN">हिन्दी (Hindi)</option>
                 </select>
               </div>
             </div>
           </section>
 
           {/* Voice Settings */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 text-[#4DE8D4]">{t('settings_voice_label', lang)}</h2>
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_voice_label', lang)}</h2>
             <div className="space-y-6">
               <div>
                 <select 
                   value={selectedVoiceUri}
                   onChange={(e) => setSelectedVoiceUri(e.target.value)}
-                  className="w-full bg-black/40 border border-white/[0.08] text-white rounded-xl p-3 focus:outline-none focus:border-[#4DE8D4] transition-colors"
+                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors text-sm"
                 >
                   {voices.length > 0 ? voices.map(voice => (
                     <option key={voice.voiceURI} value={voice.voiceURI}>
@@ -192,16 +211,16 @@ export default function Settings() {
                   className="w-full accent-[#4DE8D4]"
                 />
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 pt-2">
                 <button 
                   onClick={handlePreview}
-                  className="flex-1 flex items-center justify-center gap-2 bg-white/[0.04] border border-[#4DE8D4]/30 text-[#4DE8D4] hover:bg-[#4DE8D4]/10 p-3 rounded-xl transition-colors font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 bg-white/[0.04] border border-[#4DE8D4]/30 text-[#4DE8D4] hover:bg-[#4DE8D4]/10 p-3.5 rounded-xl transition-colors font-semibold text-sm"
                 >
                   <Play className="w-4 h-4" /> Preview
                 </button>
                 <button 
                   onClick={handleSaveVoice}
-                  className="flex-1 bg-[#4DE8D4] text-black hover:bg-[#63f2df] p-3 rounded-xl transition-colors font-medium"
+                  className="flex-1 bg-[#4DE8D4] text-[#0A0A0D] hover:bg-[#63f2df] p-3.5 rounded-xl transition-colors font-bold text-sm shadow-[0_0_15px_rgba(77,232,212,0.25)]"
                 >
                   Save Voice
                 </button>
@@ -210,13 +229,13 @@ export default function Settings() {
           </section>
 
           {/* Outfit Settings */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 text-[#4DE8D4]">{t('settings_wardrobe', lang)}</h2>
-            <div className="flex gap-4 overflow-x-auto pb-2">
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_wardrobe', lang)}</h2>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { id: '/models/lyra.vrm', label: 'Default', bg: 'bg-[#B392F0]' },
-                { id: '/models/lyra_casual.vrm', label: 'Casual', bg: 'bg-[#FF9B9B]' },
-                { id: '/models/lyra_dress.vrm', label: 'Dress', bg: 'bg-[#4DE8D4]' }
+                { id: '/models/lyra.vrm', label: 'Default' },
+                { id: '/models/lyra_casual.vrm', label: 'Casual' },
+                { id: '/models/lyra_dress.vrm', label: 'Dress' }
               ].map(outfit => (
                 <button
                   key={outfit.id}
@@ -226,25 +245,28 @@ export default function Settings() {
                     await saveCompanion(comp);
                     setCurrentOutfit(outfit.id);
                   }}
-                  className="flex flex-col items-center gap-2 group min-w-[100px]"
+                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${
+                    currentOutfit === outfit.id 
+                      ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
+                      : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'
+                  }`}
                 >
-                  <div className={`w-20 h-24 rounded-2xl border-2 transition-all overflow-hidden flex items-end justify-center ${outfit.bg} ${currentOutfit === outfit.id ? 'border-white scale-110 shadow-lg' : 'border-transparent group-hover:border-white/20'}`}>
-                    <div className="w-12 h-12 bg-white/20 rounded-full mb-4 blur-xl" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{outfit.label}</span>
+                  <span className={`text-sm font-semibold ${currentOutfit === outfit.id ? 'text-white' : 'text-gray-300'}`}>
+                    {outfit.label}
+                  </span>
                 </button>
               ))}
             </div>
           </section>
 
           {/* Daily Check-in */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-2 text-[#4DE8D4]">{t('settings_checkin', lang)}</h2>
-            <p className="text-gray-400 text-sm mb-6">
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-2 text-white">{t('settings_checkin', lang)}</h2>
+            <p className="text-gray-300 text-sm mb-6 leading-relaxed">
               Let Lyra send a light push notification to say hi if you haven't spoken today.
             </p>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-gray-300">Enable Check-ins</span>
+              <span className="text-sm font-medium text-gray-200">Enable Check-ins</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -274,7 +296,7 @@ export default function Settings() {
               </label>
             </div>
             {checkInEnabled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">Check-in Time</label>
                 <input 
                   type="time"
@@ -286,28 +308,28 @@ export default function Settings() {
                     comp.dailyCheckInTime = val;
                     await saveCompanion(comp);
                   }}
-                  className="w-full bg-black/40 border border-white/[0.08] text-white rounded-xl p-3 focus:outline-none focus:border-[#4DE8D4] transition-colors"
+                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors"
                 />
               </div>
             )}
           </section>
 
           {/* Memories */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 text-[#4DE8D4]">{t('settings_memory', lang)}</h2>
-            <p className="text-gray-400 text-sm mb-6">
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_memory', lang)}</h2>
+            <p className="text-gray-300 text-sm mb-6 leading-relaxed">
               These are the durable facts Lyra has remembered about you from your conversations.
             </p>
             <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
               {memories.length === 0 ? (
-                <div className="text-gray-500 text-sm">No memories stored yet.</div>
+                <div className="text-gray-400 text-sm">No memories stored yet.</div>
               ) : (
                 memories.map(mem => (
-                  <div key={mem.id} className="flex items-start justify-between gap-4 p-4 bg-black/40 border border-white/[0.04] rounded-xl group">
-                    <p className="text-sm text-gray-200">{mem.content}</p>
+                  <div key={mem.id} className="flex items-start justify-between gap-4 p-4 bg-black/40 border border-white/[0.06] rounded-2xl group">
+                    <p className="text-sm text-gray-200 leading-relaxed">{mem.content}</p>
                     <button 
                       onClick={() => handleDeleteMemory(mem.id)}
-                      className="p-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 lg:opacity-100 transition-all rounded-lg hover:bg-white/[0.04]"
+                      className="p-2 text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 lg:opacity-100 transition-all rounded-lg hover:bg-white/[0.04]"
                       title="Delete Memory"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -319,17 +341,17 @@ export default function Settings() {
           </section>
         </div>
 
-        <div className="lg:w-80 space-y-6">
-          {/* User Account & Supabase Status */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 text-[#4DE8D4] flex items-center gap-2">
-              <User className="w-5 h-5" /> Account
+        <div className="lg:w-80 space-y-8">
+          {/* User Account */}
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl font-display font-semibold mb-4 text-white flex items-center gap-2">
+              <User className="w-5 h-5 text-[#4DE8D4]" /> Account
             </h2>
             <div className="space-y-4">
               <div>
-                <span className="text-xs font-mono uppercase text-gray-400 block mb-1">Status</span>
+                <span className="text-xs font-display font-semibold uppercase text-gray-400 block mb-1">Status</span>
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${user ? 'bg-[#4DE8D4] shadow-[0_0_8px_#4DE8D4]' : 'bg-amber-400'}`} />
+                  <span className={`w-2 h-2 rounded-full ${user ? 'bg-[#4DE8D4] shadow-[0_0_8px_#4DE8D4]' : 'bg-[#4DE8D4]'}`} />
                   <span className="text-sm font-semibold text-white">
                     {user ? 'Authenticated' : isGuestMode ? 'Local Guest Mode' : 'Not Signed In'}
                   </span>
@@ -338,7 +360,7 @@ export default function Settings() {
 
               {user?.email && (
                 <div>
-                  <span className="text-xs font-mono uppercase text-gray-400 block mb-1">Email</span>
+                  <span className="text-xs font-display font-semibold uppercase text-gray-400 block mb-1">Email</span>
                   <span className="text-sm text-gray-200 break-all">{user.email}</span>
                 </div>
               )}
@@ -349,11 +371,11 @@ export default function Settings() {
               </div>
 
               {isConfigured ? (
-                <div className="text-[11px] font-mono text-gray-400 bg-black/40 border border-white/[0.06] p-2.5 rounded-xl">
-                  ☁️ Connected to Supabase Auth & RLS
+                <div className="text-[11px] font-mono text-gray-300 bg-black/40 border border-white/[0.06] p-3 rounded-xl">
+                  ☁️ Connected to Cloud Database
                 </div>
               ) : (
-                <div className="text-[11px] font-mono text-amber-400/90 bg-amber-950/20 border border-amber-800/30 p-2.5 rounded-xl">
+                <div className="text-[11px] font-mono text-gray-300 bg-black/40 border border-white/[0.06] p-3 rounded-xl">
                   📁 IndexedDB Local Storage Mode
                 </div>
               )}
@@ -364,14 +386,14 @@ export default function Settings() {
                     await signOut();
                     navigate("/");
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-gray-300 hover:text-white py-2.5 px-4 rounded-xl text-xs font-medium transition-all"
+                  className="w-full flex items-center justify-center gap-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-gray-200 hover:text-white py-3 px-4 rounded-xl text-xs font-semibold transition-all"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </button>
               ) : (
                 <Link
                   to="/auth"
-                  className="w-full flex items-center justify-center gap-2 bg-[#4DE8D4]/15 hover:bg-[#4DE8D4]/25 border border-[#4DE8D4]/30 text-[#4DE8D4] py-2.5 px-4 rounded-xl text-xs font-semibold transition-all text-center"
+                  className="w-full flex items-center justify-center gap-2 bg-[#4DE8D4]/15 hover:bg-[#4DE8D4]/25 border border-[#4DE8D4]/30 text-[#4DE8D4] py-3 px-4 rounded-xl text-xs font-semibold transition-all text-center"
                 >
                   Sign In / Create Account
                 </Link>
@@ -380,29 +402,29 @@ export default function Settings() {
           </section>
 
           {/* Rapport Status */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#4DE8D4]/10 flex items-center justify-center mb-4">
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full bg-[#4DE8D4]/10 flex items-center justify-center mb-4 border border-[#4DE8D4]/30 shadow-[0_0_20px_rgba(77,232,212,0.15)]">
               <Heart className="w-8 h-8 text-[#4DE8D4] fill-[#4DE8D4]/20" />
             </div>
-            <h3 className="font-display text-lg font-bold text-white mb-2">{rapportTier}</h3>
-            <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-2">
-              <div className="h-full rounded-full bg-[#4DE8D4]" style={{ width: `${rapportProgress}%` }} />
+            <h3 className="font-display text-xl font-bold text-white mb-2">{rapportTier}</h3>
+            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden mb-3">
+              <div className="h-full rounded-full bg-[#4DE8D4] shadow-[0_0_8px_#4DE8D4]" style={{ width: `${rapportProgress}%` }} />
             </div>
-            <p className="text-gray-400 text-xs">
+            <p className="text-gray-300 text-xs">
               {rapportProgress === 100 ? "Max Tier Reached" : `${100 - rapportProgress}% to next tier`}
             </p>
           </section>
 
           {/* Data & Privacy */}
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-red-400">
+          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" /> Danger Zone
             </h2>
             <div className="space-y-6">
               
               <div>
-                <p className="text-gray-400 text-sm mb-3">
-                  <strong>Reset Companion</strong><br/>
+                <p className="text-gray-300 text-sm mb-3 leading-relaxed">
+                  <strong className="text-white">Reset Companion</strong><br/>
                   Wipes your chat history, memories, and rapport. Lyra will forget you, but keep her voice settings. Type <strong>RESET</strong> to confirm.
                 </p>
                 <div className="flex gap-2">
@@ -411,11 +433,11 @@ export default function Settings() {
                     value={resetConfirm}
                     onChange={(e) => setResetConfirm(e.target.value)}
                     placeholder="RESET"
-                    className="flex-1 bg-black/40 border border-white/[0.08] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors"
+                    className="flex-1 bg-black/40 border border-white/[0.1] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors text-sm"
                   />
                   <button 
                     onClick={handleResetCompanion}
-                    className="bg-red-900/50 text-red-400 border border-red-800/50 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-medium disabled:opacity-50"
+                    className="bg-red-950/60 text-red-300 border border-red-800/60 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-semibold text-xs disabled:opacity-50"
                     disabled={resetConfirm !== "RESET"}
                   >
                     Reset
@@ -424,8 +446,8 @@ export default function Settings() {
               </div>
 
               <div>
-                <p className="text-gray-400 text-sm mb-3">
-                  <strong>Clear All Data</strong><br/>
+                <p className="text-gray-300 text-sm mb-3 leading-relaxed">
+                  <strong className="text-white">Clear All Data</strong><br/>
                   Wipes EVERYTHING including your profile and sends you back to onboarding. Type <strong>CLEAR</strong> to confirm.
                 </p>
                 <div className="flex gap-2">
@@ -434,11 +456,11 @@ export default function Settings() {
                     value={clearConfirm}
                     onChange={(e) => setClearConfirm(e.target.value)}
                     placeholder="CLEAR"
-                    className="flex-1 bg-black/40 border border-white/[0.08] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors"
+                    className="flex-1 bg-black/40 border border-white/[0.1] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors text-sm"
                   />
                   <button 
                     onClick={handleClear}
-                    className="bg-red-900/50 text-red-400 border border-red-800/50 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-medium disabled:opacity-50"
+                    className="bg-red-950/60 text-red-300 border border-red-800/60 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-semibold text-xs disabled:opacity-50"
                     disabled={clearConfirm !== "CLEAR"}
                   >
                     Clear

@@ -31,18 +31,30 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
 };
 
 function CameraSetup({ isCallMode }: { isCallMode: boolean }) {
-  const { camera } = useThree();
-  useEffect(() => {
-    // Position camera for a waist-up shot
-    camera.position.set(0, 1.35, 1.6);
-    camera.lookAt(0, 1.35, 0);
-  }, [camera]);
+  const { camera, size } = useThree();
+  const aspect = size.width / Math.max(size.height, 1);
 
   useFrame((state, delta) => {
-    const targetFov = isCallMode ? 35 : 45;
+    const isMobilePortrait = aspect < 0.75;
+    const isTabletOrSquare = aspect >= 0.75 && aspect < 1.2;
+    
+    // Adaptive framing: perfectly centered portrait framing so Lyra fills the stage without awkward cropping
+    const targetY = isMobilePortrait ? 1.30 : (isTabletOrSquare ? 1.32 : 1.33);
+    const targetZ = isCallMode 
+      ? (isMobilePortrait ? 1.55 : 1.35) 
+      : (isMobilePortrait ? 1.80 : (isTabletOrSquare ? 1.62 : 1.46));
+    const targetLookAtY = isMobilePortrait ? 1.26 : 1.31;
+    
+    const targetFov = isCallMode ? 36 : (isMobilePortrait ? 46 : 42);
     const cam = state.camera as THREE.PerspectiveCamera;
+    const safeDelta = Math.min(delta, 0.05);
+
+    cam.position.x = THREE.MathUtils.lerp(cam.position.x, 0, safeDelta * 4);
+    cam.position.y = THREE.MathUtils.lerp(cam.position.y, targetY, safeDelta * 4);
+    cam.position.z = THREE.MathUtils.lerp(cam.position.z, targetZ, safeDelta * 4);
+    cam.lookAt(0, targetLookAtY, 0);
+
     if (Math.abs(cam.fov - targetFov) > 0.05) {
-      const safeDelta = Math.min(delta, 0.05);
       cam.fov = THREE.MathUtils.lerp(cam.fov, targetFov, safeDelta * 4);
       cam.updateProjectionMatrix();
     }
@@ -92,26 +104,27 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
     const lerpSpeed = safeDelta * 4;
 
     SCRATCH_COLOR_A.set("#ffffff");
-    let targetAmbientIntensity = 0.6;
+    let targetAmbientIntensity = 0.65;
     SCRATCH_COLOR_B.set("#ffffff");
     let targetKeyIntensity = 1.0;
-    SCRATCH_COLOR_C.set(accentColor);
-    let targetFillIntensity = 0.5;
+    SCRATCH_COLOR_C.set("#4DE8D4");
+    let targetFillIntensity = 0.55;
     SCRATCH_VEC_A.set(-2, 1, 3);
 
     if (scenery === 'cozy') {
-      SCRATCH_COLOR_A.set("#FFE8D6"); targetAmbientIntensity = 0.6;
-      SCRATCH_COLOR_B.set("#FFE8D6"); targetKeyIntensity = 0.9;
-      SCRATCH_COLOR_C.set("#F0C0A0"); targetFillIntensity = 0.4;
+      // Soft gentle focus with #4DE8D4 rim
+      targetAmbientIntensity = 0.6;
+      targetKeyIntensity = 0.95;
+      targetFillIntensity = 0.45;
     } else if (scenery === 'dusk') {
-      SCRATCH_COLOR_A.set("#A0C0E0"); targetAmbientIntensity = 0.4;
-      SCRATCH_COLOR_B.set("#80A0C0"); targetKeyIntensity = 0.7;
-      SCRATCH_COLOR_C.set("#C080E0"); targetFillIntensity = 0.5;
-      SCRATCH_VEC_A.set(-2, 1, -2);
+      targetAmbientIntensity = 0.5;
+      targetKeyIntensity = 0.85;
+      targetFillIntensity = 0.5;
+      SCRATCH_VEC_A.set(-2, 1.2, 2);
     } else if (scenery === 'night') {
-      SCRATCH_COLOR_A.set("#405070"); targetAmbientIntensity = 0.3;
-      SCRATCH_COLOR_B.set("#E0E0FF"); targetKeyIntensity = 0.5;
-      SCRATCH_COLOR_C.set(accentColor); targetFillIntensity = 0.3;
+      targetAmbientIntensity = 0.4;
+      targetKeyIntensity = 0.75;
+      targetFillIntensity = 0.4;
     }
     
     if (ambientRef.current) {
@@ -131,9 +144,9 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
 
   return (
     <>
-      <ambientLight ref={ambientRef} intensity={0.6} color="#ffffff" />
+      <ambientLight ref={ambientRef} intensity={0.65} color="#ffffff" />
       <directionalLight ref={keyRef} position={[2, 3, 2]} intensity={1.0} color="#ffffff" />
-      <directionalLight ref={fillRef} position={[-2, 1, 3]} intensity={0.5} color={accentColor} />
+      <directionalLight ref={fillRef} position={[-2, 1, 3]} intensity={0.55} color="#4DE8D4" />
     </>
   );
 }
@@ -726,25 +739,23 @@ export default function CompanionStage({
 
   const bgClass = () => {
     switch (scenery) {
-      case 'cozy': return 'bg-gradient-to-t from-[#2a1a15] via-[#4a2e22] to-[#7a4c35]';
-      case 'dusk': return 'bg-gradient-to-t from-[#0f172a] via-[#1e1b4b] to-[#312e81]';
-      case 'night': return 'bg-gradient-to-b from-[#020617] via-[#09090b] to-[#000000]';
+      case 'night': return 'bg-[#0A0A0D]';
+      case 'cozy': return 'bg-[#0A0A0D]';
+      case 'dusk': return 'bg-[#0A0A0D]';
       case 'neutral':
-      default: return 'bg-gradient-to-b from-[#111116] via-[#0A0A0D] to-[#0A0A0D]';
+      default: return 'bg-[#0A0A0D]';
     }
   };
 
   return (
-    <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none">
-      {/* Dynamic Background Atmosphere */}
+    <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[#0A0A0D]">
+      {/* Unified Background Atmosphere */}
       <div className={`absolute inset-0 transition-colors duration-1000 ${bgClass()}`} />
       
-      {scenery !== 'cozy' && scenery !== 'dusk' && (
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 opacity-[0.04] blur-[80px] rounded-full pointer-events-none transition-colors duration-1000"
-          style={{ backgroundColor: accentColor }}
-        />
-      )}
+      {/* Subtle Cyan Ambient Glow */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] opacity-[0.035] blur-[100px] rounded-full pointer-events-none transition-colors duration-1000 bg-[#4DE8D4]"
+      />
 
       {/* Loading Skeleton / Progress Overlay */}
       <AnimatePresence>
@@ -754,9 +765,9 @@ export default function CompanionStage({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="absolute inset-0 z-20 flex items-center justify-center"
+            className="absolute inset-0 z-20 flex items-center justify-center bg-[#0A0A0D]/80 backdrop-blur-md"
           >
-            <StageLoader progress={loadProgress} accentColor={accentColor} isInitial={!hasEverLoaded} />
+            <StageLoader progress={loadProgress} accentColor="#4DE8D4" isInitial={!hasEverLoaded} />
           </motion.div>
         )}
       </AnimatePresence>
