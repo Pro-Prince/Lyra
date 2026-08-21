@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured, SupabaseProfile } from '../lib/supabaseClient';
-import { getLocalProfile, saveLocalProfile } from '../lib/storage';
+import { getLocalProfile, saveLocalProfile, migrateIndexedDBToSupabase } from '../lib/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(initialSession.user);
             setSession(initialSession);
             await fetchProfile(initialSession.user.id, initialSession.user.email);
+            // Run one-time migration of local IndexedDB data to Supabase
+            migrateIndexedDBToSupabase(initialSession.user.id).catch(console.warn);
           } else {
             // Check local profile for guest mode
             const local = await getLocalProfile();
@@ -110,6 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (newSession?.user) {
               setIsGuestMode(false);
               await fetchProfile(newSession.user.id, newSession.user.email);
+              // Run one-time migration on login
+              migrateIndexedDBToSupabase(newSession.user.id).catch(console.warn);
             } else {
               setProfile(null);
             }

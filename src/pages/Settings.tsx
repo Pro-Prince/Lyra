@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport } from "../lib/storage";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport, resetCompanionHistory } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
 import { Trash2, Play, Heart, AlertTriangle, User, LogOut, ShieldCheck } from "lucide-react";
 import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
@@ -114,10 +114,7 @@ export default function Settings() {
   const handleResetCompanion = async () => {
     if (resetConfirm === "RESET") {
       // Clear messages, memories, rapport, but keep profile/companion setup
-      const db = await (await import('idb')).openDB('lyra-pwa-db', 1);
-      await db.clear('messages');
-      await db.clear('memories');
-      await db.clear('rapport');
+      await resetCompanionHistory();
       alert("Companion reset. Starting fresh.");
       navigate("/chat");
     } else {

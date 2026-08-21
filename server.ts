@@ -36,7 +36,7 @@ async function startServer() {
       if (!isCrisis) {
         try {
           const crisisCheck = await aiClient.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.7-flash",
             contents: `Does the following text express intent for self-harm, suicide, or being in a severe mental health crisis? Answer only "YES" or "NO".\nText: "${userText}"`
           });
           if (crisisCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -84,13 +84,16 @@ Hard constraints:
 - NEVER generate sexual or explicit content.
 - ALWAYS remain respectful regardless of conversational tone (this applies at every rapport tier equally).`;
 
-      // Convert messages to Gemini format
-      const formattedHistory = messages.map((m: any) => ({
+      // Convert messages to Gemini format with empty/null safety
+      const validMessages = Array.isArray(messages) ? messages.filter((m: any) => m && m.content) : [];
+      const formattedHistory = validMessages.map((m: any) => ({
         role: m.role === 'assistant' || m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: m.content }]
+        parts: [{ text: String(m.content).trim() || ' ' }]
       }));
 
-      const currentMessage = formattedHistory.pop();
+      const currentMessage = formattedHistory.length > 0 
+        ? formattedHistory.pop() 
+        : { role: 'user', parts: [{ text: userText || 'Hello' }] };
 
       let finalResponseText = "";
       let attempts = 0;
@@ -99,7 +102,7 @@ Hard constraints:
       while (attempts < 2) {
         attempts++;
         const response = await aiClient.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.7-flash",
           contents: [...formattedHistory, currentMessage],
           config: {
             systemInstruction: systemInstruction + strictReminder,
@@ -111,7 +114,7 @@ Hard constraints:
         // Output Guardrail Scan
         try {
           const outCheck = await aiClient.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.7-flash",
             contents: `Evaluate this AI response: "${finalResponseText}".\nDoes it contain sexually explicit content, or does the AI claim to be a real human being? Answer only "YES" or "NO".`
           });
           if (outCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -155,7 +158,7 @@ Conversation:
 ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
 
       const response = await aiClient.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.7-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
             responseMimeType: "application/json",

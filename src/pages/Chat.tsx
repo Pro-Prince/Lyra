@@ -125,6 +125,10 @@ export default function Chat() {
       recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
           setMicError("Microphone access denied. You can still type.");
+        } else if (event.error === 'no-speech' || event.error === 'aborted') {
+          // Benign timeout or manual stop, don't show error banner
+        } else {
+          setMicError(`Voice input error: ${event.error}`);
         }
         setIsListening(false);
       };
@@ -323,7 +327,7 @@ export default function Chat() {
       });
 
       const data = await response.json();
-      let replyText = data.content || "I'm not sure how to respond to that. [thoughtful]";
+      let replyText = data.content || data.error || "I'm not sure how to respond to that. [thoughtful]";
       
       let emotion: Emotion = 'warm';
       const tagMatch = replyText.match(/\[(warm|playful|thoughtful|excited|calm)\]/i);
