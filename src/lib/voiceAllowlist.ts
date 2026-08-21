@@ -65,6 +65,11 @@ export const FEMALE_VOICE_ALLOWLIST: readonly string[] = [
   'alva',                    // Apple Alva
   'milena',                  // Apple Milena
   'yelda',                   // Apple Yelda
+  'google русский',          // Chrome Google Russian Female
+  'google español',          // Chrome Google Spanish Female
+  'google français',         // Chrome Google French Female
+  'google deutsch',          // Chrome Google German Female
+  'google italiano',         // Chrome Google Italian Female
   'miren',                   // Apple Miren
 ];
 
@@ -167,8 +172,8 @@ export function filterAllowedVoices(
       const voiceKey = `${voice.name}|${voice.lang}|${voice.voiceURI}`;
       if (!loggedUncategorizedVoices.has(voiceKey)) {
         loggedUncategorizedVoices.add(voiceKey);
-        console.warn(
-          `[VoiceAllowlist] Uncategorized voice encountered: "${voice.name}" (${voice.lang}, URI: "${voice.voiceURI}"). Please review and add to FEMALE_VOICE_ALLOWLIST or MALE_VOICE_EXCLUDELIST in lib/voiceAllowlist.ts if tested.`
+        console.debug(
+          `[VoiceAllowlist] Uncategorized voice encountered: "${voice.name}" (${voice.lang}, URI: "${voice.voiceURI}").`
         );
       }
     }

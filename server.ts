@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import "dotenv/config";
@@ -20,6 +21,29 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Explicit static file serving for /models with binary content-type and range support
+  const modelsPath = path.join(process.cwd(), "public", "models");
+  app.get("/models/:filename", (req, res, next) => {
+    const filePath = path.join(modelsPath, req.params.filename);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      res.setHeader("Content-Type", "model/gltf-binary");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.sendFile(filePath);
+    }
+    next();
+  });
+
+  app.use("/models", express.static(modelsPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".vrm")) {
+        res.setHeader("Content-Type", "model/gltf-binary");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      }
+    }
+  }));
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages, companionProfile, rapportTier, isCallMode, memories } = req.body;
@@ -36,7 +60,7 @@ async function startServer() {
       if (!isCrisis) {
         try {
           const crisisCheck = await aiClient.models.generateContent({
-            model: "gemini-3.7-flash",
+            model: "gemini-3.6-flash",
             contents: `Does the following text express intent for self-harm, suicide, or being in a severe mental health crisis? Answer only "YES" or "NO".\nText: "${userText}"`
           });
           if (crisisCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -102,7 +126,7 @@ Hard constraints:
       while (attempts < 2) {
         attempts++;
         const response = await aiClient.models.generateContent({
-          model: "gemini-3.7-flash",
+          model: "gemini-3.6-flash",
           contents: [...formattedHistory, currentMessage],
           config: {
             systemInstruction: systemInstruction + strictReminder,
@@ -114,7 +138,7 @@ Hard constraints:
         // Output Guardrail Scan
         try {
           const outCheck = await aiClient.models.generateContent({
-            model: "gemini-3.7-flash",
+            model: "gemini-3.6-flash",
             contents: `Evaluate this AI response: "${finalResponseText}".\nDoes it contain sexually explicit content, or does the AI claim to be a real human being? Answer only "YES" or "NO".`
           });
           if (outCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -158,7 +182,7 @@ Conversation:
 ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
 
       const response = await aiClient.models.generateContent({
-        model: "gemini-3.7-flash",
+        model: "gemini-3.6-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
             responseMimeType: "application/json",
@@ -173,22 +197,13 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
-  // Explicit static file serving for /models with binary content-type
-  const modelsPath = path.join(process.cwd(), "public", "models");
-  app.use("/models", express.static(modelsPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".vrm")) {
-        res.setHeader("Content-Type", "model/gltf-binary");
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-      }
-    }
-  }));
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

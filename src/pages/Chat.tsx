@@ -6,6 +6,8 @@ import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getRapport, saveRapport } from "../lib/storage";
 import { t, Language, getLanguage } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
+import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
+import { useToast } from "../hooks/useToast";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -16,17 +18,18 @@ interface LiveSubtitle {
   timestamp: number;
 }
 
-const ACCENT_COLOR = '#4DE8D4';
+const ACCENT_COLOR = '#FF8FC0';
 
 const emotionColors: Record<Emotion, string> = {
-  warm: '#4DE8D4',
-  playful: '#4DE8D4',
-  thoughtful: '#4DE8D4',
-  calm: '#4DE8D4',
-  excited: '#4DE8D4',
+  warm: '#FF8FC0',
+  playful: '#FFD9B3',
+  thoughtful: '#C9A6FF',
+  calm: '#C9A6FF',
+  excited: '#FF8FC0',
 };
 
 export default function Chat() {
+  const { showError, showInfo } = useToast();
   const [isLeftOpen, setIsLeftOpen] = useState(false);
   const [isRightOpen, setIsRightOpen] = useState(false);
   
@@ -40,7 +43,6 @@ export default function Chat() {
 
   const [isMuted, setIsMuted] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [micError, setMicError] = useState("");
 
   const [isCallMode, setIsCallMode] = useState(false);
   const [isLyraSpeaking, setIsLyraSpeaking] = useState(false);
@@ -203,11 +205,19 @@ export default function Chat() {
       };
       recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
-          setMicError("Microphone access denied. You can still type.");
+          console.error('[SpeechRecognition] Microphone permission denied:', event);
+          showError("Can't hear you right now, check your browser's microphone permission", {
+            label: "Retry",
+            onClick: () => toggleMic()
+          });
         } else if (event.error === 'no-speech' || event.error === 'aborted') {
-          // Benign timeout or manual stop, don't show error banner
+          // Benign timeout or intentional cancellation - ignore silently
         } else {
-          setMicError(`Voice input error: ${event.error}`);
+          console.error('[SpeechRecognition] Voice input error:', event.error);
+          showError("Having trouble hearing your voice right now, try speaking again", {
+            label: "Retry",
+            onClick: () => toggleMic()
+          });
         }
         setIsListening(false);
       };
@@ -219,7 +229,8 @@ export default function Chat() {
       };
       recognitionRef.current = recognition;
     } else {
-      setMicError("Speech recognition not supported in this browser.");
+      console.warn('[SpeechRecognition] Browser does not support Web Speech API recognition');
+      showError("Voice input isn't supported in this browser, you can still type below");
     }
   };
 
@@ -243,7 +254,10 @@ export default function Chat() {
   }, [speechPulse]);
 
   const toggleMic = () => {
-    if (micError && !recognitionRef.current) return;
+    if (!recognitionRef.current) {
+      showError("Voice input isn't supported in this browser, you can still type below");
+      return;
+    }
     
     if (isListening) {
       recognitionRef.current?.stop();
@@ -253,14 +267,18 @@ export default function Chat() {
       try {
         recognitionRef.current?.start();
         setIsListening(true);
-        setMicError("");
       } catch (e) {
-        console.error(e);
+        console.error('[SpeechRecognition] Failed to start microphone:', e);
+        showError("Can't start microphone right now, check your browser's permissions", {
+          label: "Retry",
+          onClick: () => toggleMic()
+        });
       }
     }
   };
 
   const speakText = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     if (isMuted || !companionProfileRef.current) return;
     
@@ -370,7 +388,9 @@ export default function Chat() {
       setIsListening(false);
     }
     
-    window.speechSynthesis.cancel();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
     setIsLyraSpeaking(false);
 
@@ -391,7 +411,6 @@ export default function Chat() {
       const { tier } = getRapportStatus(rapportScore);
       const companionProfile = companionProfileRef.current || {};
       
-      // Get a few relevant memories (most recently referenced or random, here just pick the first few for simplicity)
       const topMemories = memories.slice(0, 5);
 
       const response = await fetch('/api/chat', {
@@ -406,8 +425,18 @@ export default function Chat() {
         })
       });
 
-      const data = await response.json();
-      let replyText = data.content || data.error || "I'm not sure how to respond to that. [thoughtful]";
+      const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
+
+      if (!response.ok || data.error) {
+        console.error('[ChatAPI] Backend response error:', data?.error || `HTTP ${response.status}`);
+        showError("Lost the connection for a second, try sending that again", {
+          label: "Retry",
+          onClick: () => executeSend(textToSend)
+        });
+        return;
+      }
+
+      let replyText = data.content || "I'm here with you. [warm]";
       
       let emotion: Emotion = 'warm';
       const tagMatch = replyText.match(/\[(warm|playful|thoughtful|excited|calm)\]/i);
@@ -443,7 +472,7 @@ export default function Chat() {
       setRapportScore(newScore);
       await saveRapport({ score: newScore });
 
-      // Asynchronous fact extraction (don't await so we don't block)
+      // Asynchronous fact extraction
       const recentChatContext = [...currentMessages.slice(-8), userMsg, modelMsg];
       fetch('/api/extract-memory', {
          method: 'POST',
@@ -454,7 +483,6 @@ export default function Chat() {
            let updatedMemories = [...memories];
            let added = false;
            for (const fact of data.facts) {
-             // Basic duplicate check
              if (!updatedMemories.some(m => m.content.toLowerCase() === fact.toLowerCase())) {
                const newMem = {
                  id: crypto.randomUUID(),
@@ -469,19 +497,16 @@ export default function Chat() {
            }
            if (added) setMemories(updatedMemories);
          }
-      }).catch(console.error);
+      }).catch(err => {
+         console.error('[MemoryExtraction] Failed to extract memory:', err);
+      });
 
     } catch (error) {
-      const fallbackMsg = {
-        id: crypto.randomUUID(),
-        role: 'model',
-        content: "Sorry, I lost my train of thought for a moment there.",
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, fallbackMsg]);
-      triggerSubtitle('model', fallbackMsg.content);
-      await saveMessage(fallbackMsg);
-      speakText(fallbackMsg.content);
+      console.error('[ChatAPI] Failed to communicate with chat service:', error);
+      showError("Lost the connection for a second, try sending that again", {
+        label: "Retry",
+        onClick: () => executeSend(textToSend)
+      });
     } finally {
       setIsLoading(false);
     }
@@ -492,11 +517,11 @@ export default function Chat() {
     setInputText("");
   };
 
-  const accentColor = emotionColors[currentEmotion];
+  const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
   const { tier: rapportTier, progress: rapportProgress } = getRapportStatus(rapportScore);
 
   return (
-    <div className="relative w-[100vw] h-[100svh] bg-[#0A0A0D] text-white overflow-hidden font-body flex" style={{ '--accent': accentColor } as React.CSSProperties}>
+    <div className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" style={{ '--accent': activeAccent } as React.CSSProperties}>
       {/* MAIN STAGE */}
       <motion.main
         className="flex-1 relative flex flex-col h-full z-0 transform-gpu origin-center"
@@ -522,23 +547,23 @@ export default function Chat() {
         >
           <button
             onClick={() => setIsLeftOpen(true)}
-            className="pointer-events-auto p-3 rounded-full bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] hover:bg-white/[0.08] transition-colors shadow-lg"
+            className="pointer-events-auto p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
             aria-label="Open Menu"
           >
-            <Menu className="w-6 h-6" style={{ color: accentColor }} />
+            <Menu className="w-6 h-6 text-[var(--accent-primary)]" />
           </button>
 
           <button
             onClick={() => setIsRightOpen(true)}
-            className="pointer-events-auto flex flex-col items-end gap-1.5 p-3 rounded-2xl bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] hover:bg-white/[0.08] transition-colors shadow-lg"
+            className="pointer-events-auto flex flex-col items-end gap-1.5 p-3 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
             aria-label="View Rapport"
           >
             <div className="flex items-center gap-2">
-              <span className="font-display text-sm font-semibold text-white tracking-wide">{rapportTier}</span>
-              <Heart className="w-4 h-4" style={{ color: accentColor, fill: `${accentColor}33` }} />
+              <span className="font-display text-sm font-semibold text-[var(--text-primary)] tracking-wide">{rapportTier}</span>
+              <Heart className="w-4 h-4 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
             </div>
             <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${rapportProgress}%`, backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
+              <div className="h-full rounded-full transition-all duration-700 bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" style={{ width: `${rapportProgress}%` }} />
             </div>
           </button>
         </motion.header>
@@ -547,7 +572,7 @@ export default function Chat() {
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center pointer-events-none z-0">
           <div className="w-full h-full pointer-events-auto">
             <CompanionStage 
-              accentColor={accentColor} 
+              accentColor={activeAccent} 
               isCallMode={isCallMode} 
               scenery={scenery} 
               outfitUrl={outfit} 
@@ -565,9 +590,9 @@ export default function Chat() {
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto"
             >
-              <div className="bg-[#0A0A0D]/95 backdrop-blur-[24px] border border-white/[0.12] rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-                <h2 className="text-2xl font-display font-bold text-white mb-3 tracking-tight">Important Notice</h2>
-                <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+              <div className="bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border border-[var(--accent-primary)]/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+                <h2 className="text-2xl font-display font-bold text-[var(--text-primary)] mb-3 tracking-tight">Important Notice</h2>
+                <p className="font-body text-[var(--text-muted)] text-sm mb-6 leading-relaxed">
                   Lyra is an AI companion designed for entertainment and conversation. She is not human and does not have real feelings or thoughts. 
                   <br/><br/>
                   Please be aware that AI can make mistakes or generate inappropriate content, though she has safety guardrails in place. Do not rely on Lyra for professional, medical, or crisis advice.
@@ -577,7 +602,7 @@ export default function Chat() {
                     localStorage.setItem('ai_disclosure_accepted', 'true');
                     setShowDisclosure(false);
                   }}
-                  className="w-full py-3.5 rounded-xl text-[#0A0A0D] bg-[#4DE8D4] hover:bg-[#63f2df] font-bold text-sm transition-all shadow-[0_0_20px_rgba(77,232,212,0.3)]"
+                  className="w-full py-3.5 rounded-xl text-[#2D0A1E] bg-[var(--accent-primary)] hover:brightness-105 font-body font-bold text-sm transition-all shadow-[0_0_20px_rgba(255,143,192,0.3)] cursor-pointer"
                 >
                   I Understand
                 </button>
@@ -586,7 +611,7 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* FLOATING SUBTITLE OVERLAY (Near chest area, live conversational overlay) */}
+        {/* FLOATING SUBTITLE OVERLAY (Favors Lyra's voice hierarchy) */}
         <div className="absolute top-[42%] sm:top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-4 sm:px-6 pointer-events-none z-20 flex flex-col items-center gap-3">
           <AnimatePresence mode="popLayout">
             {subtitles.map((sub) => (
@@ -605,26 +630,26 @@ export default function Chat() {
                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
                 className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
                   sub.role === 'user'
-                    ? 'bg-[#0A0A0D]/85 backdrop-blur-[24px] border border-white/10 px-5 py-3 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.7)]'
-                    : 'bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-[#4DE8D4]/40 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(77,232,212,0.15)]'
+                    ? 'bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
+                    : 'bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(255,143,192,0.25)]'
                 }`}
               >
                 {sub.role === 'user' ? (
                   <div className="flex flex-col items-center">
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-gray-400 mb-0.5">
+                    <span className="text-[10px] font-body font-semibold tracking-wider uppercase text-[var(--text-muted)]/80 mb-0.5">
                       You
                     </span>
-                    <p className="text-sm sm:text-base font-normal text-gray-200 tracking-wide leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                    <p className="text-xs sm:text-sm font-body text-[var(--text-muted)] tracking-wide leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
                       {sub.text}
                     </p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-1.5 mb-1.5 text-xs font-display font-semibold tracking-wider uppercase text-white">
-                      <Sparkles className="w-3.5 h-3.5 text-[#4DE8D4]" />
+                    <div className="flex items-center gap-1.5 mb-1.5 text-xs font-display font-semibold tracking-wider uppercase text-[var(--text-primary)]">
+                      <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                       <span>Lyra</span>
                     </div>
-                    <p className="text-base sm:text-lg font-medium text-white tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+                    <p className="text-base sm:text-lg font-body font-medium text-[var(--text-primary)] tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
                       {sub.text}
                     </p>
                   </div>
@@ -639,10 +664,10 @@ export default function Chat() {
                 initial={{ opacity: 0, y: 12, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -12, scale: 0.95, transition: { duration: 0.25 } }}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#0A0A0D]/90 backdrop-blur-[24px] border border-[#4DE8D4]/30 shadow-[0_4px_20px_rgba(0,0,0,0.7)]"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/30 shadow-[0_4px_20px_rgba(0,0,0,0.7)]"
               >
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#4DE8D4]" />
-                <span className="text-xs font-mono text-gray-300 tracking-wide">Lyra is thinking...</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-primary)]" />
+                <span className="text-xs font-body text-[var(--text-muted)] tracking-wide">Lyra is thinking...</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -653,37 +678,31 @@ export default function Chat() {
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
           className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none"
         >
-          <div className="max-w-3xl mx-auto pointer-events-auto flex items-end gap-2.5 bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-3 shadow-2xl relative">
-            {micError && (
-               <div className="absolute -top-10 left-4 bg-black/90 text-red-400 text-xs px-3 py-1.5 rounded-full border border-red-500/20">
-                 {micError}
-               </div>
-            )}
-            
+          <div className="max-w-3xl mx-auto pointer-events-auto flex items-end gap-2.5 bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-[16px] p-2.5 shadow-2xl relative">
             <button 
               onClick={() => {
                 setIsCallMode(true);
                 if (!isListening && !isLyraSpeaking) toggleMic();
               }}
               disabled={rapportScore < 100}
-              className={`p-3 transition-colors rounded-full ${rapportScore < 100 ? 'text-gray-600 cursor-not-allowed opacity-50' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+              className={`p-3 transition-colors rounded-full ${rapportScore < 100 ? 'text-gray-600 cursor-not-allowed opacity-50' : 'text-[var(--text-muted)] hover:bg-white/[0.06]'}`}
               title={rapportScore < 100 ? "Unlock at Tier 2" : "Call Mode"}
             >
-              <Phone className="w-5 h-5" style={{ color: rapportScore < 100 ? '#666' : '#4DE8D4' }} />
+              <Phone className="w-5 h-5" style={{ color: rapportScore < 100 ? '#666' : 'var(--accent-primary)' }} />
             </button>
             
             <button 
               onClick={() => setIsMuted(!isMuted)}
-              className="p-3 text-gray-400 transition-colors rounded-full hover:bg-white/[0.06]" 
+              className="p-3 text-[var(--text-muted)] transition-colors rounded-full hover:bg-white/[0.06]" 
               title={isMuted ? "Unmute Voice" : "Mute Voice"}
             >
-              {isMuted ? <VolumeX className="w-5 h-5 text-gray-500" /> : <Volume2 className="w-5 h-5 text-[#4DE8D4]" />}
+              {isMuted ? <VolumeX className="w-5 h-5 text-gray-500" /> : <Volume2 className="w-5 h-5 text-[var(--accent-primary)]" />}
             </button>
 
             <div className="relative">
               <button
                 onClick={() => setShowGestureMenu(!showGestureMenu)}
-                className={`p-3 transition-colors rounded-full ${showGestureMenu ? 'bg-white/[0.08] text-white' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+                className={`p-3 transition-colors rounded-full ${showGestureMenu ? 'bg-white/[0.08] text-white' : 'text-[var(--text-muted)] hover:bg-white/[0.06]'}`}
                 title="Gestures"
               >
                 <Smile className="w-5 h-5" />
@@ -700,7 +719,7 @@ export default function Chat() {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[#0A0A0D]/95 backdrop-blur-[24px] border border-white/[0.12] rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-1 z-50"
+                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border border-[var(--accent-primary)]/20 rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-1 z-50"
                     >
                       {[
                         { id: 'wave', label: 'Wave', text: 'gives a little wave' },
@@ -712,7 +731,7 @@ export default function Chat() {
                         <button
                           key={g.id}
                           onClick={() => triggerGesture(g.id, g.text)}
-                          className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-white/[0.08] transition-colors whitespace-nowrap"
+                          className="px-3.5 py-2 rounded-xl text-sm font-body font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.08] transition-colors whitespace-nowrap cursor-pointer"
                         >
                           {g.label}
                         </button>
@@ -725,7 +744,11 @@ export default function Chat() {
 
             <button 
               onClick={toggleMic}
-              className={`p-3 transition-colors rounded-full ${isListening ? 'bg-[#4DE8D4]/20 text-[#4DE8D4] border border-[#4DE8D4]/40' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+              className={`p-3 transition-all rounded-full ${
+                isListening 
+                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_12px_rgba(255,143,192,0.4)]' 
+                  : 'text-[var(--text-muted)] hover:bg-white/[0.06]'
+              }`}
               title="Tap to Listen"
             >
               {isListening ? <Mic className="w-5 h-5 animate-pulse" /> : <MicOff className="w-5 h-5" />}
@@ -740,14 +763,14 @@ export default function Chat() {
                   handleSend();
                 }
               }}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none py-3 px-2 max-h-32 min-h-[48px] font-body text-base"
+              className="flex-1 bg-transparent border-none focus:ring-0 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 resize-none py-3 px-2 max-h-32 min-h-[48px] font-body text-sm sm:text-base"
               placeholder={isListening ? "Listening..." : t('chat_placeholder', lang)}
               rows={1}
             />
             <button 
               onClick={handleSend}
               disabled={isLoading || (!inputText.trim() && !isListening)}
-              className="p-3 text-[#0A0A0D] rounded-full transition-all bg-[#4DE8D4] hover:bg-[#63f2df] shadow-[0_0_15px_rgba(77,232,212,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-3 text-[#2D0A1E] font-bold rounded-full transition-all bg-[var(--accent-primary)] hover:brightness-105 shadow-[0_0_15px_rgba(255,143,192,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -762,34 +785,34 @@ export default function Chat() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-20 pointer-events-auto bg-[#0A0A0D]/40 backdrop-blur-sm"
+            className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-20 pointer-events-auto bg-[var(--bg-base)]/60 backdrop-blur-sm"
             onClick={() => setIsCallMode(false)}
           >
-            <div className="absolute top-12 text-gray-400 text-xs tracking-widest uppercase font-mono bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
+            <div className="absolute top-12 text-[var(--text-muted)] text-xs tracking-widest uppercase font-body bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
               Tap anywhere to exit call
             </div>
             
             <div className="relative w-24 h-24 flex items-center justify-center">
               <motion.div 
-                className="absolute inset-0 rounded-full border-2 border-[#4DE8D4]"
+                className="absolute inset-0 rounded-full border-2 border-[var(--accent-primary)] shadow-[0_0_20px_rgba(255,143,192,0.3)]"
                 animate={{ 
-                  scale: isLyraSpeaking ? speechPulse : (isListening ? 1.1 : 1), 
-                  opacity: isLyraSpeaking ? 0.8 : (isListening ? 0.3 : 0.1) 
+                  scale: isLyraSpeaking ? speechPulse : (isListening ? 1.15 : 1), 
+                  opacity: isLyraSpeaking ? 0.85 : (isListening ? 0.4 : 0.15) 
                 }}
                 transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
               />
               <motion.div 
-                className="w-12 h-12 rounded-full bg-[#4DE8D4] shadow-[0_0_24px_#4DE8D4]"
+                className="w-12 h-12 rounded-full bg-[var(--accent-primary)] shadow-[0_0_30px_rgba(255,143,192,0.5)]"
                 animate={{ 
-                  scale: isLyraSpeaking ? 1.2 : 1, 
-                  opacity: isLyraSpeaking ? 1 : 0.5 
+                  scale: isLyraSpeaking ? 1.25 : 1, 
+                  opacity: isLyraSpeaking ? 1 : 0.6 
                 }}
               />
               {!isLyraSpeaking && isListening && (
-                <div className="absolute -bottom-8 text-xs font-mono text-gray-300">Listening...</div>
+                <div className="absolute -bottom-8 text-xs font-body text-[var(--text-muted)]">Listening...</div>
               )}
               {!isLyraSpeaking && !isListening && isLoading && (
-                <div className="absolute -bottom-8 text-xs font-mono text-gray-300">Thinking...</div>
+                <div className="absolute -bottom-8 text-xs font-body text-[var(--text-muted)]">Thinking...</div>
               )}
             </div>
           </motion.div>
@@ -806,28 +829,28 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[#0A0A0D]/95 backdrop-blur-[24px] border-r border-white/[0.08] flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
+            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
           >
-            <div className="p-6 flex items-center justify-between border-b border-white/[0.08]">
-              <h2 className="font-display font-bold text-2xl text-white">Menu</h2>
-              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors">
+            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
+              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Menu</h2>
+              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Status Label */}
-            <div className="p-6 border-b border-white/[0.08]">
-              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-3">Lyra's Status</div>
+            <div className="p-6 border-b border-[var(--accent-primary)]/10">
+              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Lyra's Status</div>
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#4DE8D4] shadow-[0_0_10px_#4DE8D4]" />
-                <span className="text-sm font-medium text-gray-200">Reflective & Attentive</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_10px_var(--accent-primary)]" />
+                <span className="text-sm font-medium text-[var(--text-primary)]">Reflective & Attentive</span>
               </div>
             </div>
 
             {/* Scenery Switcher */}
-            <div className="p-6 border-b border-white/[0.08]">
-              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-3">Environment</div>
-              <div className="grid grid-cols-4 gap-2">
+            <div className="p-6 border-b border-[var(--accent-primary)]/10">
+              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Environment</div>
+              <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'neutral', label: 'Neutral' },
                   { id: 'cozy', label: 'Cozy' },
@@ -837,23 +860,28 @@ export default function Chat() {
                   <button
                     key={scene.id}
                     onClick={() => handleSceneryChange(scene.id)}
-                    className={`py-2 px-2 rounded-xl text-xs font-medium border transition-all text-center ${
+                    className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all text-left group ${
                       scenery === scene.id 
-                        ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] text-white shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
-                        : 'bg-white/[0.04] border-white/[0.08] text-gray-300 hover:border-white/20'
+                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
+                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
                     }`}
                   >
-                    {scene.label}
+                    <div className="w-10 h-7 rounded-lg overflow-hidden shrink-0 bg-black/40 border border-white/[0.06]">
+                      <SceneryThumbnail id={scene.id} />
+                    </div>
+                    <span className={`text-xs font-medium truncate ${scenery === scene.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                      {scene.label}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Wardrobe Switcher */}
-            <div className="p-6 border-b border-white/[0.08]">
+            <div className="p-6 border-b border-[var(--accent-primary)]/10">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider">Wardrobe</div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4DE8D4]/10 text-[#4DE8D4] border border-[#4DE8D4]/30">3D VRM</span>
+                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider">Wardrobe</div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30">3D VRM</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -864,13 +892,16 @@ export default function Chat() {
                   <button
                     key={item.id}
                     onClick={() => handleOutfitChange(item.id)}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all ${
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-center transition-all group ${
                       outfit === item.id 
-                        ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
-                        : 'bg-white/[0.04] border-white/[0.08] hover:border-white/20'
+                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
+                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
                     }`}
                   >
-                    <span className={`text-xs font-medium truncate w-full ${outfit === item.id ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
+                      <OutfitThumbnail id={item.id} />
+                    </div>
+                    <span className={`text-xs font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
                       {item.label}
                     </span>
                   </button>
@@ -880,17 +911,17 @@ export default function Chat() {
 
             {/* History */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="text-xs font-display font-semibold text-gray-400 uppercase tracking-wider mb-4">Recent Memories</div>
+              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Recent Memories</div>
               <div className="space-y-3">
                 {memories.length === 0 ? (
-                  <div className="text-sm text-gray-400">No memories yet.</div>
+                  <div className="text-sm text-[var(--text-muted)]">No memories yet.</div>
                 ) : (
                   [...memories].reverse().slice(0, 5).map((mem: any) => (
-                    <div key={mem.id} className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.06] hover:border-[#4DE8D4]/20 transition-all group">
-                      <MessageSquare className="w-4 h-4 text-gray-400 group-hover:text-[#4DE8D4] mt-0.5 transition-colors shrink-0" />
+                    <div key={mem.id} className="flex items-start gap-3 p-3.5 rounded-2xl bg-[var(--bg-base)]/40 border border-[var(--accent-primary)]/10 hover:bg-[var(--bg-base)]/60 hover:border-[var(--accent-primary)]/30 transition-all group">
+                      <MessageSquare className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] mt-0.5 transition-colors shrink-0" />
                       <div>
-                        <div className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors line-clamp-2 leading-relaxed">{mem.content}</div>
-                        <div className="text-xs text-gray-400 mt-1 font-mono">Stored recently</div>
+                        <div className="text-sm font-medium text-[var(--text-primary)] group-hover:text-white transition-colors line-clamp-2 leading-relaxed">{mem.content}</div>
+                        <div className="text-xs text-[var(--text-muted)] mt-1 font-mono">Stored recently</div>
                       </div>
                     </div>
                   ))
@@ -899,9 +930,9 @@ export default function Chat() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-white/[0.08]">
-              <Link to="/settings" className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-colors text-gray-200 hover:text-white group">
-                <Settings className="w-5 h-5 text-gray-400 group-hover:text-[#4DE8D4] transition-colors" />
+            <div className="p-6 border-t border-[var(--accent-primary)]/10">
+              <Link to="/settings" className="flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--bg-base)]/50 hover:bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/15 transition-colors text-[var(--text-primary)] group">
+                <Settings className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors" />
                 <span className="font-medium text-sm">Settings & Privacy</span>
               </Link>
             </div>
@@ -919,53 +950,53 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 right-0 bottom-0 w-[380px] max-w-[88vw] z-50 bg-[#0A0A0D]/95 backdrop-blur-[24px] border-l border-white/[0.08] flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
+            className="fixed top-0 right-0 bottom-0 w-[380px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
           >
-            <div className="p-6 flex items-center justify-between border-b border-white/[0.08]">
-              <h2 className="font-display font-bold text-2xl text-white">Rapport</h2>
-              <button onClick={closeDrawers} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/[0.06] transition-colors">
+            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
+              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Rapport</h2>
+              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="flex flex-col items-center text-center pt-2">
-                <div className="w-20 h-20 rounded-full bg-[#4DE8D4]/10 flex items-center justify-center mb-4 border border-[#4DE8D4]/30 shadow-[0_0_30px_rgba(77,232,212,0.15)]">
-                  <Heart className="w-10 h-10 text-[#4DE8D4] fill-[#4DE8D4]/20" />
+                <div className="w-20 h-20 rounded-full bg-[var(--accent-primary)]/10 flex items-center justify-center mb-4 border border-[var(--accent-primary)]/30 shadow-[0_0_30px_rgba(255,143,192,0.25)]">
+                  <Heart className="w-10 h-10 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
                 </div>
-                <h3 className="font-display text-3xl font-bold text-white mb-2">{rapportTier}</h3>
-                <p className="text-[#4DE8D4] font-mono text-sm tracking-wide">
+                <h3 className="font-display text-3xl font-bold text-[var(--text-primary)] mb-2">{rapportTier}</h3>
+                <p className="text-[var(--accent-primary)] font-body font-semibold text-sm tracking-wide">
                   {rapportScore >= 300 ? 'Max Tier Reached' : `${100 - rapportProgress}% to Next Tier`}
                 </p>
               </div>
 
               <div className="space-y-6">
-                <div className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6">
-                  <h4 className="text-xs font-display font-semibold text-[#4DE8D4] uppercase tracking-wider mb-4">Current Benefits</h4>
+                <div className="bg-[var(--bg-base)]/50 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6">
+                  <h4 className="text-xs font-display font-semibold text-[var(--accent-primary)] uppercase tracking-wider mb-4">Current Benefits</h4>
                   <ul className="space-y-4">
                     <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-200 leading-relaxed">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
+                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
                         Lyra initiates topics related to your personal goals and challenges.
                       </p>
                     </li>
                     <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-200 leading-relaxed">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
+                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
                         Voice-call mode is available for hands-free conversations.
                       </p>
                     </li>
                     <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4DE8D4] mt-2 shadow-[0_0_8px_#4DE8D4]" />
-                      <p className="text-sm text-gray-200 leading-relaxed">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
+                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
                         Extended emotional range with responsive gestures and expressions.
                       </p>
                     </li>
                   </ul>
                 </div>
 
-                <div className="text-xs text-gray-300 leading-relaxed bg-[#4DE8D4]/5 border border-[#4DE8D4]/20 rounded-2xl p-5">
-                  <span className="block font-semibold text-[#4DE8D4] mb-1 font-display">System Note</span>
+                <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-2xl p-5">
+                  <span className="block font-semibold text-[var(--accent-primary)] mb-1 font-display">System Note</span>
                   Rapport strictly influences conversational depth, emotional range, and communication modalities. It does not alter appearance, avatar features, or clothing.
                 </div>
               </div>

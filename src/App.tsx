@@ -12,6 +12,7 @@ import Chat from "./pages/Chat";
 import Settings from "./pages/Settings";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
 
 export default function App() {
@@ -28,7 +29,7 @@ export default function App() {
         const comp = await getCompanion();
         if (!comp || !comp.dailyCheckInEnabled || !comp.dailyCheckInTime) return;
 
-        if (Notification.permission !== 'granted') return;
+        if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
 
         const now = new Date();
         const [targetHour, targetMin] = comp.dailyCheckInTime.split(':').map(Number);
@@ -42,15 +43,17 @@ export default function App() {
         if (isSameDay) return;
 
         if (now.getHours() > targetHour || (now.getHours() === targetHour && now.getMinutes() >= targetMin)) {
-          // Trigger notification
-          const reg = await navigator.serviceWorker.ready;
-          reg.showNotification("Lyra", {
-            body: "Hey! No pressure, just thought I'd say hi whenever you have a moment. ✨",
-            icon: "/icon.svg",
-            badge: "/icon.svg",
-            tag: "daily-checkin",
-            requireInteraction: true
-          });
+          // Trigger notification if serviceWorker is available
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification("Lyra", {
+              body: "Hey! No pressure, just thought I'd say hi whenever you have a moment. ✨",
+              icon: "/icon.svg",
+              badge: "/icon.svg",
+              tag: "daily-checkin",
+              requireInteraction: true
+            });
+          }
 
           // Mark as sent
           comp.lastCheckInSentAt = now.getTime();
@@ -66,29 +69,31 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route
-            path="/chat"
-            element={
-              <ProtectedRoute>
-                <Chat />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <Chat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

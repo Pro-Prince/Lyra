@@ -1,34 +1,52 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport, resetCompanionHistory } from "../lib/storage";
-import { useAuth } from "../context/AuthContext";
-import { Trash2, Play, Heart, AlertTriangle, User, LogOut, ShieldCheck } from "lucide-react";
+import { Trash2, Play, Heart, AlertTriangle, ArrowLeft, Volume2, Globe, Sparkles, Moon, Bell, Check } from "lucide-react";
 import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
+import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
+import { useToast } from "../hooks/useToast";
+
+const OUTFITS = [
+  { id: '/models/lyra.vrm', label: 'Cyber Signature', tag: 'Standard' },
+  { id: '/models/lyra_casual.vrm', label: 'Urban Casual', tag: 'Hoodie' },
+  { id: '/models/lyra_dress.vrm', label: 'Midnight Silk', tag: 'Dress' }
+];
+
+const SCENERIES = [
+  { id: 'neutral', label: 'Studio Neutral', desc: 'Clean spotlight focus' },
+  { id: 'cozy', label: 'Cozy Room', desc: 'Warm ambient glow' },
+  { id: 'dusk', label: 'Sunset Dusk', desc: 'Golden purple horizon' },
+  { id: 'night', label: 'Night Sky', desc: 'Deep starry atmosphere' }
+];
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, profile, isConfigured, isGuestMode, signOut } = useAuth();
+  const { showInfo, showError } = useToast();
   const [memories, setMemories] = useState<any[]>([]);
 
   const [rapportTier, setRapportTier] = useState("Tier 1: Acquaintance");
   const [rapportProgress, setRapportProgress] = useState(0);
 
-  // Voice Settings
+  // Voice & Language Settings
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceUri, setSelectedVoiceUri] = useState("");
   const [pitch, setPitch] = useState(1);
   const [rate, setRate] = useState(1);
-  
-  const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
   const [lang, setLang] = useState<Language>(getLanguage());
+  
+  // Customization
+  const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
+  const [currentScenery, setCurrentScenery] = useState<string>("neutral");
 
   // Check-in Settings
   const [checkInEnabled, setCheckInEnabled] = useState(false);
   const [checkInTime, setCheckInTime] = useState("");
 
+  // Confirmation modals / strings
   const [resetConfirm, setResetConfirm] = useState("");
   const [clearConfirm, setClearConfirm] = useState("");
+  const [saveVoiceSuccess, setSaveVoiceSuccess] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -50,6 +68,7 @@ export default function Settings() {
         setPitch(comp.pitch || 1);
         setRate(comp.rate || 1);
         if (comp.outfit) setCurrentOutfit(comp.outfit);
+        if (comp.scenery) setCurrentScenery(comp.scenery);
         if (comp.dailyCheckInEnabled) setCheckInEnabled(true);
         if (comp.dailyCheckInTime) setCheckInTime(comp.dailyCheckInTime);
         if (comp.language) setLang(comp.language as Language);
@@ -66,14 +85,12 @@ export default function Settings() {
       const allowed = filterAllowedVoices(allVoices, targetPrefix);
       setVoices(allowed);
       
-      // Determine if current selection is invalid or male
       const isInvalid = !selectedVoiceUri || !allowed.some(v => v.voiceURI === selectedVoiceUri) || isStoredVoiceInvalid(selectedVoiceUri, allVoices);
       
       if (allowed.length > 0 && isInvalid) {
         const defaultVoice = getDefaultFemaleVoice(allowed);
         if (defaultVoice) {
           setSelectedVoiceUri(defaultVoice.voiceURI);
-          // Persist sanitized default voice to storage if previous was male or invalid
           try {
             const comp = await getCompanion() || {};
             if (comp.voiceUri !== defaultVoice.voiceURI) {
@@ -115,363 +132,448 @@ export default function Settings() {
   const handleSaveVoice = async () => {
     const comp = await getCompanion() || {};
     await saveCompanion({ ...comp, voiceUri: selectedVoiceUri, pitch, rate, language: lang });
-    alert("Voice settings saved.");
+    showInfo("Voice and personality settings saved");
   };
 
   const handleClear = async () => {
     if (clearConfirm === "CLEAR") {
       await clearAllData();
-      alert("All local data cleared.");
+      showInfo("All local storage cleared");
       navigate("/");
-    } else {
-      alert("Please type CLEAR to confirm.");
     }
   };
 
   const handleResetCompanion = async () => {
     if (resetConfirm === "RESET") {
-      // Clear messages, memories, rapport, but keep profile/companion setup
       await resetCompanionHistory();
-      alert("Companion reset. Starting fresh.");
+      showInfo("Companion memory and chat history reset");
       navigate("/chat");
-    } else {
-      alert("Please type RESET to confirm.");
     }
   };
 
   const handleDeleteMemory = async (id: string) => {
     await deleteMemory(id);
     setMemories(memories.filter(m => m.id !== id));
+    showInfo("Memory deleted");
+  };
+
+  const handleSelectOutfit = async (outfitId: string) => {
+    const comp = await getCompanion() || {};
+    comp.outfit = outfitId;
+    await saveCompanion(comp);
+    setCurrentOutfit(outfitId);
+  };
+
+  const handleSelectScenery = async (sceneryId: string) => {
+    const comp = await getCompanion() || {};
+    comp.scenery = sceneryId;
+    await saveCompanion(comp);
+    setCurrentScenery(sceneryId);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0A0A0D] text-white p-4 sm:p-8 font-body overflow-y-auto">
-      <header className="flex items-center gap-4 mb-8 max-w-5xl mx-auto w-full pt-4">
-        <Link to="/chat" className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1.5">
-          <span>←</span> Back to Chat
-        </Link>
-        <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight text-white">{t('settings_title', lang)}</h1>
+    <div className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto">
+      {/* Top Header */}
+      <header className="flex items-center justify-between mb-8 max-w-6xl mx-auto w-full pt-2">
+        <div className="flex items-center gap-4">
+          <Link 
+            to="/chat" 
+            className="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] bg-[var(--bg-surface)]/80 hover:bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 px-3.5 py-2 rounded-xl transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Chat
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)]">
+            {t('settings_title', lang)}
+          </h1>
+        </div>
+
+        {/* Rapport Pill */}
+        <div className="flex items-center gap-2.5 bg-[var(--bg-surface)]/90 border border-[var(--accent-primary)]/20 px-4 py-2 rounded-full shadow-md">
+          <Heart className="w-4 h-4 text-[var(--accent-primary)] fill-[var(--accent-primary)]/20" />
+          <span className="text-xs font-medium text-[var(--text-primary)]">{rapportTier}</span>
+          <div className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden ml-1">
+            <div className="h-full bg-[var(--accent-primary)] rounded-full" style={{ width: `${rapportProgress}%` }} />
+          </div>
+        </div>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-8 max-w-5xl mx-auto w-full pb-16">
-        <div className="flex-1 space-y-8">
-          {/* General Settings */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_language', lang)}</h2>
-            <div className="space-y-6">
-              <div>
-                <select 
-                  value={lang}
-                  onChange={(e) => handleLanguageChange(e.target.value as Language)}
-                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors"
-                >
-                  <option value="en-US">English</option>
-                  <option value="hi-IN">हिन्दी (Hindi)</option>
-                </select>
+      {/* Bento Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto w-full pb-12">
+        
+        {/* CARD 1: Voice & Language Configuration (Span 7) */}
+        <section className="md:col-span-7 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
+                  <Volume2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Language & Voice</h2>
+                  <p className="text-xs font-body text-[var(--text-muted)]">Synthesis dialect and acoustic tuning</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span className="text-xs font-body text-[var(--text-muted)]">{lang === 'hi-IN' ? 'हिन्दी' : 'English'}</span>
               </div>
             </div>
-          </section>
 
-          {/* Voice Settings */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_voice_label', lang)}</h2>
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {/* Language Selection */}
               <div>
+                <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                  Language Dialect
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange('en-US')}
+                    className={`py-2.5 px-3.5 rounded-xl border text-xs font-body transition-all text-center cursor-pointer ${
+                      lang === 'en-US'
+                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.25)] font-semibold'
+                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
+                    }`}
+                  >
+                    English (US)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange('hi-IN')}
+                    className={`py-2.5 px-3.5 rounded-xl border text-xs font-body transition-all text-center cursor-pointer ${
+                      lang === 'hi-IN'
+                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.25)] font-semibold'
+                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
+                    }`}
+                  >
+                    हिन्दी (Hindi)
+                  </button>
+                </div>
+              </div>
+
+              {/* TTS Voice Selector */}
+              <div>
+                <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                  Companion Voice
+                </label>
                 <select 
                   value={selectedVoiceUri}
                   onChange={(e) => setSelectedVoiceUri(e.target.value)}
-                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors text-sm"
+                  className="w-full bg-[var(--bg-base)]/70 border border-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-xl p-3 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/50 transition-all text-xs font-body"
                 >
                   {voices.length > 0 ? voices.map(voice => (
-                    <option key={voice.voiceURI} value={voice.voiceURI}>
+                    <option key={voice.voiceURI} value={voice.voiceURI} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
                       {voice.name} ({voice.lang})
                     </option>
                   )) : (
-                    <option value="">{t('tts_no_voice', lang)}</option>
+                    <option value="" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">{t('tts_no_voice', lang)}</option>
                   )}
                 </select>
               </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-300">{t('settings_pitch', lang)} ({pitch.toFixed(1)})</label>
-                </div>
-                <input 
-                  type="range" min="0" max="2" step="0.1" 
-                  value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
-                  className="w-full accent-[#4DE8D4]"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-300">{t('settings_speed', lang)} ({rate.toFixed(1)}x)</label>
-                </div>
-                <input 
-                  type="range" min="0.5" max="2" step="0.1" 
-                  value={rate} onChange={(e) => setRate(parseFloat(e.target.value))}
-                  className="w-full accent-[#4DE8D4]"
-                />
-              </div>
-              <div className="flex gap-4 pt-2">
-                <button 
-                  onClick={handlePreview}
-                  className="flex-1 flex items-center justify-center gap-2 bg-white/[0.04] border border-[#4DE8D4]/30 text-[#4DE8D4] hover:bg-[#4DE8D4]/10 p-3.5 rounded-xl transition-colors font-semibold text-sm"
-                >
-                  <Play className="w-4 h-4" /> Preview
-                </button>
-                <button 
-                  onClick={handleSaveVoice}
-                  className="flex-1 bg-[#4DE8D4] text-[#0A0A0D] hover:bg-[#63f2df] p-3.5 rounded-xl transition-colors font-bold text-sm shadow-[0_0_15px_rgba(77,232,212,0.25)]"
-                >
-                  Save Voice
-                </button>
-              </div>
-            </div>
-          </section>
 
-          {/* Outfit Settings */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_wardrobe', lang)}</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: '/models/lyra.vrm', label: 'Default' },
-                { id: '/models/lyra_casual.vrm', label: 'Casual' },
-                { id: '/models/lyra_dress.vrm', label: 'Dress' }
-              ].map(outfit => (
-                <button
-                  key={outfit.id}
-                  onClick={async () => {
-                    const comp = await getCompanion() || {};
-                    comp.outfit = outfit.id;
-                    await saveCompanion(comp);
-                    setCurrentOutfit(outfit.id);
-                  }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${
-                    currentOutfit === outfit.id 
-                      ? 'bg-[#4DE8D4]/15 border-[#4DE8D4] shadow-[0_0_12px_rgba(77,232,212,0.2)]' 
-                      : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'
-                  }`}
-                >
-                  <span className={`text-sm font-semibold ${currentOutfit === outfit.id ? 'text-white' : 'text-gray-300'}`}>
-                    {outfit.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Daily Check-in */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-2 text-white">{t('settings_checkin', lang)}</h2>
-            <p className="text-gray-300 text-sm mb-6 leading-relaxed">
-              Let Lyra send a light push notification to say hi if you haven't spoken today.
-            </p>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-gray-200">Enable Check-ins</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={checkInEnabled}
-                  onChange={async (e) => {
-                    const checked = e.target.checked;
-                    if (checked) {
-                      const permission = await Notification.requestPermission();
-                      if (permission === 'granted') {
-                        setCheckInEnabled(true);
-                        const comp = await getCompanion() || {};
-                        comp.dailyCheckInEnabled = true;
-                        await saveCompanion(comp);
-                      } else {
-                        alert("Notifications permission denied.");
-                      }
-                    } else {
-                      setCheckInEnabled(false);
-                      const comp = await getCompanion() || {};
-                      comp.dailyCheckInEnabled = false;
-                      await saveCompanion(comp);
-                    }
-                  }}
-                />
-                <div className="w-11 h-6 bg-black/60 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4DE8D4]"></div>
-              </label>
-            </div>
-            {checkInEnabled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Check-in Time</label>
-                <input 
-                  type="time"
-                  value={checkInTime}
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    setCheckInTime(val);
-                    const comp = await getCompanion() || {};
-                    comp.dailyCheckInTime = val;
-                    await saveCompanion(comp);
-                  }}
-                  className="w-full bg-black/40 border border-white/[0.1] text-white rounded-xl p-3.5 focus:outline-none focus:border-[#4DE8D4] transition-colors"
-                />
-              </div>
-            )}
-          </section>
-
-          {/* Memories */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-display font-semibold mb-4 text-white">{t('settings_memory', lang)}</h2>
-            <p className="text-gray-300 text-sm mb-6 leading-relaxed">
-              These are the durable facts Lyra has remembered about you from your conversations.
-            </p>
-            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
-              {memories.length === 0 ? (
-                <div className="text-gray-400 text-sm">No memories stored yet.</div>
-              ) : (
-                memories.map(mem => (
-                  <div key={mem.id} className="flex items-start justify-between gap-4 p-4 bg-black/40 border border-white/[0.06] rounded-2xl group">
-                    <p className="text-sm text-gray-200 leading-relaxed">{mem.content}</p>
-                    <button 
-                      onClick={() => handleDeleteMemory(mem.id)}
-                      className="p-2 text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 lg:opacity-100 transition-all rounded-lg hover:bg-white/[0.04]"
-                      title="Delete Memory"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
-
-        <div className="lg:w-80 space-y-8">
-          {/* User Account */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl font-display font-semibold mb-4 text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-[#4DE8D4]" /> Account
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <span className="text-xs font-display font-semibold uppercase text-gray-400 block mb-1">Status</span>
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${user ? 'bg-[#4DE8D4] shadow-[0_0_8px_#4DE8D4]' : 'bg-[#4DE8D4]'}`} />
-                  <span className="text-sm font-semibold text-white">
-                    {user ? 'Authenticated' : isGuestMode ? 'Local Guest Mode' : 'Not Signed In'}
-                  </span>
-                </div>
-              </div>
-
-              {user?.email && (
+              {/* Pitch & Rate Sliders */}
+              <div className="grid grid-cols-2 gap-4 pt-1 font-body">
                 <div>
-                  <span className="text-xs font-display font-semibold uppercase text-gray-400 block mb-1">Email</span>
-                  <span className="text-sm text-gray-200 break-all">{user.email}</span>
+                  <div className="flex justify-between mb-1.5 text-xs">
+                    <span className="text-[var(--text-muted)]">Pitch</span>
+                    <span className="font-semibold text-[var(--accent-primary)]">{pitch.toFixed(1)}</span>
+                  </div>
+                  <input 
+                    type="range" min="0.6" max="1.5" step="0.1" 
+                    value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
+                    className="w-full accent-[var(--accent-primary)] cursor-pointer"
+                  />
                 </div>
-              )}
+                <div>
+                  <div className="flex justify-between mb-1.5 text-xs">
+                    <span className="text-[var(--text-muted)]">Pace</span>
+                    <span className="font-semibold text-[var(--accent-primary)]">{rate.toFixed(1)}x</span>
+                  </div>
+                  <input 
+                    type="range" min="0.7" max="1.4" step="0.1" 
+                    value={rate} onChange={(e) => setRate(parseFloat(e.target.value))}
+                    className="w-full accent-[var(--accent-primary)] cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <ShieldCheck className="w-4 h-4 text-[#4DE8D4]" />
-                <span className="text-xs text-gray-300">18+ Adult Verified</span>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-5 mt-4 border-t border-[var(--accent-primary)]/10 font-body">
+            <button 
+              type="button"
+              onClick={handlePreview}
+              className="flex-1 flex items-center justify-center gap-2 bg-white/[0.04] border border-[var(--accent-primary)]/20 hover:border-[var(--accent-primary)] text-[var(--text-primary)] py-2.5 px-4 rounded-xl transition-all font-semibold text-xs cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 text-[var(--accent-primary)]" /> Test Sample
+            </button>
+            <button 
+              type="button"
+              onClick={handleSaveVoice}
+              className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 py-2.5 px-4 rounded-xl transition-all font-bold text-xs shadow-[0_0_15px_rgba(255,143,192,0.25)] cursor-pointer"
+            >
+              {saveVoiceSuccess ? <Check className="w-4 h-4" /> : null}
+              {saveVoiceSuccess ? "Saved" : "Save Voice Settings"}
+            </button>
+          </div>
+        </section>
+
+        {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
+        <section className="md:col-span-5 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Daily Check-in</h2>
+                <p className="text-xs font-body text-[var(--text-muted)]">Gentle reminders to connect</p>
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 rounded-2xl p-4 mb-4 font-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-[var(--text-primary)] block">Presence Ping</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">A light greeting if you haven't spoken</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer" 
+                    checked={checkInEnabled}
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      if (checked) {
+                        if (!('Notification' in window)) {
+                          showError("Browser notifications are not supported on this device");
+                          return;
+                        }
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                          setCheckInEnabled(true);
+                          const comp = await getCompanion() || {};
+                          comp.dailyCheckInEnabled = true;
+                          await saveCompanion(comp);
+                          showInfo("Presence pings enabled");
+                        } else {
+                          showError("Notifications aren't enabled, check your browser permissions to get daily check-ins");
+                        }
+                      } else {
+                        setCheckInEnabled(false);
+                        const comp = await getCompanion() || {};
+                        comp.dailyCheckInEnabled = false;
+                        await saveCompanion(comp);
+                        showInfo("Presence pings disabled");
+                      }
+                    }}
+                  />
+                  <div className="w-10 h-5 bg-black/60 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
+                </label>
               </div>
 
-              {isConfigured ? (
-                <div className="text-[11px] font-mono text-gray-300 bg-black/40 border border-white/[0.06] p-3 rounded-xl">
-                  ☁️ Connected to Cloud Database
-                </div>
-              ) : (
-                <div className="text-[11px] font-mono text-gray-300 bg-black/40 border border-white/[0.06] p-3 rounded-xl">
-                  📁 IndexedDB Local Storage Mode
-                </div>
-              )}
-
-              {user ? (
-                <button
-                  onClick={async () => {
-                    await signOut();
-                    navigate("/");
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-gray-200 hover:text-white py-3 px-4 rounded-xl text-xs font-semibold transition-all"
-                >
-                  <LogOut className="w-3.5 h-3.5" /> Sign Out
-                </button>
-              ) : (
-                <Link
-                  to="/auth"
-                  className="w-full flex items-center justify-center gap-2 bg-[#4DE8D4]/15 hover:bg-[#4DE8D4]/25 border border-[#4DE8D4]/30 text-[#4DE8D4] py-3 px-4 rounded-xl text-xs font-semibold transition-all text-center"
-                >
-                  Sign In / Create Account
-                </Link>
-              )}
-            </div>
-          </section>
-
-          {/* Rapport Status */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#4DE8D4]/10 flex items-center justify-center mb-4 border border-[#4DE8D4]/30 shadow-[0_0_20px_rgba(77,232,212,0.15)]">
-              <Heart className="w-8 h-8 text-[#4DE8D4] fill-[#4DE8D4]/20" />
-            </div>
-            <h3 className="font-display text-xl font-bold text-white mb-2">{rapportTier}</h3>
-            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden mb-3">
-              <div className="h-full rounded-full bg-[#4DE8D4] shadow-[0_0_8px_#4DE8D4]" style={{ width: `${rapportProgress}%` }} />
-            </div>
-            <p className="text-gray-300 text-xs">
-              {rapportProgress === 100 ? "Max Tier Reached" : `${100 - rapportProgress}% to next tier`}
-            </p>
-          </section>
-
-          {/* Data & Privacy */}
-          <section className="bg-white/[0.04] backdrop-blur-[24px] border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-5 h-5" /> Danger Zone
-            </h2>
-            <div className="space-y-6">
-              
-              <div>
-                <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-                  <strong className="text-white">Reset Companion</strong><br/>
-                  Wipes your chat history, memories, and rapport. Lyra will forget you, but keep her voice settings. Type <strong>RESET</strong> to confirm.
-                </p>
-                <div className="flex gap-2">
+              {checkInEnabled && (
+                <div className="pt-3 mt-3 border-t border-[var(--accent-primary)]/10 animate-in fade-in duration-200">
+                  <label className="block text-[11px] font-medium text-[var(--text-muted)] mb-1.5">Scheduled Time</label>
                   <input 
-                    type="text" 
-                    value={resetConfirm}
-                    onChange={(e) => setResetConfirm(e.target.value)}
-                    placeholder="RESET"
-                    className="flex-1 bg-black/40 border border-white/[0.1] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors text-sm"
+                    type="time" 
+                    value={checkInTime || "20:00"}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setCheckInTime(val);
+                      const comp = await getCompanion() || {};
+                      comp.dailyCheckInTime = val;
+                      await saveCompanion(comp);
+                    }}
+                    className="w-full bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-xl p-2.5 text-xs focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/50 font-body"
                   />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/15 rounded-2xl font-body">
+            <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+              Lyra adapts to your conversational schedule without demanding attention.
+            </div>
+          </div>
+        </section>
+
+        {/* CARD 3: Wardrobe & Atmosphere / Scenery (Span 12 - Full Width Bento Tile) */}
+        <section className="md:col-span-12 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Visuals: Wardrobe & Scenery</h2>
+                <p className="text-xs font-body text-[var(--text-muted)]">Live 3D avatar styling and atmospheric backdrop</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Wardrobe Sub-Grid (Col 6) */}
+            <div className="lg:col-span-6 space-y-3">
+              <span className="text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
+                Wardrobe Style
+              </span>
+              <div className="grid grid-cols-3 gap-3">
+                {OUTFITS.map(outfit => {
+                  const isSelected = currentOutfit === outfit.id;
+                  return (
+                    <button
+                      key={outfit.id}
+                      type="button"
+                      onClick={() => handleSelectOutfit(outfit.id)}
+                      className={`flex flex-col items-center p-2.5 rounded-2xl border transition-all text-center group cursor-pointer ${
+                        isSelected
+                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_14px_rgba(255,143,192,0.25)] ring-1 ring-[var(--accent-primary)]/50'
+                          : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'
+                      }`}
+                    >
+                      <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 group-hover:scale-[1.03] transition-transform">
+                        <OutfitThumbnail id={outfit.id} />
+                      </div>
+                      <span className={`text-xs font-body truncate w-full ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                        {outfit.label}
+                      </span>
+                      <span className="text-[10px] font-body text-[var(--text-muted)]/70">{outfit.tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Scenery Sub-Grid (Col 6) */}
+            <div className="lg:col-span-6 space-y-3">
+              <span className="text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
+                Environment & Lighting
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5">
+                {SCENERIES.map(scene => {
+                  const isSelected = currentScenery === scene.id;
+                  return (
+                    <button
+                      key={scene.id}
+                      type="button"
+                      onClick={() => handleSelectScenery(scene.id)}
+                      className={`flex flex-col items-center p-2 rounded-2xl border transition-all text-center group cursor-pointer ${
+                        isSelected
+                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_14px_rgba(255,143,192,0.25)] ring-1 ring-[var(--accent-primary)]/50'
+                          : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'
+                      }`}
+                    >
+                      <div className="w-full aspect-[4/3] rounded-xl overflow-hidden mb-1.5 bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 group-hover:scale-[1.03] transition-transform">
+                        <SceneryThumbnail id={scene.id} />
+                      </div>
+                      <span className={`text-[11px] font-body truncate w-full ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                        {scene.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CARD 4: Stored Memory Graph (Span 12) */}
+        <section className="md:col-span-12 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
+                <Moon className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Remembered Context</h2>
+                <p className="text-xs font-body text-[var(--text-muted)]">Continuous long-term conversational memory</p>
+              </div>
+            </div>
+            <span className="text-xs font-body font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-3 py-1 rounded-full border border-[var(--accent-primary)]/20">
+              {memories.length} item{memories.length === 1 ? '' : 's'} stored
+            </span>
+          </div>
+
+          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-2 mt-4 font-body">
+            {memories.length === 0 ? (
+              <div className="text-[var(--text-muted)] text-xs py-6 text-center bg-[var(--bg-base)]/40 rounded-2xl border border-[var(--accent-primary)]/10">
+                No memories recorded yet. Talk with Lyra and she will remember important details automatically.
+              </div>
+            ) : (
+              memories.map(mem => (
+                <div key={mem.id} className="flex items-start justify-between gap-4 p-3.5 bg-[var(--bg-base)]/50 border border-[var(--accent-primary)]/10 rounded-2xl group hover:border-[var(--accent-primary)]/30 transition-all">
+                  <p className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed">{mem.content}</p>
                   <button 
-                    onClick={handleResetCompanion}
-                    className="bg-red-950/60 text-red-300 border border-red-800/60 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-semibold text-xs disabled:opacity-50"
-                    disabled={resetConfirm !== "RESET"}
+                    onClick={() => handleDeleteMemory(mem.id)}
+                    className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-danger)] opacity-70 group-hover:opacity-100 transition-all rounded-lg hover:bg-white/[0.04] shrink-0 cursor-pointer"
+                    title="Delete Memory"
                   >
-                    Reset
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              </div>
+              ))
+            )}
+          </div>
+        </section>
 
-              <div>
-                <p className="text-gray-300 text-sm mb-3 leading-relaxed">
-                  <strong className="text-white">Clear All Data</strong><br/>
-                  Wipes EVERYTHING including your profile and sends you back to onboarding. Type <strong>CLEAR</strong> to confirm.
-                </p>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={clearConfirm}
-                    onChange={(e) => setClearConfirm(e.target.value)}
-                    placeholder="CLEAR"
-                    className="flex-1 bg-black/40 border border-white/[0.1] text-white rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors text-sm"
-                  />
-                  <button 
-                    onClick={handleClear}
-                    className="bg-red-950/60 text-red-300 border border-red-800/60 px-4 rounded-xl hover:bg-red-900/80 transition-colors font-semibold text-xs disabled:opacity-50"
-                    disabled={clearConfirm !== "CLEAR"}
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
+        {/* DANGER ZONE (Separated & Visually Quiet) */}
+        <section className="md:col-span-12 mt-4 pt-6 border-t border-[var(--accent-primary)]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs font-body text-[var(--text-muted)]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-[var(--text-muted)]" />
+            <span>Reset controls:</span>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            {/* Soft Reset */}
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="Type RESET"
+                className="w-24 bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/15 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+              />
+              <button 
+                onClick={handleResetCompanion}
+                disabled={resetConfirm !== "RESET"}
+                className="bg-red-950/20 text-[var(--text-danger)] border border-red-900/30 hover:bg-red-950/40 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Reset Chat & Memory
+              </button>
             </div>
-          </section>
-        </div>
+
+            {/* Full Wipe */}
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                value={clearConfirm}
+                onChange={(e) => setClearConfirm(e.target.value)}
+                placeholder="Type CLEAR"
+                className="w-24 bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/15 text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+              />
+              <button 
+                onClick={handleClear}
+                disabled={clearConfirm !== "CLEAR"}
+                className="bg-red-950/20 text-[var(--text-danger)] border border-red-900/30 hover:bg-red-950/40 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Wipe All App Data
+              </button>
+            </div>
+          </div>
+        </section>
+
       </div>
+
+      {/* Local Storage Privacy Note */}
+      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-6 text-center font-body">
+        <p className="text-xs text-[var(--text-muted)] flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+          Your data stays on this device. Fully private and locally stored.
+        </p>
+      </footer>
     </div>
   );
 }

@@ -3,8 +3,8 @@
   "short_name": "Lyra",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0A0D",
-  "theme_color": "#4DE8D4",
+  "background_color": "#160F17",
+  "theme_color": "#FF8FC0",
   "icons": [
     {
       "src": "/icon.svg",

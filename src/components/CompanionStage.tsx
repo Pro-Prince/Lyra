@@ -4,7 +4,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
+import { getCachedModelBuffer, setCachedModelBuffer, clearCachedModelBuffer, isValidGLTFBuffer, fetchAndCacheVRMModel } from '../lib/vrmCache';
 
 // Scratch variables to guarantee zero-allocation render loop on mobile GPUs
 const SCRATCH_COLOR_A = new THREE.Color();
@@ -13,6 +15,21 @@ const SCRATCH_COLOR_C = new THREE.Color();
 const SCRATCH_VEC_A = new THREE.Vector3();
 const SCRATCH_VEC_B = new THREE.Vector3();
 const VISEMES = ['aa', 'ih', 'ou', 'ee', 'oh'] as const;
+
+function resolveHexColor(colorStr?: string, fallback = "#FF8FC0"): string {
+  if (!colorStr) return fallback;
+  if (colorStr.startsWith("var(")) {
+    if (typeof window !== "undefined") {
+      const varName = colorStr.replace(/^var\((--[^,\s)]+).*\)$/, "$1").trim();
+      const computed = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+      if (computed && (computed.startsWith("#") || computed.startsWith("rgb") || computed.startsWith("hsl"))) {
+        return computed;
+      }
+    }
+    return fallback;
+  }
+  return colorStr;
+}
 
 interface EmotionExpressionMap {
   happy: number;
@@ -98,33 +115,44 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
   const ambientRef = useRef<THREE.AmbientLight>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
   const fillRef = useRef<THREE.DirectionalLight>(null);
+  const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
 
   useFrame((state, delta) => {
     const safeDelta = Math.min(delta, 0.05);
     const lerpSpeed = safeDelta * 4;
 
-    SCRATCH_COLOR_A.set("#ffffff");
-    let targetAmbientIntensity = 0.65;
-    SCRATCH_COLOR_B.set("#ffffff");
-    let targetKeyIntensity = 1.0;
-    SCRATCH_COLOR_C.set("#4DE8D4");
-    let targetFillIntensity = 0.55;
+    // Soft warm pink-peach ambient tone
+    SCRATCH_COLOR_A.set("#FFEBF4");
+    let targetAmbientIntensity = 0.7;
+    
+    // Warm key light
+    SCRATCH_COLOR_B.set("#FFF5F8");
+    let targetKeyIntensity = 1.05;
+    
+    // Soft warm peach-pink fill light
+    SCRATCH_COLOR_C.set(safeAccent || "#FF8FC0");
+    let targetFillIntensity = 0.6;
     SCRATCH_VEC_A.set(-2, 1, 3);
 
     if (scenery === 'cozy') {
-      // Soft gentle focus with #4DE8D4 rim
-      targetAmbientIntensity = 0.6;
+      // Warm golden-pink cozy glow
+      SCRATCH_COLOR_A.set("#FFF0E6");
+      targetAmbientIntensity = 0.65;
       targetKeyIntensity = 0.95;
-      targetFillIntensity = 0.45;
-    } else if (scenery === 'dusk') {
-      targetAmbientIntensity = 0.5;
-      targetKeyIntensity = 0.85;
       targetFillIntensity = 0.5;
+    } else if (scenery === 'dusk') {
+      // Soft twilight lavender-pink glow
+      SCRATCH_COLOR_A.set("#F4E8FF");
+      targetAmbientIntensity = 0.55;
+      targetKeyIntensity = 0.85;
+      targetFillIntensity = 0.55;
       SCRATCH_VEC_A.set(-2, 1.2, 2);
     } else if (scenery === 'night') {
-      targetAmbientIntensity = 0.4;
+      // Subtle starry pink-purple ambient
+      SCRATCH_COLOR_A.set("#EBDDFF");
+      targetAmbientIntensity = 0.45;
       targetKeyIntensity = 0.75;
-      targetFillIntensity = 0.4;
+      targetFillIntensity = 0.45;
     }
     
     if (ambientRef.current) {
@@ -144,9 +172,9 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
 
   return (
     <>
-      <ambientLight ref={ambientRef} intensity={0.65} color="#ffffff" />
-      <directionalLight ref={keyRef} position={[2, 3, 2]} intensity={1.0} color="#ffffff" />
-      <directionalLight ref={fillRef} position={[-2, 1, 3]} intensity={0.55} color="#4DE8D4" />
+      <ambientLight ref={ambientRef} intensity={0.7} color="#FFEBF4" />
+      <directionalLight ref={keyRef} position={[2, 3, 2]} intensity={1.05} color="#FFF5F8" />
+      <directionalLight ref={fillRef} position={[-2, 1, 3]} intensity={0.6} color={safeAccent} />
     </>
   );
 }
@@ -183,81 +211,23 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     const loadVRM = async () => {
       try {
         console.log(`[CompanionStage] Loading VRM model: ${url} (attempt ${retryKey + 1})`);
-        if (onProgress) onProgress(0);
+        if (onProgress) onProgress(10);
 
-        const response = await fetch(url, { signal: abortController.signal });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} (${response.statusText || 'Error'}) when fetching ${url}`);
-        }
-
-        // Verify response content-type is not HTML
-        const contentType = (response.headers.get('content-type') || '').toLowerCase();
-        if (contentType.includes('text/html')) {
-          throw new Error(`Server returned HTML instead of binary 3D model data for ${url}. The route might have been caught by an SPA rewrite.`);
-        }
-
-        const contentLengthHeader = response.headers.get('content-length');
-        const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
-
-        let arrayBuffer: ArrayBuffer;
-
-        if (response.body && totalBytes > 0) {
-          const reader = response.body.getReader();
-          const chunks: Uint8Array[] = [];
-          let loadedBytes = 0;
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (value) {
-              chunks.push(value);
-              loadedBytes += value.length;
-              if (onProgress) {
-                const percent = Math.min(Math.round((loadedBytes / totalBytes) * 100), 99);
-                onProgress(percent);
-              }
-            }
-          }
-
-          const combined = new Uint8Array(loadedBytes);
-          let offset = 0;
-          for (const chunk of chunks) {
-            combined.set(chunk, offset);
-            offset += chunk.length;
-          }
-          arrayBuffer = combined.buffer;
-        } else {
-          arrayBuffer = await response.arrayBuffer();
-          if (onProgress) onProgress(95);
-        }
+        const arrayBuffer = await fetchAndCacheVRMModel(url, abortController.signal);
+        if (onProgress) onProgress(95);
 
         clearTimeout(timeoutId);
-        if (isCancelled) return;
-
-        // Binary check: verify glTF 2.0 binary container magic number 'glTF' (0x46546C67)
-        if (arrayBuffer.byteLength < 12) {
-          throw new Error(`Downloaded model file is only ${arrayBuffer.byteLength} bytes, which is too small for a VRM model.`);
-        }
-
-        const headerBytes = new Uint8Array(arrayBuffer.slice(0, 4));
-        const isGlb = headerBytes[0] === 0x67 && headerBytes[1] === 0x6C && headerBytes[2] === 0x54 && headerBytes[3] === 0x46;
-
-        if (!isGlb) {
-          const textPreview = new TextDecoder().decode(arrayBuffer.slice(0, 100));
-          if (textPreview.includes('<html') || textPreview.includes('<!DOCTYPE')) {
-            throw new Error(`Downloaded file contains HTML text instead of binary VRM 3D model data.`);
-          }
-          throw new Error(`Model file does not contain a valid binary glTF/VRM header signature.`);
-        }
+        if (isCancelled || !arrayBuffer) return;
 
         // Parse with GLTFLoader and VRMLoaderPlugin
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMLoaderPlugin(parser));
 
+        const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
+
         loader.parse(
           arrayBuffer,
-          url,
+          resourcePath,
           (gltf) => {
             if (isCancelled) return;
             const vrmInstance = gltf.userData.vrm as VRM;
@@ -463,8 +433,9 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             setVrm(vrmInstance);
             currentVrm = vrmInstance;
           },
-          (err) => {
+          async (err) => {
             clearTimeout(timeoutId);
+            await clearCachedModelBuffer(url);
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[CompanionStage] GLTF parser error for ${url}:`, err);
             if (onError) onError(`3D model parsing failed: ${msg}`);
@@ -472,6 +443,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         );
       } catch (err: any) {
         clearTimeout(timeoutId);
+        await clearCachedModelBuffer(url);
         if (isCancelled) return;
         const msg = err?.message || String(err);
         console.error(`[CompanionStage] Failed to load VRM model from ${url}:`, err);
@@ -549,10 +521,14 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     };
   }, []);
 
-  useFrame(({ clock }, delta) => {
+  const elapsedTimeRef = useRef(0);
+
+  useFrame((_, delta) => {
     if (vrm) {
       const safeDelta = Math.min(delta, 0.04);
-      const time = clock.elapsedTime;
+      elapsedTimeRef.current += safeDelta;
+      const time = elapsedTimeRef.current;
+
       
       // Idle Breathing Gaze Wander: If untouched on mobile, subtly wander gaze so she feels alive
       const isIdle = (Date.now() - lastInteractionTime.current) > 2500;
@@ -686,7 +662,7 @@ const StageLoader = memo(({ progress, accentColor, isInitial }: { progress: numb
 });
 
 export default function CompanionStage({ 
-  accentColor = "#4DE8D4", 
+  accentColor = "#FF8FC0", 
   isCallMode = false, 
   scenery = 'neutral', 
   outfitUrl = '/models/lyra.vrm',
@@ -700,10 +676,10 @@ export default function CompanionStage({
   emotion?: string;
   onModelLoaded?: () => void;
 }) {
+  const { showError } = useToast();
   const [loadProgress, setLoadProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasEverLoaded, setHasEverLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
   const handleProgress = (percent: number) => {
@@ -712,94 +688,53 @@ export default function CompanionStage({
 
   const handleLoaded = () => {
     setIsLoaded(true);
-    setLoadError(null);
     setHasEverLoaded(true);
     if (onModelLoaded) {
       onModelLoaded();
     }
   };
 
-  const handleError = (errorMsg: string) => {
-    setIsLoaded(false);
-    setLoadError(errorMsg);
-  };
-
   const handleRetry = () => {
-    setLoadError(null);
     setIsLoaded(false);
     setLoadProgress(0);
     setRetryKey(prev => prev + 1);
   };
 
+  const handleError = (errorMsg: string) => {
+    setIsLoaded(false);
+    console.error('[CompanionStage] VRM load error:', errorMsg);
+    showError("Having trouble loading her right now, refreshing usually fixes it", {
+      label: "Retry",
+      onClick: () => handleRetry()
+    });
+  };
+
   useEffect(() => {
     setIsLoaded(false);
-    setLoadError(null);
     setLoadProgress(0);
   }, [outfitUrl]);
 
-  const bgClass = () => {
-    switch (scenery) {
-      case 'night': return 'bg-[#0A0A0D]';
-      case 'cozy': return 'bg-[#0A0A0D]';
-      case 'dusk': return 'bg-[#0A0A0D]';
-      case 'neutral':
-      default: return 'bg-[#0A0A0D]';
-    }
-  };
-
   return (
-    <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[#0A0A0D]">
+    <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[var(--bg-base)]">
       {/* Unified Background Atmosphere */}
-      <div className={`absolute inset-0 transition-colors duration-1000 ${bgClass()}`} />
+      <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />
       
-      {/* Subtle Cyan Ambient Glow */}
+      {/* Subtle Warm Pink & Peach Ambient Glow */}
       <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] opacity-[0.035] blur-[100px] rounded-full pointer-events-none transition-colors duration-1000 bg-[#4DE8D4]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[var(--accent-primary)]/10 via-[var(--accent-secondary)]/10 to-[#FFD1B3]/10 opacity-80 blur-[130px] rounded-full pointer-events-none transition-all duration-1000"
       />
 
       {/* Loading Skeleton / Progress Overlay */}
       <AnimatePresence>
-        {!isLoaded && !loadError && (
+        {!isLoaded && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-[#0A0A0D]/80 backdrop-blur-md"
+            className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-md"
           >
-            <StageLoader progress={loadProgress} accentColor="#4DE8D4" isInitial={!hasEverLoaded} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Error Fallback Card with Retry Button */}
-      <AnimatePresence>
-        {loadError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
-          >
-            <div className="max-w-md w-full bg-[#16161b] border border-red-500/30 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mb-4">
-                <AlertCircle className="w-6 h-6" />
-              </div>
-              <h3 className="font-display text-lg font-semibold text-white mb-2">
-                Unable to Load 3D Presence
-              </h3>
-              <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-                {loadError}
-              </p>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/25 text-white font-medium text-sm transition-all border border-white/10 shadow-lg cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Retry Connection
-              </button>
-            </div>
+            <StageLoader progress={loadProgress} accentColor={accentColor || "#FF8FC0"} isInitial={!hasEverLoaded} />
           </motion.div>
         )}
       </AnimatePresence>
