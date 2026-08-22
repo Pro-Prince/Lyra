@@ -6,11 +6,12 @@
 import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
-import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Chat from "./pages/Chat";
 import Settings from "./pages/Settings";
-import ProtectedRoute from "./components/ProtectedRoute";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Contact from "./pages/Contact";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
@@ -18,12 +19,10 @@ import { getCompanion, saveCompanion } from "./lib/storage";
 export default function App() {
 
   useEffect(() => {
-    // Service Worker registration check (already done in main.tsx or sw.js, but let's ensure we can access it)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
 
-    // Daily check-in polling
     const checkInterval = setInterval(async () => {
       try {
         const comp = await getCompanion();
@@ -34,7 +33,6 @@ export default function App() {
         const now = new Date();
         const [targetHour, targetMin] = comp.dailyCheckInTime.split(':').map(Number);
         
-        // Ensure we only trigger once per day.
         const lastSent = comp.lastCheckInSentAt ? new Date(comp.lastCheckInSentAt) : new Date(0);
         const isSameDay = lastSent.getFullYear() === now.getFullYear() && 
                           lastSent.getMonth() === now.getMonth() && 
@@ -43,7 +41,6 @@ export default function App() {
         if (isSameDay) return;
 
         if (now.getHours() > targetHour || (now.getHours() === targetHour && now.getMinutes() >= targetMin)) {
-          // Trigger notification if serviceWorker is available
           if ('serviceWorker' in navigator) {
             const reg = await navigator.serviceWorker.ready;
             reg.showNotification("Lyra", {
@@ -55,14 +52,13 @@ export default function App() {
             });
           }
 
-          // Mark as sent
           comp.lastCheckInSentAt = now.getTime();
           await saveCompanion(comp);
         }
       } catch (err) {
         console.error("Error during check-in poll", err);
       }
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => clearInterval(checkInterval);
   }, []);
@@ -73,24 +69,13 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route
-              path="/chat"
-              element={
-                <ProtectedRoute>
-                  <Chat />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/contact" element={<Contact />} />
+            {/* /auth intentionally has no <Route>, Phase 2 only */}
           </Routes>
         </Router>
       </ToastProvider>

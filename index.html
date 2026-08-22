@@ -26,6 +26,39 @@
     
     <script>
       (function() {
+        var origError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var str = String(arguments[i]);
+            if (
+              str.indexOf('[vite] failed to connect to websocket') !== -1 ||
+              str.indexOf('WebSocket closed without opened') !== -1 ||
+              str.indexOf('WebSocket connection to') !== -1 ||
+              (str.indexOf('failed to connect') !== -1 && str.indexOf('websocket') !== -1)
+            ) {
+              return;
+            }
+          }
+          return origError.apply(console, arguments);
+        };
+
+        var origWarn = console.warn;
+        console.warn = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var str = String(arguments[i]);
+            if (
+              str.indexOf('THREE.Clock') !== -1 ||
+              str.indexOf('Clock:') !== -1 ||
+              str.indexOf('THREE.Timer') !== -1 ||
+              str.indexOf('removeUnnecessaryJoints') !== -1 ||
+              str.indexOf('combineSkeletons') !== -1
+            ) {
+              return;
+            }
+          }
+          return origWarn.apply(console, arguments);
+        };
+
         function isWsError(err) {
           if (!err) return false;
           var str = String((err && err.message) || err);

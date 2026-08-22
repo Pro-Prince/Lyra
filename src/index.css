@@ -2,9 +2,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Fredoka", sans-serif;
-  --font-body: "Poppins", sans-serif;
-  --font-mono: "Space Mono", monospace;
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 
   --color-bg-base: var(--bg-base);
   --color-bg-surface: var(--bg-surface);
@@ -25,6 +25,9 @@
   --text-primary: #FBF3F6;
   --text-muted: #B79AAE;
   --text-danger: #F2A8B8;
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+  --font-mono: 'Space Mono', monospace;
   color-scheme: dark;
 }
 

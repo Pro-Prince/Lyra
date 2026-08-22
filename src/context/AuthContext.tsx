@@ -1,342 +1,108 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured, SupabaseProfile } from '../lib/supabaseClient';
-import { getLocalProfile, saveLocalProfile, migrateIndexedDBToSupabase } from '../lib/storage';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getLocalProfile, saveLocalProfile } from '../lib/storage';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: SupabaseProfile | null;
-  isLoading: boolean;
-  isConfigured: boolean;
-  isGuestMode: boolean;
-  signUp: (email: string, password: string, birthdate: string, aiDisclosure: boolean) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
-  continueAsGuest: (birthdate?: string) => Promise<void>;
-  refreshProfile: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const calculateAge = (dobString: string): number => {
-  if (!dobString) return 0;
-  const dob = new Date(dobString);
+export function calculateAge(birthdateStr: string): number {
+  if (!birthdateStr) return 0;
+  const birthDate = new Date(birthdateStr);
   const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
   return age;
-};
+}
+
+interface AuthContextType {
+  mode: string;
+  user: any;
+  isLoading: boolean;
+  isConfigured: boolean;
+  isGuestMode: boolean;
+  signIn: (email?: string, password?: string) => Promise<{ error?: string }>;
+  signUp: (email?: string, password?: string, birthdate?: string, aiDisclosure?: boolean) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
+  continueAsGuest: (birthdate?: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  mode: 'local',
+  user: null,
+  isLoading: false,
+  isConfigured: false,
+  isGuestMode: true,
+  signIn: async () => ({ error: 'Not available in this phase' }),
+  signUp: async () => ({ error: 'Not available in this phase' }),
+  signInWithGoogle: async () => ({ error: 'Not available in this phase' }),
+  continueAsGuest: async () => {},
+  signOut: async () => {},
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<SupabaseProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isGuestMode, setIsGuestMode] = useState(false);
-
-  const fetchProfile = async (userId: string, userEmail?: string): Promise<SupabaseProfile | null> => {
-    if (!isSupabaseConfigured) return null;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.warn('Could not fetch Supabase profile:', error.message);
-      }
-
-      if (data) {
-        setProfile(data as SupabaseProfile);
-        // Sync local IndexedDB profile
-        await saveLocalProfile({
-          isAdultConfirmed: data.is_adult_confirmed,
-          birthdate: data.birthdate,
-          name: data.email?.split('@')[0] || 'Friend',
-          initialized: true,
-        });
-        return data as SupabaseProfile;
-      } else if (userEmail) {
-        // Fallback: If profile row doesn't exist yet, inspect auth user metadata
-        const userMeta = user?.user_metadata || {};
-        const isAdult = Boolean(userMeta.is_adult_confirmed ?? true);
-        const fallbackProfile: SupabaseProfile = {
-          id: userId,
-          email: userEmail,
-          birthdate: userMeta.birthdate || undefined,
-          is_adult_confirmed: isAdult,
-          ai_disclosure_accepted: Boolean(userMeta.ai_disclosure_accepted ?? true),
-        };
-        setProfile(fallbackProfile);
-        return fallbackProfile;
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-    }
-    return null;
-  };
+  const [user, setUser] = useState<any>(null);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isConfigured] = useState<boolean>(false);
 
   useEffect(() => {
-    let mounted = true;
-
     async function initAuth() {
       try {
-        if (isSupabaseConfigured) {
-          const { data: { session: initialSession } } = await supabase.auth.getSession();
-          if (initialSession?.user) {
-            setUser(initialSession.user);
-            setSession(initialSession);
-            await fetchProfile(initialSession.user.id, initialSession.user.email);
-            // Run one-time migration of local IndexedDB data to Supabase
-            migrateIndexedDBToSupabase(initialSession.user.id).catch(console.warn);
-          } else {
-            // Check local profile for guest mode
-            const local = await getLocalProfile();
-            if (local?.isAdultConfirmed) {
-              setIsGuestMode(true);
-            }
-          }
-
-          // Listen for auth state changes
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-            if (!mounted) return;
-            setSession(newSession);
-            setUser(newSession?.user || null);
-
-            if (newSession?.user) {
-              setIsGuestMode(false);
-              await fetchProfile(newSession.user.id, newSession.user.email);
-              // Run one-time migration on login
-              migrateIndexedDBToSupabase(newSession.user.id).catch(console.warn);
-            } else {
-              setProfile(null);
-            }
-          });
-
-          return () => {
-            subscription.unsubscribe();
-          };
-        } else {
-          // Supabase not configured -> fallback to local IndexedDB guest mode
-          const local = await getLocalProfile();
-          if (local?.isAdultConfirmed) {
-            setIsGuestMode(true);
-          }
+        const profile = await getLocalProfile();
+        if (profile && profile.adultConfirmed) {
+          setIsGuestMode(true);
         }
-      } catch (err) {
-        console.error('Auth initialization error:', err);
+      } catch (e) {
+        console.error('Error loading local profile:', e);
       } finally {
-        if (mounted) setIsLoading(false);
+        setIsLoading(false);
       }
     }
-
     initAuth();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
-  const signUp = async (
-    email: string,
-    password: string,
-    birthdate: string,
-    aiDisclosure: boolean
-  ): Promise<{ error: string | null }> => {
-    // 1. Client & Server Age Enforcement
-    if (!birthdate) {
-      return { error: 'Please enter your birthdate.' };
-    }
-    const age = calculateAge(birthdate);
-    if (age < 18) {
-      return { error: 'Access restricted: You must be at least 18 years old to create an account.' };
-    }
-    if (!aiDisclosure) {
-      return { error: 'You must confirm the AI disclosure agreement to proceed.' };
-    }
-
-    if (!isSupabaseConfigured) {
-      // Local fallback
-      await saveLocalProfile({
-        name: email.split('@')[0],
-        birthdate,
-        isAdultConfirmed: true,
-        initialized: true,
-      });
-      setIsGuestMode(true);
-      return { error: null };
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            birthdate,
-            is_adult_confirmed: true,
-            ai_disclosure_accepted: aiDisclosure,
-          },
-        },
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      if (data.user) {
-        setUser(data.user);
-        setSession(data.session);
-
-        // Upsert profile in Supabase profiles table
-        const newProfile: SupabaseProfile = {
-          id: data.user.id,
-          email,
-          birthdate,
-          is_adult_confirmed: true,
-          ai_disclosure_accepted: aiDisclosure,
-        };
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert(newProfile);
-
-        if (profileError) {
-          console.warn('Profiles table upsert warning (RLS or table missing):', profileError.message);
-        }
-
-        setProfile(newProfile);
-
-        // Keep local IndexedDB synced
-        await saveLocalProfile({
-          name: email.split('@')[0],
-          birthdate,
-          isAdultConfirmed: true,
-          initialized: true,
-        });
-      }
-
-      return { error: null };
-    } catch (err: any) {
-      return { error: err.message || 'An unexpected error occurred during signup.' };
-    }
+  const continueAsGuest = async (birthdate?: string) => {
+    setIsGuestMode(true);
+    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
   };
 
-  const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    if (!isSupabaseConfigured) {
-      await saveLocalProfile({
-        name: email.split('@')[0],
-        isAdultConfirmed: true,
-        initialized: true,
-      });
-      setIsGuestMode(true);
-      return { error: null };
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      if (data.user) {
-        setUser(data.user);
-        setSession(data.session);
-        const userProfile = await fetchProfile(data.user.id, data.user.email);
-
-        // Enforce age check if birthdate is present in profile or metadata
-        if (userProfile?.birthdate) {
-          const age = calculateAge(userProfile.birthdate);
-          if (age < 18) {
-            await supabase.auth.signOut();
-            return { error: 'Access restricted: Account holder is under 18 years old.' };
-          }
-        }
-      }
-
-      return { error: null };
-    } catch (err: any) {
-      return { error: err.message || 'Failed to sign in.' };
-    }
+  const signIn = async () => {
+    setIsGuestMode(true);
+    await saveLocalProfile({ adultConfirmed: true });
+    return {};
   };
 
-  const signInWithGoogle = async (): Promise<{ error: string | null }> => {
-    if (!isSupabaseConfigured) {
-      return { error: 'Supabase URL and Anon Key are not configured in environment.' };
-    }
+  const signUp = async (_email?: string, _password?: string, birthdate?: string) => {
+    setIsGuestMode(true);
+    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
+    return {};
+  };
 
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-      return { error: null };
-    } catch (err: any) {
-      return { error: err.message || 'Google OAuth failed to start.' };
-    }
+  const signInWithGoogle = async () => {
+    setIsGuestMode(true);
+    await saveLocalProfile({ adultConfirmed: true });
+    return {};
   };
 
   const signOut = async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
-    }
-    setUser(null);
-    setSession(null);
-    setProfile(null);
     setIsGuestMode(false);
-  };
-
-  const continueAsGuest = async (birthdate?: string) => {
-    await saveLocalProfile({
-      name: 'Friend',
-      birthdate,
-      isAdultConfirmed: true,
-      initialized: true,
-    });
-    setIsGuestMode(true);
-  };
-
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id, user.email);
-    }
+    setUser(null);
+    await saveLocalProfile({ adultConfirmed: false });
   };
 
   return (
     <AuthContext.Provider
       value={{
+        mode: 'local',
         user,
-        session,
-        profile,
         isLoading,
-        isConfigured: isSupabaseConfigured,
+        isConfigured,
         isGuestMode,
-        signUp,
         signIn,
+        signUp,
         signInWithGoogle,
-        signOut,
         continueAsGuest,
-        refreshProfile,
+        signOut,
       }}
     >
       {children}
@@ -344,10 +110,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+export const useAuth = () => useContext(AuthContext);

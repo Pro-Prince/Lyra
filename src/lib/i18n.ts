@@ -1,4 +1,4 @@
-export type Language = 'en-US' | 'hi-IN';
+export type Language = 'en-US';
 
 export const translations = {
   'en-US': {
@@ -78,101 +78,20 @@ export const translations = {
     auth_adult_checkbox: "I confirm that I am at least 18 years old and acknowledge that Lyra is an AI companion.",
     auth_restricted_warning: "Account creation is restricted to adults aged 18 and older.",
     auth_guest_button: "Explore in Local Offline Mode"
-  },
-  'hi-IN': {
-    landing_title: "एक साथी जो आपको समझता है",
-    landing_subtitle: "एक शांत, विचारशील उपस्थिति जो आपकी बात सुनती है, याद रखती है और जवाब देती है।",
-    landing_button: "अनुभव शुरू करें",
-    landing_disclaimer: "एआई साथी, वास्तविक व्यक्ति नहीं। 18+ वयस्कों के लिए।",
-    card1_title: "आवाज़ और अंदाज़",
-    card1_desc: "अपनी पसंद के अनुसार आवाज़ का उतार-चढ़ाव, गति और गर्मजोशी चुनें।",
-    card2_title: "3D इंटरएक्टिव स्टेज",
-    card2_desc: "वास्तविक समय के भावों और कस्टम परिधानों के साथ दृश्य उपस्थिति।",
-    card3_title: "विचारशील यादें",
-    card3_desc: "गहरा तालमेल बनाने के लिए समय के साथ आपकी बारीकियों को समझती है।",
-    landing_verify: "अपनी आयु सत्यापित करें",
-    landing_verify_desc: "लायरा 18 वर्ष और उससे अधिक उम्र के वयस्कों के लिए एक एआई अनुभव है। जारी रखने के लिए अपनी जन्म तिथि की पुष्टि करें।",
-    landing_dob: "जन्म तिथि",
-    landing_confirm: "मैं पुष्टि करता हूं कि मेरी उम्र 18 वर्ष या उससे अधिक है और मैं समझता हूं कि यह एक एआई है, वास्तविक व्यक्ति नहीं।",
-    landing_continue: "जारी रखें",
-    landing_restricted: "पहुँच प्रतिबंधित",
-    landing_restricted_desc: "आपकी रुचि के लिए धन्यवाद। लायरा केवल 18 वर्ष और उससे अधिक उम्र के वयस्कों के लिए है। दी गई जानकारी के आधार पर, हम अभी आपको अनुमति नहीं दे सकते।",
-    onboarding_title: "चलिए शुरुआत करते हैं।",
-    onboarding_subtitle: "सबसे पहले, लायरा की आवाज़ कैसी होनी चाहिए?",
-    onboarding_name_label: "वह आपको क्या बुलाए?",
-    onboarding_name_placeholder: "आपका नाम...",
-    onboarding_button: "शुरू करें",
-    onboarding_step1_greeting: "नमस्ते, मैं लायरा हूँ।",
-    onboarding_step1_sub: "आपसे मिलकर बहुत अच्छा लगा।",
-    onboarding_step1_cta: "आपसे मिलकर अच्छा लगा",
-    onboarding_step2_title: "हम कैसे बात करें?",
-    onboarding_step2_name: "मैं आपको क्या बुलाऊँ?",
-    onboarding_step2_name_placeholder: "आपका नाम...",
-    onboarding_step2_vibe: "बातचीत का अंदाज़ चुनें",
-    onboarding_step2_topics: "पसंदीदा विषय",
-    onboarding_step2_cta: "बातचीत शुरू करें",
-    settings_title: "सेटिंग्स",
-    settings_voice_label: "आवाज़ कॉन्फ़िगरेशन",
-    settings_voice: "आवाज़",
-    settings_pitch: "पिच",
-    settings_speed: "गति",
-    settings_language: "भाषा (Language)",
-    settings_wardrobe: "लायरा के कपड़े",
-    settings_checkin: "दैनिक चेक-इन",
-    settings_checkin_desc: "अगर आज आपने बात नहीं की है, तो लायरा को एक हल्का पुश नोटिफ़िकेशन भेजने दें।",
-    settings_checkin_enable: "चेक-इन सक्षम करें",
-    settings_checkin_time: "चेक-इन का समय",
-    settings_memory: "लायरा की यादें",
-    settings_memory_desc: "चीजें जो लायरा ने आपके बारे में सीखी हैं।",
-    settings_memory_empty: "अभी तक कोई यादें नहीं बनीं। लायरा से बात करें ताकि वह आपके बारे में जान सके।",
-    settings_rapport: "तालमेल स्तर",
-    settings_danger: "खतरनाक क्षेत्र",
-    settings_reset_memory: "यादें और तालमेल रीसेट करें",
-    settings_reset_confirm: "क्या आप निश्चित हैं? यह सब कुछ भूल जाएगा।",
-    settings_clear_all: "सभी ऐप डेटा साफ़ करें",
-    settings_clear_confirm: "सभी डेटा हटाएं और रीस्टार्ट करें?",
-    chat_listening: "सुन रही हूँ...",
-    chat_placeholder: "कुछ कहें...",
-    chat_connecting: "कनेक्ट हो रहा है...",
-    menu_chat: "चैट",
-    menu_settings: "सेटिंग्स",
-    menu_scenery: "पर्यावरण",
-    menu_recent_memories: "हाल की यादें",
-    menu_rapport: "वर्तमान तालमेल",
-    tts_not_supported: "इस ब्राउज़र में टेक्स्ट-टू-स्पीच समर्थित नहीं है।",
-    tts_no_voice: "चुनी गई भाषा के लिए कोई उपयुक्त आवाज़ नहीं मिली।",
-    auth_welcome_title: "लायरा में साइन इन करें",
-    auth_signup_title: "नया खाता बनाएँ",
-    auth_subtitle: "आपका निजी और विचारशील एआई साथी स्थान।",
-    auth_email_label: "ईमेल पता",
-    auth_password_label: "पासवर्ड",
-    auth_dob_label: "जन्म तिथि",
-    auth_google_button: "Google के साथ जारी रखें",
-    auth_or_divider: "या ईमेल के साथ जारी रखें",
-    auth_have_account: "पहले से खाता है? साइन इन करें",
-    auth_need_account: "लायरा पर नए हैं? खाता बनाएँ",
-    auth_sign_in_button: "साइन इन करें",
-    auth_sign_up_button: "खाता बनाएँ और 18+ सत्यापित करें",
-    auth_adult_checkbox: "मैं पुष्टि करता हूँ कि मेरी उम्र कम से कम 18 वर्ष है और मैं समझता हूँ कि लायरा एक एआई साथी है।",
-    auth_restricted_warning: "खाता निर्माण केवल 18 वर्ष और उससे अधिक उम्र के वयस्कों के लिए है।",
-    auth_guest_button: "लोकल ऑफ़लाइन मोड में जारी रखें"
   }
 };
 
 export function getLanguage(): Language {
-  if (typeof window !== 'undefined') {
-    return (localStorage.getItem('lyra_lang') as Language) || 'en-US';
-  }
   return 'en-US';
 }
 
-export function setLanguage(lang: Language) {
+export function setLanguage(_lang: Language) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('lyra_lang', lang);
+    localStorage.setItem('lyra_lang', 'en-US');
   }
 }
 
-export function t(key: keyof typeof translations['en-US'], lang?: Language): string {
-  const l = lang || getLanguage();
-  return translations[l]?.[key] || translations['en-US'][key] || key;
+export function t(key: keyof typeof translations['en-US'], _lang?: Language): string {
+  return translations['en-US'][key] || key;
 }
+

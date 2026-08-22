@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport, resetCompanionHistory } from "../lib/storage";
-import { Trash2, Play, Heart, AlertTriangle, ArrowLeft, Volume2, Globe, Sparkles, Moon, Bell, Check } from "lucide-react";
-import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
+import { Trash2, Play, Heart, AlertTriangle, ArrowLeft, Volume2, Sparkles, Moon, Bell, Download, Upload } from "lucide-react";
+import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
 import { useToast } from "../hooks/useToast";
@@ -28,12 +28,11 @@ export default function Settings() {
   const [rapportTier, setRapportTier] = useState("Tier 1: Acquaintance");
   const [rapportProgress, setRapportProgress] = useState(0);
 
-  // Voice & Language Settings
+  // Voice Settings
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceUri, setSelectedVoiceUri] = useState("");
   const [pitch, setPitch] = useState(1);
   const [rate, setRate] = useState(1);
-  const [lang, setLang] = useState<Language>(getLanguage());
   
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
@@ -46,7 +45,51 @@ export default function Settings() {
   // Confirmation modals / strings
   const [resetConfirm, setResetConfirm] = useState("");
   const [clearConfirm, setClearConfirm] = useState("");
-  const [saveVoiceSuccess, setSaveVoiceSuccess] = useState(false);
+  const [exportConfirm, setExportConfirm] = useState("");
+  const [importConfirm, setImportConfirm] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+
+  const handleExportData = async () => {
+    if (exportConfirm !== "EXPORT") return;
+    try {
+      const jsonStr = await exportAllData();
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lyra-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showInfo("Data exported successfully");
+      setExportConfirm("");
+    } catch (err: any) {
+      showError("Failed to export data: " + err.message);
+    }
+  };
+
+  const handleImportData = async () => {
+    if (importConfirm !== "IMPORT" || !importFile) return;
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          await importAllData(content);
+          showInfo("Data imported successfully. Reloading...");
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (err: any) {
+          showError("Invalid backup file: " + err.message);
+        }
+      };
+      reader.readAsText(importFile);
+      setImportConfirm("");
+      setImportFile(null);
+    } catch (err: any) {
+      showError("Failed to import data: " + err.message);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -71,7 +114,6 @@ export default function Settings() {
         if (comp.scenery) setCurrentScenery(comp.scenery);
         if (comp.dailyCheckInEnabled) setCheckInEnabled(true);
         if (comp.dailyCheckInTime) setCheckInTime(comp.dailyCheckInTime);
-        if (comp.language) setLang(comp.language as Language);
       }
     }
     load();
@@ -81,8 +123,7 @@ export default function Settings() {
     const updateVoices = async () => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       const allVoices = window.speechSynthesis.getVoices();
-      const targetPrefix = lang.split('-')[0];
-      const allowed = filterAllowedVoices(allVoices, targetPrefix);
+      const allowed = filterAllowedVoices(allVoices, "en");
       setVoices(allowed);
       
       const isInvalid = !selectedVoiceUri || !allowed.some(v => v.voiceURI === selectedVoiceUri) || isStoredVoiceInvalid(selectedVoiceUri, allVoices);
@@ -108,19 +149,11 @@ export default function Settings() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.onvoiceschanged = updateVoices;
     }
-  }, [selectedVoiceUri, lang]);
-
-  const handleLanguageChange = async (newLang: Language) => {
-    setLang(newLang);
-    setGlobalLanguage(newLang);
-    const comp = await getCompanion() || {};
-    comp.language = newLang;
-    await saveCompanion(comp);
-  };
+  }, [selectedVoiceUri]);
 
   const handlePreview = () => {
     window.speechSynthesis.cancel();
-    const message = lang === 'hi-IN' ? "नमस्ते! मैं लायरा हूँ। आपसे मिलकर बहुत अच्छा लगा।" : "Hi there! I'm Lyra. It's so nice to meet you.";
+    const message = "Hi there! I'm Lyra. It's so nice to meet you.";
     const utterance = new SpeechSynthesisUtterance(message);
     const voice = voices.find(v => v.voiceURI === selectedVoiceUri);
     if (voice) utterance.voice = voice;
@@ -131,7 +164,7 @@ export default function Settings() {
 
   const handleSaveVoice = async () => {
     const comp = await getCompanion() || {};
-    await saveCompanion({ ...comp, voiceUri: selectedVoiceUri, pitch, rate, language: lang });
+    await saveCompanion({ ...comp, voiceUri: selectedVoiceUri, pitch, rate, language: 'en-US' });
     showInfo("Voice and personality settings saved");
   };
 
@@ -183,7 +216,7 @@ export default function Settings() {
             <ArrowLeft className="w-4 h-4" /> Back to Chat
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)]">
-            {t('settings_title', lang)}
+            {t('settings_title')}
           </h1>
         </div>
 
@@ -200,7 +233,7 @@ export default function Settings() {
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto w-full pb-12">
         
-        {/* CARD 1: Voice & Language Configuration (Span 7) */}
+        {/* CARD 1: Voice Configuration (Span 7) */}
         <section className="md:col-span-7 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5">
@@ -209,48 +242,13 @@ export default function Settings() {
                   <Volume2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Language & Voice</h2>
-                  <p className="text-xs font-body text-[var(--text-muted)]">Synthesis dialect and acoustic tuning</p>
+                  <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Voice Configuration</h2>
+                  <p className="text-xs font-body text-[var(--text-muted)]">Synthesis and acoustic tuning</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                <span className="text-xs font-body text-[var(--text-muted)]">{lang === 'hi-IN' ? 'हिन्दी' : 'English'}</span>
               </div>
             </div>
 
             <div className="space-y-4">
-              {/* Language Selection */}
-              <div>
-                <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                  Language Dialect
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange('en-US')}
-                    className={`py-2.5 px-3.5 rounded-xl border text-xs font-body transition-all text-center cursor-pointer ${
-                      lang === 'en-US'
-                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.25)] font-semibold'
-                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
-                    }`}
-                  >
-                    English (US)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleLanguageChange('hi-IN')}
-                    className={`py-2.5 px-3.5 rounded-xl border text-xs font-body transition-all text-center cursor-pointer ${
-                      lang === 'hi-IN'
-                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.25)] font-semibold'
-                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
-                    }`}
-                  >
-                    हिन्दी (Hindi)
-                  </button>
-                </div>
-              </div>
-
               {/* TTS Voice Selector */}
               <div>
                 <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
@@ -266,7 +264,7 @@ export default function Settings() {
                       {voice.name} ({voice.lang})
                     </option>
                   )) : (
-                    <option value="" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">{t('tts_no_voice', lang)}</option>
+                    <option value="" className="bg-[var(--bg-surface)] text-[var(--text-primary)]">{t('tts_no_voice')}</option>
                   )}
                 </select>
               </div>
@@ -313,8 +311,7 @@ export default function Settings() {
               onClick={handleSaveVoice}
               className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 py-2.5 px-4 rounded-xl transition-all font-bold text-xs shadow-[0_0_15px_rgba(255,143,192,0.25)] cursor-pointer"
             >
-              {saveVoiceSuccess ? <Check className="w-4 h-4" /> : null}
-              {saveVoiceSuccess ? "Saved" : "Save Voice Settings"}
+              Save Voice Settings
             </button>
           </div>
         </section>
@@ -516,6 +513,77 @@ export default function Settings() {
                 </div>
               ))
             )}
+          </div>
+        </section>
+
+        {/* CARD 5: Account & Data Portability (Span 12 - De-emphasized) */}
+        <section className="md:col-span-12 bg-[var(--bg-surface)]/70 backdrop-blur-[24px] border border-[var(--accent-primary)]/10 rounded-3xl p-6 sm:p-7 shadow-xl font-body">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">
+                <Download className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-display font-semibold text-[var(--text-primary)]">Account & Data Portability</h2>
+                <p className="text-xs text-[var(--text-muted)]">Local-first export and migration payload controls</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            {/* Export Section */}
+            <div className="p-4 bg-[var(--bg-base)]/50 border border-[var(--accent-primary)]/10 rounded-2xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-1">Export My Data</h3>
+                <p className="text-xs text-[var(--text-muted)] mb-4">Download all local messages, memories, and settings as a JSON file.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={exportConfirm}
+                  onChange={(e) => setExportConfirm(e.target.value)}
+                  placeholder="Type EXPORT"
+                  className="w-28 bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent-primary)]"
+                />
+                <button
+                  onClick={handleExportData}
+                  disabled={exportConfirm !== "EXPORT"}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export JSON
+                </button>
+              </div>
+            </div>
+
+            {/* Import Section */}
+            <div className="p-4 bg-[var(--bg-base)]/50 border border-[var(--accent-primary)]/10 rounded-2xl flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-1">Import Data</h3>
+                <p className="text-xs text-[var(--text-muted)] mb-3">Restore or migrate state from a previously exported JSON backup.</p>
+                <input 
+                  type="file" 
+                  accept=".json"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-[var(--text-muted)] file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[var(--accent-primary)]/15 file:text-[var(--accent-primary)] hover:file:bg-[var(--accent-primary)]/25 cursor-pointer mb-2"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <input 
+                  type="text" 
+                  value={importConfirm}
+                  onChange={(e) => setImportConfirm(e.target.value)}
+                  placeholder="Type IMPORT"
+                  className="w-28 bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent-primary)]"
+                />
+                <button
+                  onClick={handleImportData}
+                  disabled={importConfirm !== "IMPORT" || !importFile}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                >
+                  <Upload className="w-3.5 h-3.5" /> Import JSON
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

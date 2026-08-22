@@ -9,7 +9,7 @@
 // Confirmed Female voice name patterns / exact names
 export const FEMALE_VOICE_ALLOWLIST: readonly string[] = [
   'zira',                    // Microsoft Zira Desktop - English (United States)
-  'heera',                   // Microsoft Heera - English (India) / Hindi
+  'heera',                   // Microsoft Heera - English (India)
   'samantha',                // Apple Samantha (macOS/iOS)
   'victoria',                // Apple Victoria (macOS/iOS)
   'google uk english female',// Chrome / Android
@@ -19,10 +19,8 @@ export const FEMALE_VOICE_ALLOWLIST: readonly string[] = [
   'moira',                   // Apple Moira (Ireland)
   'tessa',                   // Apple Tessa (South Africa)
   'veena',                   // Apple Veena (India)
-  'aditi',                   // Google / Microsoft Aditi (Hindi / English India)
-  'kalpana',                 // Microsoft Kalpana (Hindi)
+  'aditi',                   // Google / Microsoft Aditi
   'neerja',                  // Microsoft Neerja (English India)
-  'swara',                   // Microsoft Swara (Hindi)
   'jenny',                   // Microsoft Jenny (Natural)
   'aria',                    // Microsoft Aria (Natural)
   'sonia',                   // Microsoft Sonia (Natural)
@@ -93,8 +91,8 @@ export const MALE_VOICE_EXCLUDELIST: readonly string[] = [
   'guy',                    // Microsoft Guy (Natural)
   'richard',                // Microsoft Richard
   'sean',                   // Microsoft Sean
-  'hemant',                 // Microsoft Hemant (Hindi)
-  'madhav',                 // Microsoft Madhav (Hindi)
+  'hemant',                 // Microsoft Hemant
+  'madhav',                 // Microsoft Madhav
   'bad news',               // Novelty macOS
   'bahh',                   // Novelty macOS
   'bells',                  // Novelty macOS
@@ -251,3 +249,10 @@ export function isStoredVoiceInvalid(voiceUri: string, allVoices: SpeechSynthesi
 
   return false;
 }
+
+export function getFemaleVoices(): SpeechSynthesisVoice[] {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return [];
+  const voices = window.speechSynthesis.getVoices();
+  return filterAllowedVoices(voices);
+}
+

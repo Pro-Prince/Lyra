@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles } from "lucide-react";
+import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles, Shirt } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getRapport, saveRapport } from "../lib/storage";
-import { t, Language, getLanguage } from "../lib/i18n";
+import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
+import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
+import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
+import { AppState, useAppState } from "../hooks/useAppState";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -30,22 +33,29 @@ const emotionColors: Record<Emotion, string> = {
 
 export default function Chat() {
   const { showError, showInfo } = useToast();
-  const [isLeftOpen, setIsLeftOpen] = useState(false);
-  const [isRightOpen, setIsRightOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRapportOpen, setIsRapportOpen] = useState(false);
+  const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
+  const [micMode, setMicMode] = useState<'ptt' | 'hands-free'>('hands-free');
+  const [graphicsTier, setGraphicsTier] = useState<'low' | 'medium' | 'high'>('high');
   
   const [messages, setMessages] = useState<{id: string, role: string, content: string, timestamp: number}[]>([]);
   const [subtitles, setSubtitles] = useState<LiveSubtitle[]>([]);
   const subtitleTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { state: appState, setState: setAppState } = useAppState();
+  
+  const isListening = appState === AppState.LISTENING;
+  const isLoading = appState === AppState.PROCESSING;
+  const isLyraSpeaking = appState === AppState.SPEAKING;
+  const isIdle = appState === AppState.IDLE;
+
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('warm');
 
   const [isMuted, setIsMuted] = useState(false);
-  const [isListening, setIsListening] = useState(false);
 
   const [isCallMode, setIsCallMode] = useState(false);
-  const [isLyraSpeaking, setIsLyraSpeaking] = useState(false);
   const [speechPulse, setSpeechPulse] = useState(1);
   
   const [rapportScore, setRapportScore] = useState(0);
@@ -54,21 +64,18 @@ export default function Chat() {
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [scenery, setScenery] = useState<string>('neutral');
   const [outfit, setOutfit] = useState<string>('/models/lyra.vrm');
-  const [lang, setLang] = useState<Language>(getLanguage());
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
 
   // Focus management references
   const leftDrawerRef = useRef<HTMLDivElement>(null);
-  const rightDrawerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
 
   // Refs for callbacks
   const isCallModeRef = useRef(isCallMode);
-  const isLyraSpeakingRef = useRef(isLyraSpeaking);
-  const isLoadingRef = useRef(isLoading);
+  const appStateRef = useRef(appState);
   const messagesRef = useRef(messages);
 
   const triggerSubtitle = (role: 'user' | 'model', text: string) => {
@@ -106,8 +113,7 @@ export default function Chat() {
   }, []);
 
   useEffect(() => { isCallModeRef.current = isCallMode; }, [isCallMode]);
-  useEffect(() => { isLyraSpeakingRef.current = isLyraSpeaking; }, [isLyraSpeaking]);
-  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+  useEffect(() => { appStateRef.current = appState; }, [appState]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
@@ -125,18 +131,21 @@ export default function Chat() {
       }
       
       const comp = await getCompanion();
+      const local = await import('../lib/storage').then(m => m.getLocalProfile());
+      if (local) {
+        if (local.micMode) setMicMode(local.micMode);
+        if (local.graphicsTier) setGraphicsTier(local.graphicsTier);
+      }
       companionProfileRef.current = comp;
       if (comp) {
         if (comp.scenery) setScenery(comp.scenery);
         if (comp.outfit) setOutfit(comp.outfit);
-        if (comp.language) setLang(comp.language as Language);
         
         // Auto-sanitize voice if male or invalid
         const sanitizeVoice = async () => {
           if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
           const allVoices = window.speechSynthesis.getVoices();
-          const targetPrefix = (comp.language || "en").split("-")[0];
-          const allowed = filterAllowedVoices(allVoices, targetPrefix);
+          const allowed = filterAllowedVoices(allVoices, "en");
           if (allowed.length > 0) {
             const isInvalid = !comp.voiceUri || !allowed.some(v => v.voiceURI === comp.voiceUri) || isStoredVoiceInvalid(comp.voiceUri, allVoices);
             if (isInvalid) {
@@ -167,12 +176,12 @@ export default function Chat() {
         setShowDisclosure(true);
       }
 
-      setupSpeechRecognition(comp?.language as Language || getLanguage());
+      setupSpeechRecognition();
     }
     loadData();
   }, []);
 
-  const setupSpeechRecognition = (language: Language) => {
+  const setupSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       if (recognitionRef.current) {
@@ -181,7 +190,7 @@ export default function Chat() {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = language;
+      recognition.lang = "en-US";
       recognition.onresult = (event: any) => {
         let interim = '';
         let final = '';
@@ -219,12 +228,12 @@ export default function Chat() {
             onClick: () => toggleMic()
           });
         }
-        setIsListening(false);
+        setAppState(AppState.IDLE);
       };
-      recognition.onend = () => {
-         setIsListening(false);
-         if (isCallModeRef.current && !isLyraSpeakingRef.current && !isLoadingRef.current) {
-            try { recognitionRef.current?.start(); setIsListening(true); } catch(e) {}
+      recognition.onend = () => { 
+         setAppState(AppState.IDLE); 
+         if ((isCallModeRef.current || micMode === 'hands-free') && appStateRef.current !== AppState.SPEAKING && appStateRef.current !== AppState.PROCESSING) {
+            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
          }
       };
       recognitionRef.current = recognition;
@@ -261,12 +270,12 @@ export default function Chat() {
     
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
+      setAppState(AppState.IDLE);
     } else {
       if (!isCallMode) setInputText(""); 
       try {
         recognitionRef.current?.start();
-        setIsListening(true);
+        setAppState(AppState.LISTENING);
       } catch (e) {
         console.error('[SpeechRecognition] Failed to start microphone:', e);
         showError("Can't start microphone right now, check your browser's permissions", {
@@ -278,9 +287,15 @@ export default function Chat() {
   };
 
   const speakText = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+       setAppState(AppState.IDLE);
+       return;
+    }
     window.speechSynthesis.cancel();
-    if (isMuted || !companionProfileRef.current) return;
+    if (isMuted || !companionProfileRef.current) {
+       setAppState(AppState.IDLE);
+       return;
+    }
     
     const { voiceUri, pitch, rate, language } = companionProfileRef.current;
     const utterance = new SpeechSynthesisUtterance(text);
@@ -302,7 +317,7 @@ export default function Chat() {
     let vIndex = 0;
     let resetTimeout: any = null;
 
-    setIsLyraSpeaking(true);
+    setAppState(AppState.SPEAKING);
 
     utterance.onboundary = (e) => {
       if (e.name === 'word') {
@@ -319,9 +334,9 @@ export default function Chat() {
     
     utterance.onend = () => {
        window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
-       setIsLyraSpeaking(false);
+       setAppState(AppState.IDLE);
        if (isCallModeRef.current) {
-          try { recognitionRef.current?.start(); setIsListening(true); } catch(e){}
+          try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
        }
     };
 
@@ -329,16 +344,12 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    if (isLeftOpen && leftDrawerRef.current) leftDrawerRef.current.focus();
-  }, [isLeftOpen]);
-
-  useEffect(() => {
-    if (isRightOpen && rightDrawerRef.current) rightDrawerRef.current.focus();
-  }, [isRightOpen]);
+      }, []);
 
   const closeDrawers = () => {
-    setIsLeftOpen(false);
-    setIsRightOpen(false);
+        setIsSettingsOpen(false);
+    setIsRapportOpen(false);
+    setIsWardrobeOpen(false);
   };
 
   const getRapportStatus = (score: number) => {
@@ -363,6 +374,10 @@ export default function Chat() {
     comp.outfit = newOutfit;
     await saveCompanion(comp);
     companionProfileRef.current = comp;
+    
+    if (typeof window !== 'undefined' && (window as any).playGesture) {
+      (window as any).playGesture('twirl');
+    }
   };
 
   const triggerGesture = (gesture: string, actionText: string) => {
@@ -381,18 +396,17 @@ export default function Chat() {
   };
 
   const executeSend = async (textToSend: string) => {
-    if (!textToSend.trim() || isLoadingRef.current) return;
+    if (!textToSend.trim() || appStateRef.current === AppState.PROCESSING) return;
 
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
+      setAppState(AppState.IDLE);
     }
     
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
-    setIsLyraSpeaking(false);
 
     const userMsg = {
       id: crypto.randomUUID(),
@@ -404,7 +418,7 @@ export default function Chat() {
     const currentMessages = messagesRef.current;
     setMessages(prev => [...prev, userMsg]);
     triggerSubtitle('user', textToSend.trim());
-    setIsLoading(true);
+    setAppState(AppState.PROCESSING);
     await saveMessage(userMsg);
 
     try {
@@ -465,41 +479,7 @@ export default function Chat() {
       setMessages(prev => [...prev, modelMsg]);
       triggerSubtitle('model', replyText);
       await saveMessage(modelMsg);
-      speakText(replyText);
-
-      // Increment rapport
-      const newScore = rapportScore + 1;
-      setRapportScore(newScore);
-      await saveRapport({ score: newScore });
-
-      // Asynchronous fact extraction
-      const recentChatContext = [...currentMessages.slice(-8), userMsg, modelMsg];
-      fetch('/api/extract-memory', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ messages: recentChatContext })
-      }).then(res => res.json()).then(async data => {
-         if (data.facts && data.facts.length > 0) {
-           let updatedMemories = [...memories];
-           let added = false;
-           for (const fact of data.facts) {
-             if (!updatedMemories.some(m => m.content.toLowerCase() === fact.toLowerCase())) {
-               const newMem = {
-                 id: crypto.randomUUID(),
-                 content: fact,
-                 createdAt: Date.now(),
-                 lastReferencedAt: Date.now()
-               };
-               await saveMemory(newMem);
-               updatedMemories.push(newMem);
-               added = true;
-             }
-           }
-           if (added) setMemories(updatedMemories);
-         }
-      }).catch(err => {
-         console.error('[MemoryExtraction] Failed to extract memory:', err);
-      });
+      speakText(replyText); // transitions to SPEAKING and then IDLE
 
     } catch (error) {
       console.error('[ChatAPI] Failed to communicate with chat service:', error);
@@ -507,8 +487,7 @@ export default function Chat() {
         label: "Retry",
         onClick: () => executeSend(textToSend)
       });
-    } finally {
-      setIsLoading(false);
+      setAppState(AppState.IDLE);
     }
   };
 
@@ -516,6 +495,50 @@ export default function Chat() {
     executeSend(inputText);
     setInputText("");
   };
+
+  // Process Rapport and Memory extraction upon returning to IDLE from SPEAKING
+  const prevAppStateRef = useRef(appState);
+  useEffect(() => {
+     if (prevAppStateRef.current === AppState.SPEAKING && appState === AppState.IDLE) {
+        // Increment rapport
+        const newScore = rapportScore + 1;
+        setRapportScore(newScore);
+        saveRapport({ score: newScore }).catch(console.error);
+
+        // Asynchronous fact extraction
+        const currentMessages = messagesRef.current;
+        if (currentMessages.length >= 2) {
+           const recentChatContext = currentMessages.slice(-10);
+           fetch('/api/extract-memory', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messages: recentChatContext })
+           }).then(res => res.json()).then(async data => {
+              if (data.facts && data.facts.length > 0) {
+                let updatedMemories = [...memories];
+                let added = false;
+                for (const fact of data.facts) {
+                  if (!updatedMemories.some(m => m.content.toLowerCase() === fact.toLowerCase())) {
+                    const newMem = {
+                      id: crypto.randomUUID(),
+                      content: fact,
+                      createdAt: Date.now(),
+                      lastReferencedAt: Date.now()
+                    };
+                    await saveMemory(newMem);
+                    updatedMemories.push(newMem);
+                    added = true;
+                  }
+                }
+                if (added) setMemories(updatedMemories);
+              }
+           }).catch(err => {
+              console.error('[MemoryExtraction] Failed to extract memory:', err);
+           });
+        }
+     }
+     prevAppStateRef.current = appState;
+  }, [appState, rapportScore, memories]);
 
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
   const { tier: rapportTier, progress: rapportProgress } = getRapportStatus(rapportScore);
@@ -526,13 +549,13 @@ export default function Chat() {
       <motion.main
         className="flex-1 relative flex flex-col h-full z-0 transform-gpu origin-center"
         animate={{
-          scale: isLeftOpen || isRightOpen ? 0.95 : 1,
-          opacity: isLeftOpen || isRightOpen ? 0.3 : 1,
+          scale: (isSettingsOpen || isRapportOpen || isWardrobeOpen) ? 0.95 : 1,
+          opacity: (isSettingsOpen || isRapportOpen || isWardrobeOpen) ? 0.3 : 1,
         }}
         transition={{ type: "spring", bounce: 0, duration: 0.5 }}
       >
         {/* Click-away overlay when a drawer is open */}
-        {(isLeftOpen || isRightOpen) && (
+        {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
             className="absolute inset-0 z-50 cursor-pointer" 
             onClick={closeDrawers} 
@@ -543,41 +566,82 @@ export default function Chat() {
         {/* TOP HUD */}
         <motion.header 
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
-          className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-start pointer-events-none"
+          className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-start pointer-events-none w-full max-w-5xl mx-auto"
         >
-          <button
-            onClick={() => setIsLeftOpen(true)}
-            className="pointer-events-auto p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
-            aria-label="Open Menu"
-          >
-            <Menu className="w-6 h-6 text-[var(--accent-primary)]" />
-          </button>
+          {/* Left Block: Session/Status + Settings */}
+          <div className="flex items-center gap-2 sm:gap-3">
+             <button
+              onClick={() => { closeDrawers(); setIsSettingsOpen(true); }}
+              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
+              aria-label="Settings"
+            >
+              <Settings className="w-5 h-5 text-[var(--text-muted)]" />
+            </button>
+            <div className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 shadow-lg">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+               <span className="text-xs font-semibold text-[var(--text-primary)] hidden sm:inline-block">Online</span>
+            </div>
+          </div>
 
+          {/* Center Block: Rapport */}
           <button
-            onClick={() => setIsRightOpen(true)}
-            className="pointer-events-auto flex flex-col items-end gap-1.5 p-3 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
+            onClick={() => { closeDrawers(); setIsRapportOpen(true); }}
+            className="pointer-events-auto flex flex-col items-center gap-1.5 p-2 px-4 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer min-w-[100px]"
             aria-label="View Rapport"
           >
             <div className="flex items-center gap-2">
-              <span className="font-display text-sm font-semibold text-[var(--text-primary)] tracking-wide">{rapportTier}</span>
-              <Heart className="w-4 h-4 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
+              <Heart className="w-3.5 h-3.5 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
+              <span className="font-display text-[11px] sm:text-xs font-semibold text-[var(--text-primary)] tracking-wide">
+                <span className="sm:hidden">{rapportTier.split(':')[0]}</span>
+                <span className="hidden sm:inline">{rapportTier}</span>
+              </span>
             </div>
             <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden">
               <div className="h-full rounded-full transition-all duration-700 bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" style={{ width: `${rapportProgress}%` }} />
             </div>
           </button>
+
+          {/* Right Block: Wardrobe */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { closeDrawers(); setIsWardrobeOpen(true); }}
+              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
+              aria-label="Wardrobe"
+            >
+              <Shirt className="w-5 h-5 text-[var(--text-muted)]" />
+            </button>
+          </div>
         </motion.header>
 
         {/* 3D VIEWER */}
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center pointer-events-none z-0">
-          <div className="w-full h-full pointer-events-auto">
+          <div className="w-full h-full pointer-events-auto relative">
             <CompanionStage 
               accentColor={activeAccent} 
               isCallMode={isCallMode} 
               scenery={scenery} 
               outfitUrl={outfit} 
               emotion={currentEmotion}
+              isWardrobeOpen={isWardrobeOpen}
             />
+            {/* TouchInteractionLayer */}
+            <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
+              {/* Face Zone */}
+              <div 
+                className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer"
+                onClick={() => triggerGesture('laugh', '')}
+              />
+              {/* Shoulders Zone */}
+              <div 
+                className="pointer-events-auto absolute top-[35%] h-[25%] w-[70%] cursor-pointer"
+                onClick={() => triggerGesture('nod', '')}
+              />
+              {/* Hands Zone */}
+              <div 
+                className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer"
+                onClick={() => triggerGesture('wave', '')}
+              />
+            </div>
           </div>
         </div>
 
@@ -611,67 +675,12 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* FLOATING SUBTITLE OVERLAY (Favors Lyra's voice hierarchy) */}
-        <div className="absolute top-[42%] sm:top-[44%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl px-4 sm:px-6 pointer-events-none z-20 flex flex-col items-center gap-3">
-          <AnimatePresence mode="popLayout">
-            {subtitles.map((sub) => (
-              <motion.div
-                key={sub.id}
-                layout
-                initial={{ opacity: 0, y: 20, scale: 0.94 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ 
-                  opacity: 0, 
-                  y: -24, 
-                  scale: 0.95, 
-                  filter: "blur(4px)",
-                  transition: { duration: 0.45, ease: "easeOut" } 
-                }}
-                transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
-                  sub.role === 'user'
-                    ? 'bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
-                    : 'bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(255,143,192,0.25)]'
-                }`}
-              >
-                {sub.role === 'user' ? (
-                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] font-body font-semibold tracking-wider uppercase text-[var(--text-muted)]/80 mb-0.5">
-                      You
-                    </span>
-                    <p className="text-xs sm:text-sm font-body text-[var(--text-muted)] tracking-wide leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-                      {sub.text}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-1.5 mb-1.5 text-xs font-display font-semibold tracking-wider uppercase text-[var(--text-primary)]">
-                      <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                      <span>Lyra</span>
-                    </div>
-                    <p className="text-base sm:text-lg font-body font-medium text-[var(--text-primary)] tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-                      {sub.text}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-
-            {isLoading && (
-              <motion.div
-                key="thinking-indicator"
-                layout
-                initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -12, scale: 0.95, transition: { duration: 0.25 } }}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/30 shadow-[0_4px_20px_rgba(0,0,0,0.7)]"
-              >
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-primary)]" />
-                <span className="text-xs font-body text-[var(--text-muted)] tracking-wide">Lyra is thinking...</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* SUBTITLE AND SPECTRUM */}
+        <SubtitleAndSpectrum 
+          subtitles={subtitles} 
+          appState={appState} 
+          speechPulse={speechPulse} 
+        />
 
         {/* BOTTOM INPUT DOCK */}
         <motion.div 
@@ -744,6 +753,12 @@ export default function Chat() {
 
             <button 
               onClick={toggleMic}
+              onPointerDown={(e) => {
+                if (micMode === 'ptt' && !isListening) toggleMic();
+              }}
+              onPointerUp={(e) => {
+                // Let onend stop it naturally or stop it here if we want strict push-to-hold
+              }}
               className={`p-3 transition-all rounded-full ${
                 isListening 
                   ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_12px_rgba(255,143,192,0.4)]' 
@@ -756,6 +771,7 @@ export default function Chat() {
 
             <textarea
               value={inputText}
+              disabled={isListening || isLoading}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -764,7 +780,7 @@ export default function Chat() {
                 }
               }}
               className="flex-1 bg-transparent border-none focus:ring-0 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 resize-none py-3 px-2 max-h-32 min-h-[48px] font-body text-sm sm:text-base"
-              placeholder={isListening ? "Listening..." : t('chat_placeholder', lang)}
+              placeholder={isListening ? "Listening..." : t('chat_placeholder')}
               rows={1}
             />
             <button 
@@ -819,11 +835,10 @@ export default function Chat() {
         )}
       </AnimatePresence>
 
-      {/* LEFT DRAWER (MENU) */}
+      {/* SETTINGS DRAWER */}
       <AnimatePresence>
-        {isLeftOpen && (
+        {isSettingsOpen && (
           <motion.aside
-            ref={leftDrawerRef}
             tabIndex={-1}
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
@@ -832,58 +847,122 @@ export default function Chat() {
             className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Menu</h2>
+              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Settings</h2>
               <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Status Label */}
-            <div className="p-6 border-b border-[var(--accent-primary)]/10">
-              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Lyra's Status</div>
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_10px_var(--accent-primary)]" />
-                <span className="text-sm font-medium text-[var(--text-primary)]">Reflective & Attentive</span>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              {/* Voice Settings */}
+              <div>
+                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Voice</div>
+                <VoicePicker />
               </div>
-            </div>
 
-            {/* Scenery Switcher */}
-            <div className="p-6 border-b border-[var(--accent-primary)]/10">
-              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Environment</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'neutral', label: 'Neutral' },
-                  { id: 'cozy', label: 'Cozy' },
-                  { id: 'dusk', label: 'Dusk' },
-                  { id: 'night', label: 'Night' }
-                ].map(scene => (
+              {/* Microphone Settings */}
+              <div>
+                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Microphone Mode</div>
+                <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
                   <button
-                    key={scene.id}
-                    onClick={() => handleSceneryChange(scene.id)}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all text-left group ${
-                      scenery === scene.id 
-                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--text-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
-                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 text-[var(--text-muted)] hover:border-[var(--accent-primary)]/30'
+                    onClick={async () => {
+                      setMicMode('ptt');
+                      const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
+                      await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'ptt' }));
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                      micMode === 'ptt' 
+                        ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    <div className="w-10 h-7 rounded-lg overflow-hidden shrink-0 bg-black/40 border border-white/[0.06]">
-                      <SceneryThumbnail id={scene.id} />
-                    </div>
-                    <span className={`text-xs font-medium truncate ${scenery === scene.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
-                      {scene.label}
-                    </span>
+                    Push-to-Talk
                   </button>
-                ))}
+                  <button
+                    onClick={async () => {
+                      setMicMode('hands-free');
+                      const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
+                      await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'hands-free' }));
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                      micMode === 'hands-free' 
+                        ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    Hands-Free
+                  </button>
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mt-2 font-body leading-relaxed">
+                  {micMode === 'ptt' ? 'Hold or tap the mic button to speak. Listening stops automatically when you finish.' : 'Microphone stays on and listens continuously during conversations.'}
+                </p>
+              </div>
+
+              {/* Graphics Settings */}
+              <div>
+                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Graphics</div>
+                <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
+                  {['low', 'medium', 'high'].map(tier => (
+                    <button
+                      key={tier}
+                      onClick={async () => {
+                        setGraphicsTier(tier as 'low'|'medium'|'high');
+                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
+                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, graphicsTier: tier }));
+                      }}
+                      className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-all capitalize ${
+                        graphicsTier === tier 
+                          ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {tier}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mt-2 font-body leading-relaxed">
+                  {graphicsTier === 'low' ? 'Lower resolution and reduced anti-aliasing for better performance on older devices.' : graphicsTier === 'medium' ? 'Standard resolution and quality.' : 'High resolution, full effects. Recommended for fast devices.'}
+                </p>
               </div>
             </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
-            {/* Wardrobe Switcher */}
-            <div className="p-6 border-b border-[var(--accent-primary)]/10">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider">Wardrobe</div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30">3D VRM</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+      {/* WARDROBE DRAWER */}
+      <AnimatePresence>
+        {isWardrobeOpen && (
+          <motion.aside
+            tabIndex={-1}
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+            className="fixed top-0 right-0 bottom-0 w-[420px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
+          >
+            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
+              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Wardrobe</h2>
+              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Sticky Tabs */}
+            <div className="sticky top-0 z-10 flex px-6 py-4 gap-4 border-b border-[var(--accent-primary)]/10 bg-[var(--bg-surface)]/80 backdrop-blur-md">
+              {['Outfits', 'Hairstyles', 'Accessories'].map((tab) => (
+                <button 
+                  key={tab}
+                  className={`pb-2 text-sm font-semibold transition-colors ${
+                    tab === 'Outfits' ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 gap-4">
                 {[
                   { id: '/models/lyra.vrm', label: 'Default' },
                   { id: '/models/lyra_casual.vrm', label: 'Casual' },
@@ -892,113 +971,20 @@ export default function Chat() {
                   <button
                     key={item.id}
                     onClick={() => handleOutfitChange(item.id)}
-                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-center transition-all group ${
+                    className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-center transition-all group ${
                       outfit === item.id 
                         ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
                         : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
                     }`}
                   >
-                    <div className="w-full aspect-square rounded-lg overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
+                    <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
                       <OutfitThumbnail id={item.id} />
                     </div>
-                    <span className={`text-xs font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                    <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
                       {item.label}
                     </span>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* History */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Recent Memories</div>
-              <div className="space-y-3">
-                {memories.length === 0 ? (
-                  <div className="text-sm text-[var(--text-muted)]">No memories yet.</div>
-                ) : (
-                  [...memories].reverse().slice(0, 5).map((mem: any) => (
-                    <div key={mem.id} className="flex items-start gap-3 p-3.5 rounded-2xl bg-[var(--bg-base)]/40 border border-[var(--accent-primary)]/10 hover:bg-[var(--bg-base)]/60 hover:border-[var(--accent-primary)]/30 transition-all group">
-                      <MessageSquare className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] mt-0.5 transition-colors shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium text-[var(--text-primary)] group-hover:text-white transition-colors line-clamp-2 leading-relaxed">{mem.content}</div>
-                        <div className="text-xs text-[var(--text-muted)] mt-1 font-mono">Stored recently</div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-6 border-t border-[var(--accent-primary)]/10">
-              <Link to="/settings" className="flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--bg-base)]/50 hover:bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/15 transition-colors text-[var(--text-primary)] group">
-                <Settings className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--accent-primary)] transition-colors" />
-                <span className="font-medium text-sm">Settings & Privacy</span>
-              </Link>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* RIGHT DRAWER (RAPPORT) */}
-      <AnimatePresence>
-        {isRightOpen && (
-          <motion.aside
-            ref={rightDrawerRef}
-            tabIndex={-1}
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 right-0 bottom-0 w-[380px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
-          >
-            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Rapport</h2>
-              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="flex flex-col items-center text-center pt-2">
-                <div className="w-20 h-20 rounded-full bg-[var(--accent-primary)]/10 flex items-center justify-center mb-4 border border-[var(--accent-primary)]/30 shadow-[0_0_30px_rgba(255,143,192,0.25)]">
-                  <Heart className="w-10 h-10 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
-                </div>
-                <h3 className="font-display text-3xl font-bold text-[var(--text-primary)] mb-2">{rapportTier}</h3>
-                <p className="text-[var(--accent-primary)] font-body font-semibold text-sm tracking-wide">
-                  {rapportScore >= 300 ? 'Max Tier Reached' : `${100 - rapportProgress}% to Next Tier`}
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-[var(--bg-base)]/50 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6">
-                  <h4 className="text-xs font-display font-semibold text-[var(--accent-primary)] uppercase tracking-wider mb-4">Current Benefits</h4>
-                  <ul className="space-y-4">
-                    <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
-                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
-                        Lyra initiates topics related to your personal goals and challenges.
-                      </p>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
-                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
-                        Voice-call mode is available for hands-free conversations.
-                      </p>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] mt-2 shadow-[0_0_8px_var(--accent-primary)]" />
-                      <p className="text-sm text-[var(--text-primary)] leading-relaxed">
-                        Extended emotional range with responsive gestures and expressions.
-                      </p>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-2xl p-5">
-                  <span className="block font-semibold text-[var(--accent-primary)] mb-1 font-display">System Note</span>
-                  Rapport strictly influences conversational depth, emotional range, and communication modalities. It does not alter appearance, avatar features, or clothing.
-                </div>
               </div>
             </div>
           </motion.aside>

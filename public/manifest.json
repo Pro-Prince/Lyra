@@ -1,16 +1,20 @@
 {
-  "name": "Lyra Companion",
+  "name": "Lyra",
   "short_name": "Lyra",
-  "start_url": "/",
-  "display": "standalone",
+  "theme_color": "#160F17",
   "background_color": "#160F17",
-  "theme_color": "#FF8FC0",
+  "display": "standalone",
+  "start_url": "/",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

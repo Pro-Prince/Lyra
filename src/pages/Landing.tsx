@@ -1,14 +1,12 @@
-import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCompanion } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRight, Sparkles, UserCheck, Volume2, Heart } from "lucide-react";
-import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
+import { t } from "../lib/i18n";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { user, isGuestMode, continueAsGuest } = useAuth();
-  const [lang, setLang] = useState<Language>(getLanguage());
 
   const handleCTAClick = async () => {
     const isAuthenticated = user || isGuestMode;
@@ -17,11 +15,6 @@ export default function Landing() {
     }
     const companion = await getCompanion();
     navigate(companion && companion.initialized ? "/chat" : "/onboarding");
-  };
-
-  const handleLanguageToggle = (newLang: Language) => {
-    setLang(newLang);
-    setGlobalLanguage(newLang);
   };
 
   return (
@@ -39,30 +32,6 @@ export default function Landing() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Language Switcher */}
-          <div className="flex items-center bg-[var(--bg-surface)]/80 backdrop-blur-md border border-[var(--accent-primary)]/15 p-1 rounded-full shadow-lg">
-            <button
-              onClick={() => handleLanguageToggle("en-US")}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all ${
-                lang === "en-US"
-                  ? "bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_8px_rgba(255,143,192,0.4)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => handleLanguageToggle("hi-IN")}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-full transition-all ${
-                lang === "hi-IN"
-                  ? "bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_8px_rgba(255,143,192,0.4)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              हिन्दी
-            </button>
-          </div>
-
           {(user || isGuestMode) && (
             <Link
               to="/chat"
@@ -79,12 +48,12 @@ export default function Landing() {
       <main className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-12 max-w-4xl mx-auto w-full my-auto">
         {/* Soft, warm headline in Fredoka */}
         <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-5 text-[var(--text-primary)] leading-[1.08] text-balance">
-          {t("landing_title", lang)}
+          {t("landing_title")}
         </h1>
 
         {/* Subhead in Poppins */}
         <p className="font-body text-lg md:text-xl text-[var(--text-muted)] mb-10 max-w-2xl leading-relaxed text-balance">
-          {t("landing_subtitle", lang)}
+          {t("landing_subtitle")}
         </p>
 
         {/* CTA Button wrapped in soft pink-to-lavender gradient glow */}
@@ -95,7 +64,7 @@ export default function Landing() {
             onClick={handleCTAClick}
             className="relative inline-flex items-center gap-3 bg-[var(--accent-primary)] text-[#2D0A1E] px-8 py-4 rounded-[12px] font-body font-medium text-base md:text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer"
           >
-            <span>{t("landing_button", lang)}</span>
+            <span>{t("landing_button")}</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -103,7 +72,7 @@ export default function Landing() {
         {/* Disclosure line in Space Mono */}
         <div className="mt-8">
           <p className="font-mono text-[10px] md:text-xs text-[var(--text-muted)] tracking-widest uppercase text-balance">
-            {t("landing_disclaimer", lang)}
+            {t("landing_disclaimer")}
           </p>
         </div>
 
@@ -114,10 +83,10 @@ export default function Landing() {
               <Volume2 className="w-5 h-5" />
             </div>
             <h3 className="font-display font-semibold text-lg text-[var(--text-primary)] mb-2">
-              {t("card1_title", lang)}
+              {t("card1_title")}
             </h3>
             <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
-              {t("card1_desc", lang)}
+              {t("card1_desc")}
             </p>
           </div>
 
@@ -126,10 +95,10 @@ export default function Landing() {
               <Sparkles className="w-5 h-5" />
             </div>
             <h3 className="font-display font-semibold text-lg text-[var(--text-primary)] mb-2">
-              {t("card2_title", lang)}
+              {t("card2_title")}
             </h3>
             <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
-              {t("card2_desc", lang)}
+              {t("card2_desc")}
             </p>
           </div>
 
@@ -138,10 +107,10 @@ export default function Landing() {
               <Heart className="w-5 h-5" />
             </div>
             <h3 className="font-display font-semibold text-lg text-[var(--text-primary)] mb-2">
-              {t("card3_title", lang)}
+              {t("card3_title")}
             </h3>
             <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
-              {t("card3_desc", lang)}
+              {t("card3_desc")}
             </p>
           </div>
         </div>

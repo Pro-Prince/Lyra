@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense, memo } from 'react';
+import { useEffect, useRef, useState, Suspense, memo, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
@@ -6,13 +6,12 @@ import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { getCachedModelBuffer, setCachedModelBuffer, clearCachedModelBuffer, isValidGLTFBuffer, fetchAndCacheVRMModel } from '../lib/vrmCache';
+import { fetchAndCacheVRMModel, clearCachedModelBuffer } from '../lib/vrmCache';
 
 // Scratch variables to guarantee zero-allocation render loop on mobile GPUs
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
 const SCRATCH_COLOR_C = new THREE.Color();
-const SCRATCH_VEC_A = new THREE.Vector3();
 const SCRATCH_VEC_B = new THREE.Vector3();
 const VISEMES = ['aa', 'ih', 'ou', 'ee', 'oh'] as const;
 
@@ -47,46 +46,155 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
   calm: { happy: 0.2, relaxed: 0.75, surprised: 0.0, neutral: 0.3, sad: 0.0 }
 };
 
-function CameraSetup({ isCallMode }: { isCallMode: boolean }) {
-  const { camera, size } = useThree();
-  const aspect = size.width / Math.max(size.height, 1);
+function CameraRig({ mode }: { mode: 'centered' | 'panned-left' }) {
+  const { camera, size, gl } = useThree();
+  const target = useRef(new THREE.Vector3());
+  const targetPos = useRef(new THREE.Vector3());
 
-  useFrame((state, delta) => {
-    const isMobilePortrait = aspect < 0.75;
-    const isTabletOrSquare = aspect >= 0.75 && aspect < 1.2;
-    
-    // Adaptive framing: perfectly centered portrait framing so Lyra fills the stage without awkward cropping
-    const targetY = isMobilePortrait ? 1.30 : (isTabletOrSquare ? 1.32 : 1.33);
-    const targetZ = isCallMode 
-      ? (isMobilePortrait ? 1.55 : 1.35) 
-      : (isMobilePortrait ? 1.80 : (isTabletOrSquare ? 1.62 : 1.46));
-    const targetLookAtY = isMobilePortrait ? 1.26 : 1.31;
-    
-    const targetFov = isCallMode ? 36 : (isMobilePortrait ? 46 : 42);
-    const cam = state.camera as THREE.PerspectiveCamera;
-    const safeDelta = Math.min(delta, 0.05);
+  // Handle window/orientation resize correctly with camera aspect ratio update
+  useEffect(() => {
+    const canvasContainer = gl.domElement.parentElement;
+    if (!canvasContainer) return;
 
-    cam.position.x = THREE.MathUtils.lerp(cam.position.x, 0, safeDelta * 4);
-    cam.position.y = THREE.MathUtils.lerp(cam.position.y, targetY, safeDelta * 4);
-    cam.position.z = THREE.MathUtils.lerp(cam.position.z, targetZ, safeDelta * 4);
-    cam.lookAt(0, targetLookAtY, 0);
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        (camera as THREE.PerspectiveCamera).aspect = width / height;
+        (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+        gl.setSize(width, height, false);
+      }
+    });
+    ro.observe(canvasContainer);
+    return () => ro.disconnect();
+  }, [camera, gl]);
 
-    if (Math.abs(cam.fov - targetFov) > 0.05) {
-      cam.fov = THREE.MathUtils.lerp(cam.fov, targetFov, safeDelta * 4);
-      cam.updateProjectionMatrix();
+  useEffect(() => {
+    if (mode === 'panned-left') {
+      targetPos.current.set(-0.9, 1.3, 2.4);
+      target.current.set(-0.4, 1.3, 0);
+    } else {
+      targetPos.current.set(0, 1.3, 2.0);
+      target.current.set(0, 1.3, 0);
     }
-  });
+  }, [mode]);
 
+  useFrame((_, delta) => {
+    const safeDelta = Math.min(delta, 0.05);
+    camera.position.lerp(targetPos.current, safeDelta * 6);
+    
+    // Smoothly interpolate lookAt target
+    const currentLook = new THREE.Vector3();
+    camera.getWorldDirection(currentLook);
+    // lerp camera position and lookAt
+    camera.lookAt(target.current);
+  });
   return null;
 }
 
-// Lazy-loaded starfield, only instantiated and rendered when scenery is night
+function frameVRM(vrmScene: THREE.Group) {
+  const box = new THREE.Box3().setFromObject(vrmScene);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  vrmScene.position.x -= center.x;
+  vrmScene.position.z -= center.z;
+  // keep feet on the floor, don't re-center vertically to 0
+  vrmScene.position.y -= box.min.y;
+}
+
+// Standing Ground Surface Platform beneath Lyra's feet
+const StandingSurface = memo(({ accentColor }: { accentColor: string }) => {
+  const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
+  const ringRef = useRef<THREE.Mesh>(null);
+  const ringInnerRef = useRef<THREE.Mesh>(null);
+
+  // Generate ground radial aura texture
+  const floorTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+
+    const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.50)');
+    grad.addColorStop(0.2, 'rgba(255, 143, 192, 0.32)');
+    grad.addColorStop(0.5, 'rgba(255, 143, 192, 0.12)');
+    grad.addColorStop(0.8, 'rgba(255, 143, 192, 0.03)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.beginPath();
+    ctx.arc(256, 256, 175, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.40)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
+  const shadowTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+
+    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+    grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.30)');
+    grad.addColorStop(0.7, 'rgba(0, 0, 0, 0.08)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
+  useFrame((state, delta) => {
+    const time = state.clock.getElapsedTime();
+    if (ringRef.current) {
+      ringRef.current.rotation.z += Math.min(delta, 0.05) * 0.12;
+    }
+    if (ringInnerRef.current) {
+      ringInnerRef.current.rotation.z -= Math.min(delta, 0.05) * 0.08;
+      const scalePulse = 1 + Math.sin(time * 1.5) * 0.03;
+      ringInnerRef.current.scale.set(scalePulse, scalePulse, 1);
+    }
+  });
+
+  return (
+    <group position={[0, -0.005, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+        <planeGeometry args={[1.5, 1.5]} />
+        <meshBasicMaterial map={shadowTexture} transparent opacity={0.75} depthWrite={false} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        <planeGeometry args={[4.2, 4.2]} />
+        <meshBasicMaterial map={floorTexture} transparent opacity={0.85} depthWrite={false} />
+      </mesh>
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
+        <ringGeometry args={[1.2, 1.23, 64]} />
+        <meshBasicMaterial color={safeAccent} transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      <mesh ref={ringInnerRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0015, 0]}>
+        <ringGeometry args={[0.7, 0.72, 48]} />
+        <meshBasicMaterial color="#FFFFFF" transparent opacity={0.25} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+});
+
 function Starfield() {
   const pointsRef = useRef<THREE.Points>(null);
   
   const [geometry] = useState(() => {
     const geo = new THREE.BufferGeometry();
-    const count = 250; // Optimized count for mobile fillrate
+    const count = 250;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 10;
@@ -97,7 +205,7 @@ function Starfield() {
     return geo;
   });
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (pointsRef.current) {
       pointsRef.current.rotation.y += Math.min(delta, 0.05) * 0.02;
     }
@@ -117,38 +225,32 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
   const fillRef = useRef<THREE.DirectionalLight>(null);
   const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const safeDelta = Math.min(delta, 0.05);
     const lerpSpeed = safeDelta * 4;
 
-    // Soft warm pink-peach ambient tone
     SCRATCH_COLOR_A.set("#FFEBF4");
     let targetAmbientIntensity = 0.7;
     
-    // Warm key light
     SCRATCH_COLOR_B.set("#FFF5F8");
     let targetKeyIntensity = 1.05;
     
-    // Soft warm peach-pink fill light
     SCRATCH_COLOR_C.set(safeAccent || "#FF8FC0");
     let targetFillIntensity = 0.6;
-    SCRATCH_VEC_A.set(-2, 1, 3);
+    const targetFillPos = new THREE.Vector3(-2, 1, 3);
 
     if (scenery === 'cozy') {
-      // Warm golden-pink cozy glow
       SCRATCH_COLOR_A.set("#FFF0E6");
       targetAmbientIntensity = 0.65;
       targetKeyIntensity = 0.95;
       targetFillIntensity = 0.5;
     } else if (scenery === 'dusk') {
-      // Soft twilight lavender-pink glow
       SCRATCH_COLOR_A.set("#F4E8FF");
       targetAmbientIntensity = 0.55;
       targetKeyIntensity = 0.85;
       targetFillIntensity = 0.55;
-      SCRATCH_VEC_A.set(-2, 1.2, 2);
+      targetFillPos.set(-2, 1.2, 2);
     } else if (scenery === 'night') {
-      // Subtle starry pink-purple ambient
       SCRATCH_COLOR_A.set("#EBDDFF");
       targetAmbientIntensity = 0.45;
       targetKeyIntensity = 0.75;
@@ -166,7 +268,7 @@ function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentCol
     if (fillRef.current) {
       fillRef.current.color.lerp(SCRATCH_COLOR_C, lerpSpeed);
       fillRef.current.intensity = THREE.MathUtils.lerp(fillRef.current.intensity, targetFillIntensity, lerpSpeed);
-      fillRef.current.position.lerp(SCRATCH_VEC_A, lerpSpeed);
+      fillRef.current.position.lerp(targetFillPos, lerpSpeed);
     }
   });
 
@@ -191,7 +293,7 @@ interface VRMModelProps {
 function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryKey = 0 }: VRMModelProps) {
   const [vrm, setVrm] = useState<VRM | null>(null);
 
-  const lookAtTarget = useRef(new THREE.Object3D());
+  const lookTarget = useRef(new THREE.Object3D());
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const clips = useRef<Record<string, THREE.AnimationClip>>({});
   const currentAction = useRef<THREE.AnimationAction | null>(null);
@@ -203,26 +305,21 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     let isCancelled = false;
     const abortController = new AbortController();
 
-    // 25-second hard timeout for model fetch & parse
     const timeoutId = setTimeout(() => {
       abortController.abort(new Error("Model download timed out (25 seconds limit reached)."));
     }, 25000);
 
     const loadVRM = async () => {
       try {
-        console.log(`[CompanionStage] Loading VRM model: ${url} (attempt ${retryKey + 1})`);
         if (onProgress) onProgress(10);
-
         const arrayBuffer = await fetchAndCacheVRMModel(url, abortController.signal);
         if (onProgress) onProgress(95);
 
         clearTimeout(timeoutId);
         if (isCancelled || !arrayBuffer) return;
 
-        // Parse with GLTFLoader and VRMLoaderPlugin
         const loader = new GLTFLoader();
         loader.register((parser) => new VRMLoaderPlugin(parser));
-
         const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
 
         loader.parse(
@@ -233,13 +330,12 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             const vrmInstance = gltf.userData.vrm as VRM;
             if (!vrmInstance) {
               const err = new Error("File parsed successfully as glTF, but contains no VRM humanoid metadata.");
-              console.error(`[CompanionStage] VRM extension missing for ${url}:`, err);
               if (onError) onError(err.message);
               return;
             }
 
             VRMUtils.removeUnnecessaryVertices(gltf.scene);
-            VRMUtils.removeUnnecessaryJoints(gltf.scene);
+            VRMUtils.combineSkeletons(gltf.scene);
             vrmInstance.scene.traverse((obj) => {
               obj.frustumCulled = false;
               if (obj instanceof THREE.Mesh) {
@@ -248,17 +344,18 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
               }
             });
 
+            // Auto-frame VRM on load
+            frameVRM(vrmInstance.scene);
+
             // Setup LookAt target
-            lookAtTarget.current.position.set(0, 1.35, 3);
-            vrmInstance.scene.add(lookAtTarget.current);
+            lookTarget.current.position.set(0, 1.35, 3);
+            vrmInstance.scene.add(lookTarget.current);
             if (vrmInstance.lookAt) {
-              vrmInstance.lookAt.target = lookAtTarget.current;
+              vrmInstance.lookAt.target = lookTarget.current;
             }
 
-            // Setup Animation Mixer
             mixer.current = new THREE.AnimationMixer(vrmInstance.scene);
 
-            // Generate programmatic gesture clips with zero memory overhead
             const head = vrmInstance.humanoid.getNormalizedBoneNode('head');
             const chest = vrmInstance.humanoid.getNormalizedBoneNode('chest');
             const upperArm = vrmInstance.humanoid.getNormalizedBoneNode('rightUpperArm');
@@ -272,141 +369,41 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
 
             const qZero = new THREE.Euler(0, 0, 0);
 
-            // Gesture: Wave
             if (upperArm && lowerArm) {
-              const tWaveUp = makeTrack(upperArm, [
-                qZero,
-                new THREE.Euler(0, 0, -Math.PI / 2.2),
-                new THREE.Euler(0, 0, -Math.PI / 2.2),
-                qZero
-              ], [0, 0.3, 1.7, 2.0]);
-
-              const tWaveLow = makeTrack(lowerArm, [
-                qZero,
-                qZero,
-                new THREE.Euler(0, 0, -0.5),
-                new THREE.Euler(0, 0, 0.5),
-                new THREE.Euler(0, 0, -0.5),
-                new THREE.Euler(0, 0, 0.5),
-                new THREE.Euler(0, 0, 0),
-                qZero
-              ], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]);
-
-              if (tWaveUp && tWaveLow) {
-                clips.current['wave'] = new THREE.AnimationClip('wave', 2.0, [tWaveUp, tWaveLow]);
-              }
+              const tWaveUp = makeTrack(upperArm, [qZero, new THREE.Euler(0, 0, -Math.PI / 2.2), new THREE.Euler(0, 0, -Math.PI / 2.2), qZero], [0, 0.3, 1.7, 2.0]);
+              const tWaveLow = makeTrack(lowerArm, [qZero, qZero, new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, 0), qZero], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]);
+              if (tWaveUp && tWaveLow) clips.current['wave'] = new THREE.AnimationClip('wave', 2.0, [tWaveUp, tWaveLow]);
             }
 
-            // Gesture: Nod
             if (head) {
-              const tNod = makeTrack(head, [
-                qZero,
-                new THREE.Euler(0.2, 0, 0),
-                new THREE.Euler(0.2, 0, 0),
-                qZero
-              ], [0, 0.2, 0.4, 0.6]);
+              const tNod = makeTrack(head, [qZero, new THREE.Euler(0.2, 0, 0), new THREE.Euler(0.2, 0, 0), qZero], [0, 0.2, 0.4, 0.6]);
               if (tNod) clips.current['nod'] = new THREE.AnimationClip('nod', 0.6, [tNod]);
             }
 
-            // Gesture: Twirl
             const hips = vrmInstance.humanoid.getNormalizedBoneNode('hips');
             if (hips) {
-              const tTwirl = makeTrack(hips, [
-                qZero,
-                new THREE.Euler(0, Math.PI, 0),
-                new THREE.Euler(0, Math.PI * 1.99, 0),
-                new THREE.Euler(0, Math.PI * 2, 0)
-              ], [0, 0.4, 0.75, 0.8]);
+              const tTwirl = makeTrack(hips, [qZero, new THREE.Euler(0, Math.PI, 0), new THREE.Euler(0, Math.PI * 1.99, 0), new THREE.Euler(0, Math.PI * 2, 0)], [0, 0.4, 0.75, 0.8]);
               if (tTwirl) clips.current['twirl'] = new THREE.AnimationClip('twirl', 0.8, [tTwirl]);
             }
 
-            // Gesture: Laugh
-            if (chest && head) {
-              const tLaughChest = makeTrack(chest, [
-                qZero,
-                new THREE.Euler(-0.05, 0, 0),
-                qZero,
-                new THREE.Euler(-0.05, 0, 0),
-                qZero,
-                qZero
-              ], [0, 0.15, 0.3, 0.45, 0.6, 1.0]);
-
-              const tLaughHead = makeTrack(head, [
-                qZero,
-                new THREE.Euler(-0.1, 0, 0),
-                qZero,
-                new THREE.Euler(-0.1, 0, 0),
-                qZero,
-                qZero
-              ], [0, 0.15, 0.3, 0.45, 0.6, 1.0]);
-              if (tLaughChest && tLaughHead) clips.current['laugh'] = new THREE.AnimationClip('laugh', 1.0, [tLaughChest, tLaughHead]);
-            }
-
-            // Gesture: Think
-            if (head && chest) {
-              const tThinkHead = makeTrack(head, [
-                qZero,
-                new THREE.Euler(-0.1, 0.2, 0.1),
-                new THREE.Euler(-0.1, 0.2, 0.1),
-                qZero
-              ], [0, 0.3, 1.5, 1.8]);
-              const tThinkChest = makeTrack(chest, [
-                qZero,
-                new THREE.Euler(0, 0.1, 0),
-                new THREE.Euler(0, 0.1, 0),
-                qZero
-              ], [0, 0.3, 1.5, 1.8]);
-              if (tThinkHead && tThinkChest) clips.current['think'] = new THREE.AnimationClip('think', 1.8, [tThinkHead, tThinkChest]);
-            }
-
-            // Gesture: Celebrate
-            const leftUpperArm = vrmInstance.humanoid.getNormalizedBoneNode('leftUpperArm');
-            if (upperArm && leftUpperArm && chest) {
-              const tCelChest = makeTrack(chest, [
-                qZero,
-                new THREE.Euler(-0.1, 0, 0),
-                new THREE.Euler(0.05, 0, 0),
-                qZero
-              ], [0, 0.2, 0.8, 1.2]);
-              const tCelArmR = makeTrack(upperArm, [
-                qZero,
-                new THREE.Euler(0, 0, -Math.PI * 0.8),
-                new THREE.Euler(0, 0, -Math.PI * 0.8),
-                qZero
-              ], [0, 0.2, 0.8, 1.2]);
-              const tCelArmL = makeTrack(leftUpperArm, [
-                qZero,
-                new THREE.Euler(0, 0, Math.PI * 0.8),
-                new THREE.Euler(0, 0, Math.PI * 0.8),
-                qZero
-              ], [0, 0.2, 0.8, 1.2]);
-              if (tCelChest && tCelArmR && tCelArmL) clips.current['celebrate'] = new THREE.AnimationClip('celebrate', 1.2, [tCelChest, tCelArmR, tCelArmL]);
-            }
-
-            // Global play gesture function with smooth blending
             const playGesture = (name: string) => {
               if (!mixer.current || !clips.current[name]) return;
               const clip = clips.current[name];
               const action = mixer.current.clipAction(clip);
-              
               if (currentAction.current && currentAction.current !== action) {
                 currentAction.current.crossFadeTo(action, 0.25, false);
               }
-              
               action.reset();
               action.setLoop(THREE.LoopOnce, 1);
               action.clampWhenFinished = true;
               action.play();
-              
               currentAction.current = action;
 
               const onFinished = (e: any) => {
                 if (e.action === action) {
                   action.fadeOut(0.3);
                   mixer.current?.removeEventListener('finished', onFinished);
-                  if (currentAction.current === action) {
-                    currentAction.current = null;
-                  }
+                  if (currentAction.current === action) currentAction.current = null;
                 }
               };
               mixer.current.addEventListener('finished', onFinished);
@@ -415,17 +412,10 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             // @ts-ignore
             window.playGesture = playGesture;
 
-            // Auto-wave once per session
             if (!sessionStorage.getItem('lyra_has_waved')) {
               sessionStorage.setItem('lyra_has_waved', 'true');
               setTimeout(() => playGesture('wave'), 600);
             }
-
-            const lastOutfit = sessionStorage.getItem('lyra_last_outfit');
-            if (lastOutfit && lastOutfit !== url) {
-              setTimeout(() => playGesture('twirl'), 250);
-            }
-            sessionStorage.setItem('lyra_last_outfit', url);
 
             if (onProgress) onProgress(100);
             if (onLoaded) onLoaded();
@@ -437,7 +427,6 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             clearTimeout(timeoutId);
             await clearCachedModelBuffer(url);
             const msg = err instanceof Error ? err.message : String(err);
-            console.error(`[CompanionStage] GLTF parser error for ${url}:`, err);
             if (onError) onError(`3D model parsing failed: ${msg}`);
           }
         );
@@ -445,9 +434,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         clearTimeout(timeoutId);
         await clearCachedModelBuffer(url);
         if (isCancelled) return;
-        const msg = err?.message || String(err);
-        console.error(`[CompanionStage] Failed to load VRM model from ${url}:`, err);
-        if (onError) onError(msg);
+        if (onError) onError(err?.message || String(err));
       }
     };
 
@@ -462,15 +449,10 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
       if (currentVrm) {
         currentVrm.scene.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
-            const material = (child as THREE.Mesh).material;
-            if (Array.isArray(material)) {
-              material.forEach(m => m.dispose());
-            } else if (material) {
-              material.dispose();
-            }
-            if ((child as THREE.Mesh).geometry) {
-              (child as THREE.Mesh).geometry.dispose();
-            }
+            const mat = (child as THREE.Mesh).material;
+            if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+            else if (mat) mat.dispose();
+            if ((child as THREE.Mesh).geometry) (child as THREE.Mesh).geometry.dispose();
           }
         });
       }
@@ -481,35 +463,33 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     nextBlinkTime: 2 + Math.random() * 4,
     isBlinking: false,
     blinkStartTime: 0,
-    blinkDuration: 0.15,
+    blinkDuration: 0.12,
   });
 
   const currentViseme = useRef<string>('neutral');
 
   useEffect(() => {
-    const handleSpeak = (e: any) => {
-      currentViseme.current = e.detail;
-    };
+    const handleSpeak = (e: any) => { currentViseme.current = e.detail; };
     window.addEventListener('lyraSpeak', handleSpeak);
     return () => window.removeEventListener('lyraSpeak', handleSpeak);
   }, []);
 
-  // Listen to mobile touch and pointer events for natural gaze tracking
+  // Gaze Tracking with Clamping (max 25 degrees off-center)
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
       lastInteractionTime.current = Date.now();
-      const normX = (e.clientX / window.innerWidth) * 2 - 1;
-      const normY = -(e.clientY / window.innerHeight) * 2 + 1;
-      targetLookAt.current.set(normX * 1.5, 1.35 + normY * 0.9, 3);
+      const normX = Math.max(-0.4, Math.min(0.4, (e.clientX / window.innerWidth) * 2 - 1));
+      const normY = Math.max(-0.3, Math.min(0.3, -(e.clientY / window.innerHeight) * 2 + 1));
+      targetLookAt.current.set(normX * 1.2, 1.35 + normY * 0.7, 3);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         lastInteractionTime.current = Date.now();
         const touch = e.touches[0];
-        const normX = (touch.clientX / window.innerWidth) * 2 - 1;
-        const normY = -(touch.clientY / window.innerHeight) * 2 + 1;
-        targetLookAt.current.set(normX * 1.5, 1.35 + normY * 0.9, 3);
+        const normX = Math.max(-0.4, Math.min(0.4, (touch.clientX / window.innerWidth) * 2 - 1));
+        const normY = Math.max(-0.3, Math.min(0.3, -(touch.clientY / window.innerHeight) * 2 + 1));
+        targetLookAt.current.set(normX * 1.2, 1.35 + normY * 0.7, 3);
       }
     };
 
@@ -529,26 +509,21 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
       elapsedTimeRef.current += safeDelta;
       const time = elapsedTimeRef.current;
 
-      
-      // Idle Breathing Gaze Wander: If untouched on mobile, subtly wander gaze so she feels alive
-      const isIdle = (Date.now() - lastInteractionTime.current) > 2500;
-      if (isIdle) {
-        const wanderX = Math.sin(time * 0.45) * 0.35;
-        const wanderY = 1.35 + Math.cos(time * 0.3) * 0.15;
-        SCRATCH_VEC_B.set(wanderX, wanderY, 3);
-        lookAtTarget.current.position.lerp(SCRATCH_VEC_B, safeDelta * 2.5);
-      } else {
-        lookAtTarget.current.position.lerp(targetLookAt.current, safeDelta * 4.5);
-      }
+      // Idle Motion Oscillators:
+      // 1. Breathing: chest bone or Y-scale, amplitude 0.6%, period ~4s
+      const breathScale = 1 + Math.sin(time * (2 * Math.PI / 4)) * 0.006;
+      vrm.scene.scale.set(breathScale, breathScale, breathScale);
 
-      // Idle Breathing Animation (applied to spine to avoid conflicting with upper chest gestures)
+      // 2. Idle sway: spine rotation under 2 degrees (0.035 rad), period ~7s
       const spine = vrm.humanoid.getNormalizedBoneNode('spine');
       if (spine) {
-        const breath = Math.sin(time * Math.PI * 0.5);
-        spine.rotation.x = breath * 0.015;
+        spine.rotation.z = Math.sin(time * (2 * Math.PI / 7)) * 0.02;
       }
 
-      // Blinking Logic
+      // 3. Gaze Tracking with Damping (no snap)
+      lookTarget.current.position.lerp(targetLookAt.current, 0.08);
+
+      // Blink oscillator (randomized interval 2-6s, closed for ~120ms)
       const state = blinkState.current;
       if (time > state.nextBlinkTime && !state.isBlinking) {
         state.isBlinking = true;
@@ -562,26 +537,25 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
           state.isBlinking = false;
           state.nextBlinkTime = time + 2 + Math.random() * 4;
         } else {
+          // Smooth easing curve
           blinkValue = Math.sin(blinkProgress * Math.PI);
         }
-        
         if (vrm.expressionManager) {
           vrm.expressionManager.setValue('blink', blinkValue);
         }
       }
 
-      // Emotion Facial Morph Targets
+      // Emotion & Lip Sync
       if (vrm.expressionManager) {
         const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
         const happyVal = vrm.expressionManager.getValue('happy') || 0;
         const relaxedVal = vrm.expressionManager.getValue('relaxed') || 0;
         const surprisedVal = vrm.expressionManager.getValue('surprised') || 0;
-        
+
         vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3));
         vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3));
         vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3));
 
-        // Lip Sync (Visemes) with zero allocation
         for (let i = 0; i < VISEMES.length; i++) {
           const v = VISEMES[i];
           const currentWeight = vrm.expressionManager.getValue(v) || 0;
@@ -591,12 +565,8 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
           }
         }
       }
-      
-      // Update animation mixer and secondary spring bone physics
-      if (mixer.current) {
-        mixer.current.update(safeDelta);
-      }
-      
+
+      if (mixer.current) mixer.current.update(safeDelta);
       vrm.update(safeDelta);
     }
   });
@@ -606,54 +576,23 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
   return <primitive object={vrm.scene} position={[0, 0, 0]} />;
 }
 
-// Stylized, branded avatar loading skeleton
+// Stage Loader Skeleton
 const StageLoader = memo(({ progress, accentColor, isInitial }: { progress: number; accentColor: string; isInitial: boolean }) => {
   const safePercent = Math.max(0, Math.min(100, Math.round(progress)));
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 transition-opacity duration-700">
+    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
       <div className="relative flex flex-col items-center justify-center">
-        {/* Glowing Aura Rings */}
-        <div 
-          className="absolute w-52 h-52 rounded-full blur-[50px] opacity-25 animate-pulse"
-          style={{ backgroundColor: accentColor }}
-        />
-        
-        {/* Avatar Silhouette Skeleton */}
-        <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
-          <svg viewBox="0 0 100 100" className="w-full h-full text-white/[0.08]" fill="none" stroke="currentColor" strokeWidth="1.5">
-            {/* Outer stylized orbit */}
-            <circle cx="50" cy="50" r="46" strokeDasharray="6 6" className="animate-[spin_12s_linear_infinite]" />
-            {/* Head outline */}
-            <circle cx="50" cy="36" r="16" stroke={accentColor} strokeWidth="1.8" strokeOpacity="0.4" />
-            {/* Torso & Shoulder arc */}
-            <path d="M22 82 C24 58, 40 54, 50 54 C60 54, 76 58, 78 82" stroke={accentColor} strokeWidth="1.8" strokeOpacity="0.4" strokeLinecap="round" />
-            {/* Core Neural Sparkle */}
-            <circle cx="50" cy="36" r="3" fill={accentColor} className="animate-ping opacity-75" />
-          </svg>
-        </div>
-
-        {/* Branded Loading Badge */}
+        <div className="absolute w-52 h-52 rounded-full blur-[50px] opacity-25 animate-pulse" style={{ backgroundColor: accentColor }} />
         <div className="flex flex-col items-center gap-2.5 bg-black/75 backdrop-blur-xl border border-white/10 px-6 py-3.5 rounded-2xl shadow-2xl">
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-3.5 h-3.5 animate-spin" style={{ color: accentColor }} />
             <span className="font-display text-xs font-semibold tracking-wider text-gray-200 uppercase">
               {isInitial ? 'Connecting with Lyra' : 'Adapting Presence'}
             </span>
-            <span className="font-mono text-xs font-bold" style={{ color: accentColor }}>
-              {safePercent}%
-            </span>
+            <span className="font-mono text-xs font-bold" style={{ color: accentColor }}>{safePercent}%</span>
           </div>
-
-          {/* Progress Bar Track */}
           <div className="w-40 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div 
-              className="h-full rounded-full transition-all duration-150 ease-out"
-              style={{ 
-                width: `${safePercent}%`, 
-                backgroundColor: accentColor,
-                boxShadow: `0 0 10px ${accentColor}`
-              }}
-            />
+            <div className="h-full rounded-full transition-all duration-150 ease-out" style={{ width: `${safePercent}%`, backgroundColor: accentColor }} />
           </div>
         </div>
       </div>
@@ -661,19 +600,22 @@ const StageLoader = memo(({ progress, accentColor, isInitial }: { progress: numb
   );
 });
 
-export default function CompanionStage({ 
-  accentColor = "#FF8FC0", 
-  isCallMode = false, 
-  scenery = 'neutral', 
+export default function CompanionStage({
+  isWardrobeOpen = false,
+  accentColor = "#FF8FC0",
+  scenery = 'neutral',
   outfitUrl = '/models/lyra.vrm',
   emotion = 'warm',
+  graphicsTier = 'high',
   onModelLoaded
-}: { 
-  accentColor?: string; 
-  isCallMode?: boolean; 
-  scenery?: string; 
+}: {
+  accentColor?: string;
+  isCallMode?: boolean;
+  scenery?: string;
   outfitUrl?: string;
   emotion?: string;
+  isWardrobeOpen?: boolean;
+  graphicsTier?: 'low' | 'medium' | 'high';
   onModelLoaded?: () => void;
 }) {
   const { showError } = useToast();
@@ -681,18 +623,6 @@ export default function CompanionStage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasEverLoaded, setHasEverLoaded] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-
-  const handleProgress = (percent: number) => {
-    setLoadProgress(percent);
-  };
-
-  const handleLoaded = () => {
-    setIsLoaded(true);
-    setHasEverLoaded(true);
-    if (onModelLoaded) {
-      onModelLoaded();
-    }
-  };
 
   const handleRetry = () => {
     setIsLoaded(false);
@@ -702,7 +632,6 @@ export default function CompanionStage({
 
   const handleError = (errorMsg: string) => {
     setIsLoaded(false);
-    console.error('[CompanionStage] VRM load error:', errorMsg);
     showError("Having trouble loading her right now, refreshing usually fixes it", {
       label: "Retry",
       onClick: () => handleRetry()
@@ -716,55 +645,51 @@ export default function CompanionStage({
 
   return (
     <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[var(--bg-base)]">
-      {/* Unified Background Atmosphere */}
       <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />
       
-      {/* Subtle Warm Pink & Peach Ambient Glow */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[var(--accent-primary)]/10 via-[var(--accent-secondary)]/10 to-[#FFD1B3]/10 opacity-80 blur-[130px] rounded-full pointer-events-none transition-all duration-1000"
-      />
-
-      {/* Loading Skeleton / Progress Overlay */}
       <AnimatePresence>
         {!isLoaded && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-md"
+            className="absolute inset-0 z-25 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-md"
           >
             <StageLoader progress={loadProgress} accentColor={accentColor || "#FF8FC0"} isInitial={!hasEverLoaded} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* R3F WebGL 3D Canvas */}
       <div className="relative z-10 w-full h-full">
         <Canvas 
-          camera={{ fov: 45 }} 
+          camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
             alpha: true, 
-            antialias: true, 
+            antialias: graphicsTier !== 'low', 
             powerPreference: "high-performance",
             stencil: false,
             depth: true
           }}
-          dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.5)]}
+          dpr={
+            graphicsTier === 'low' ? [0.5, 0.75] : 
+            graphicsTier === 'medium' ? [1, 1] : 
+            [1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]
+          }
         >
-          <CameraSetup isCallMode={isCallMode} />
-          
+          {/* Programmatic Camera Rig (centered vs panned-left) */}
+          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'centered'} />
+
           <AnimatedLighting scenery={scenery} accentColor={accentColor} />
           
-          {/* Scenery assets lazy loaded on demand */}
           {scenery === 'night' && <Starfield />}
+          <StandingSurface accentColor={accentColor} />
 
           <Suspense fallback={null}>
             <VRMModel 
               url={outfitUrl} 
               emotion={emotion}
-              onProgress={handleProgress} 
-              onLoaded={handleLoaded} 
+              onProgress={setLoadProgress} 
+              onLoaded={() => { setIsLoaded(true); setHasEverLoaded(true); onModelLoaded?.(); }} 
               onError={handleError}
               retryKey={retryKey}
             />

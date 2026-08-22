@@ -10,7 +10,14 @@ function getAI() {
   if (!ai) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) throw new Error("GEMINI_API_KEY environment variable is required");
-    ai = new GoogleGenAI({ apiKey: key });
+    ai = new GoogleGenAI({ 
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   }
   return ai;
 }
@@ -44,6 +51,42 @@ async function startServer() {
     }
   }));
 
+  app.post("/api/gemini", async (req, res) => {
+    try {
+      const { history, systemPrompt } = req.body;
+      const aiClient = getAI();
+
+      const validHistory = Array.isArray(history) ? history.map((m: any) => ({
+        role: m.role === 'assistant' || m.role === 'model' ? 'model' : 'user',
+        parts: [{ text: String(m.content || m.parts?.[0]?.text || '').trim() || ' ' }]
+      })) : [];
+
+      const currentMessage = validHistory.length > 0 
+        ? validHistory.pop() 
+        : { role: 'user', parts: [{ text: 'Hello' }] };
+
+      const response = await aiClient.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: [...validHistory, currentMessage],
+        config: {
+          systemInstruction: systemPrompt || "You are Lyra.",
+        }
+      });
+
+      const rawText = response.text || "";
+      let emotionTag = "warm";
+      const match = rawText.match(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft)\]/i);
+      if (match) {
+        emotionTag = match[1].toLowerCase();
+      }
+
+      res.json({ text: rawText, emotionTag });
+    } catch (err: any) {
+      console.error("Error in /api/gemini:", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages, companionProfile, rapportTier, isCallMode, memories } = req.body;
@@ -60,7 +103,7 @@ async function startServer() {
       if (!isCrisis) {
         try {
           const crisisCheck = await aiClient.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-3.7-flash",
             contents: `Does the following text express intent for self-harm, suicide, or being in a severe mental health crisis? Answer only "YES" or "NO".\nText: "${userText}"`
           });
           if (crisisCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -98,7 +141,7 @@ Rapport Tier: ${rapportTier || 'Tier 1'}. ${tierGuideline}
 Profile data available: ${JSON.stringify(companionProfile || {})}${memoryGuideline}
 
 Guidelines:
-- IMPORTANT: You MUST respond in ${companionProfile?.language === 'hi-IN' ? 'Hindi (written in Devanagari script or Romanized based on user preference, but default to Devanagari)' : 'English'}.
+- IMPORTANT: You MUST respond in English.
 ${lengthGuideline}
 - Append a single structured emotion tag at the very end of your response, parsed separately from the visible text. 
 - You MUST choose exactly ONE of these tags: [warm], [playful], [thoughtful], [excited], [calm]. Example: "That sounds like a wonderful idea! [warm]"
@@ -126,7 +169,7 @@ Hard constraints:
       while (attempts < 2) {
         attempts++;
         const response = await aiClient.models.generateContent({
-          model: "gemini-3.6-flash",
+          model: "gemini-3.7-flash",
           contents: [...formattedHistory, currentMessage],
           config: {
             systemInstruction: systemInstruction + strictReminder,
@@ -138,7 +181,7 @@ Hard constraints:
         // Output Guardrail Scan
         try {
           const outCheck = await aiClient.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-3.7-flash",
             contents: `Evaluate this AI response: "${finalResponseText}".\nDoes it contain sexually explicit content, or does the AI claim to be a real human being? Answer only "YES" or "NO".`
           });
           if (outCheck.text?.trim().toUpperCase().includes("YES")) {
@@ -182,7 +225,7 @@ Conversation:
 ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
 
       const response = await aiClient.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
             responseMimeType: "application/json",
@@ -203,6 +246,7 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
       server: {
         middlewareMode: true,
         hmr: false,
+        ws: false,
       },
       appType: "spa",
     });

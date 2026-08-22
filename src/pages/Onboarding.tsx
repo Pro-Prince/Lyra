@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Volume2, Sparkles, ArrowRight, Heart, MessageSquare, Compass } from "lucide-react";
 import CompanionStage from "../components/CompanionStage";
 import { saveLocalProfile, saveCompanion, saveMemory } from "../lib/storage";
-import { t, Language, getLanguage, setLanguage as setGlobalLanguage } from "../lib/i18n";
+import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
 
 const VIBE_OPTIONS = [
@@ -25,8 +25,7 @@ const INTEREST_TAGS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
-  const [lang, setLang] = useState<Language>(getLanguage());
-  const [modelLoaded, setModelLoaded] = useState(false);
+  const [_modelLoaded, setModelLoaded] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // User input states
@@ -44,8 +43,7 @@ export default function Onboarding() {
     const loadVoices = () => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
       const allVoices = window.speechSynthesis.getVoices();
-      const targetPrefix = lang.split("-")[0];
-      const allowed = filterAllowedVoices(allVoices, targetPrefix);
+      const allowed = filterAllowedVoices(allVoices, "en");
       setVoices(allowed);
 
       if (allowed.length > 0) {
@@ -60,17 +58,13 @@ export default function Onboarding() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [lang, selectedVoiceUri]);
+  }, [selectedVoiceUri]);
 
   const speakWelcomeLine = (textToSpeak?: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
 
-    const line =
-      textToSpeak ||
-      (lang === "hi-IN"
-        ? "नमस्ते! मैं लायरा हूँ। आपसे मिलकर बहुत अच्छा लगा।"
-        : "Hey, I'm Lyra. Great to meet you.");
+    const line = textToSpeak || "Hey, I'm Lyra. Great to meet you.";
 
     const utterance = new SpeechSynthesisUtterance(line);
     const voice = voices.find(v => v.voiceURI === selectedVoiceUri);
@@ -128,19 +122,6 @@ export default function Onboarding() {
     }
   };
 
-  const handleLanguageToggle = (newLang: Language) => {
-    setLang(newLang);
-    setGlobalLanguage(newLang);
-    hasGreetedRef.current = false;
-    setTimeout(() => {
-      speakWelcomeLine(
-        newLang === "hi-IN"
-          ? "नमस्ते! मैं लायरा हूँ।"
-          : "Hey, I'm Lyra."
-      );
-    }, 200);
-  };
-
   const toggleInterest = (tag: string) => {
     if (selectedInterests.includes(tag)) {
       setSelectedInterests(selectedInterests.filter(i => i !== tag));
@@ -157,7 +138,7 @@ export default function Onboarding() {
   };
 
   const handleFinish = async () => {
-    const finalName = userName.trim() || (lang === "hi-IN" ? "दोस्त" : "Friend");
+    const finalName = userName.trim() || "Friend";
     
     // Save user profile
     await saveLocalProfile({
@@ -175,7 +156,7 @@ export default function Onboarding() {
       voiceUri: selectedVoiceUri,
       pitch: 1.05,
       rate: 0.98,
-      language: lang,
+      language: "en-US",
       initialized: true,
       outfit: "/models/lyra.vrm"
     });
@@ -221,37 +202,13 @@ export default function Onboarding() {
       {/* Atmospheric Top Gradient Vignette */}
       <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg-base)]/90 via-[var(--bg-base)]/40 to-transparent pointer-events-none z-10" />
 
-      {/* Top Header Controls: Step indicator & Language Switcher */}
+      {/* Top Header Controls: Step indicator */}
       <header className="relative z-20 w-full max-w-xl px-6 pt-5 flex items-center justify-between">
         {/* Step Progress Dots */}
         <div className="flex items-center gap-2 bg-[var(--bg-surface)]/80 backdrop-blur-md border border-[var(--accent-primary)]/15 px-3.5 py-1.5 rounded-full shadow-lg">
           <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${step >= 1 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-[var(--bg-surface)] border border-white/10"}`} />
           <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${step >= 2 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-[var(--bg-surface)] border border-white/10"}`} />
           <span className="text-[11px] font-body text-[var(--text-muted)] ml-1.5 font-medium">Step {step} of 2</span>
-        </div>
-
-        {/* Language Switcher */}
-        <div className="flex items-center bg-[var(--bg-surface)]/80 backdrop-blur-md border border-[var(--accent-primary)]/15 p-1 rounded-full shadow-lg">
-          <button
-            onClick={() => handleLanguageToggle("en-US")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-              lang === "en-US"
-                ? "bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_10px_rgba(255,143,192,0.4)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => handleLanguageToggle("hi-IN")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-              lang === "hi-IN"
-                ? "bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_10px_rgba(255,143,192,0.4)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            हिन्दी
-          </button>
         </div>
       </header>
 
@@ -297,10 +254,10 @@ export default function Onboarding() {
               {/* Spoken Subtitle */}
               <div className="mb-8">
                 <h1 className="font-display text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-                  {t("onboarding_step1_greeting", lang)}
+                  {t("onboarding_step1_greeting")}
                 </h1>
                 <p className="font-body text-[var(--text-muted)] text-base sm:text-lg leading-relaxed">
-                  {t("onboarding_step1_sub", lang)}
+                  {t("onboarding_step1_sub")}
                 </p>
               </div>
 
@@ -309,7 +266,7 @@ export default function Onboarding() {
                 onClick={goToStep2}
                 className="w-full group inline-flex items-center justify-center gap-3 bg-[var(--accent-primary)] text-[#2D0A1E] py-4 px-6 rounded-2xl font-body font-bold text-base transition-all hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
-                <span>{t("onboarding_step1_cta", lang)}</span>
+                <span>{t("onboarding_step1_cta")}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
@@ -327,20 +284,20 @@ export default function Onboarding() {
             >
               <div className="mb-4">
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
-                  {t("onboarding_step2_title", lang)}
+                  {t("onboarding_step2_title")}
                 </h2>
               </div>
 
               {/* Name Input */}
               <div className="mb-4">
                 <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                  {t("onboarding_step2_name", lang)}
+                  {t("onboarding_step2_name")}
                 </label>
                 <input
                   type="text"
                   value={userName}
                   onChange={e => setUserName(e.target.value)}
-                  placeholder={t("onboarding_step2_name_placeholder", lang)}
+                  placeholder={t("onboarding_step2_name_placeholder")}
                   maxLength={30}
                   className="w-full bg-[var(--bg-base)]/70 border border-[var(--accent-primary)]/20 rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body text-sm"
                 />
@@ -349,7 +306,7 @@ export default function Onboarding() {
               {/* Vibe Selection - Large Tappable Cards */}
               <div className="mb-4">
                 <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                  {t("onboarding_step2_vibe", lang)}
+                  {t("onboarding_step2_vibe")}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {VIBE_OPTIONS.map(vibe => {
@@ -382,7 +339,7 @@ export default function Onboarding() {
               {/* Topic Tags */}
               <div className="mb-6">
                 <label className="block text-[11px] font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                  {t("onboarding_step2_topics", lang)}
+                  {t("onboarding_step2_topics")}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {INTEREST_TAGS.map(tag => {
@@ -410,7 +367,7 @@ export default function Onboarding() {
                 onClick={handleFinish}
                 className="w-full group inline-flex items-center justify-center gap-2.5 bg-[var(--accent-primary)] text-[#2D0A1E] py-3.5 px-6 rounded-2xl font-body font-bold text-base transition-all hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
-                <span>{t("onboarding_step2_cta", lang)}</span>
+                <span>{t("onboarding_step2_cta")}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth, calculateAge } from '../context/AuthContext';
 import { getCompanion } from '../lib/storage';
-import { t, Language, getLanguage } from '../lib/i18n';
+import { t } from '../lib/i18n';
 import { Sparkles, ArrowRight, Lock, Mail, Calendar, AlertCircle } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -21,7 +21,6 @@ export default function Auth() {
   const [birthdate, setBirthdate] = useState('');
   const [aiDisclosure, setAiDisclosure] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lang] = useState<Language>(getLanguage());
 
   const computedAge = birthdate ? calculateAge(birthdate) : null;
   const isUnderage = computedAge !== null && computedAge < 18;
@@ -125,10 +124,10 @@ export default function Auth() {
           </Link>
 
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] mb-2">
-            {mode === 'signup' ? t('auth_signup_title', lang) : t('auth_welcome_title', lang)}
+            {mode === 'signup' ? t('auth_signup_title') : t('auth_welcome_title')}
           </h1>
           <p className="text-[var(--text-muted)] text-xs sm:text-sm max-w-xs">
-            {t('auth_subtitle', lang)}
+            {t('auth_subtitle')}
           </p>
         </div>
 
@@ -145,7 +144,7 @@ export default function Auth() {
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
-              {t('auth_signup_title', lang)}
+              {t('auth_signup_title')}
             </button>
             <button
               type="button"
@@ -156,7 +155,7 @@ export default function Auth() {
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
-              {t('auth_sign_in_button', lang)}
+              {t('auth_sign_in_button')}
             </button>
           </div>
 
@@ -187,13 +186,13 @@ export default function Auth() {
                     d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.2 0-5.8-2.1-6.8-5.3L1.6 16c1.9 3.8 5.8 7 10.4 7z"
                   />
                 </svg>
-                <span>{t('auth_google_button', lang)}</span>
+                <span>{t('auth_google_button')}</span>
               </button>
 
               <div className="relative flex py-2 items-center mb-5">
                 <div className="flex-grow border-t border-white/[0.08]" />
                 <span className="flex-shrink mx-3 text-[11px] font-body uppercase tracking-wider text-[var(--text-muted)]">
-                  {t('auth_or_divider', lang)}
+                  {t('auth_or_divider')}
                 </span>
                 <div className="flex-grow border-t border-white/[0.08]" />
               </div>
@@ -205,7 +204,7 @@ export default function Auth() {
             {/* Email Field */}
             <div>
               <label className="block text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                {t('auth_email_label', lang)}
+                {t('auth_email_label')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -223,7 +222,7 @@ export default function Auth() {
             {/* Password Field */}
             <div>
               <label className="block text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                {t('auth_password_label', lang)}
+                {t('auth_password_label')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
@@ -245,7 +244,7 @@ export default function Auth() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                      {t('auth_dob_label', lang)}
+                      {t('auth_dob_label')}
                     </label>
                     {computedAge !== null && (
                       <span className={`text-[11px] font-body font-medium ${isUnderage ? 'text-[var(--text-danger)]' : 'text-[var(--accent-primary)]'}`}>
@@ -269,7 +268,7 @@ export default function Auth() {
                 {isUnderage && (
                   <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-xl flex items-start gap-2.5 text-[var(--text-danger)] text-xs">
                     <AlertCircle className="w-4 h-4 text-[var(--text-danger)] flex-shrink-0 mt-0.5" />
-                    <span>{t('auth_restricted_warning', lang)}</span>
+                    <span>{t('auth_restricted_warning')}</span>
                   </div>
                 )}
 
@@ -292,7 +291,7 @@ export default function Auth() {
                     </svg>
                   </div>
                   <span className="text-xs text-[var(--text-muted)] leading-snug group-hover:text-[var(--text-primary)] transition-colors">
-                    {t('auth_adult_checkbox', lang)}
+                    {t('auth_adult_checkbox')}
                   </span>
                 </label>
               </>
@@ -304,7 +303,7 @@ export default function Auth() {
               disabled={isSubmitting || (mode === 'signup' && isUnderage)}
               className="w-full group inline-flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] py-3.5 px-4 rounded-xl font-body font-bold text-sm transition-all hover:brightness-105 shadow-[0_0_20px_rgba(255,143,192,0.3)] disabled:opacity-50 disabled:cursor-not-allowed mt-2 cursor-pointer"
             >
-              <span>{mode === 'signup' ? t('auth_sign_up_button', lang) : t('auth_sign_in_button', lang)}</span>
+              <span>{mode === 'signup' ? t('auth_sign_up_button') : t('auth_sign_in_button')}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
@@ -320,7 +319,7 @@ export default function Auth() {
                 onClick={handleLocalGuestMode}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-medium text-[var(--text-primary)] transition-colors"
               >
-                {t('auth_guest_button', lang)}
+                {t('auth_guest_button')}
               </button>
             </div>
           )}
@@ -329,7 +328,7 @@ export default function Auth() {
         {/* Footer info */}
         <div className="text-center mt-6">
           <p className="text-[10px] font-mono text-[var(--text-muted)] uppercase tracking-widest">
-            {t('landing_disclaimer', lang)}
+            {t('landing_disclaimer')}
           </p>
         </div>
       </div>
