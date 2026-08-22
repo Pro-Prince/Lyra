@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles, Shirt } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getRapport, saveRapport } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
 import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
 import { VoicePicker } from "../components/VoicePicker";
+import { Heading2 } from "../components/Typography";
 import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
 
@@ -58,7 +59,6 @@ export default function Chat() {
   const [isCallMode, setIsCallMode] = useState(false);
   const [speechPulse, setSpeechPulse] = useState(1);
   
-  const [rapportScore, setRapportScore] = useState(0);
   const [memories, setMemories] = useState<any[]>([]);
 
   const [showDisclosure, setShowDisclosure] = useState(false);
@@ -164,9 +164,6 @@ export default function Chat() {
           window.speechSynthesis.onvoiceschanged = sanitizeVoice;
         }
       }
-      
-      const r = await getRapport();
-      if (r) setRapportScore(r.score || 0);
       
       const mems = await getMemories();
       setMemories(mems || []);
@@ -347,16 +344,9 @@ export default function Chat() {
       }, []);
 
   const closeDrawers = () => {
-        setIsSettingsOpen(false);
+    setIsSettingsOpen(false);
     setIsRapportOpen(false);
     setIsWardrobeOpen(false);
-  };
-
-  const getRapportStatus = (score: number) => {
-    let tier = "Tier 1: Acquaintance";
-    if (score >= 200) tier = "Tier 3: Confidant";
-    else if (score >= 100) tier = "Tier 2: Friend";
-    return { tier, progress: score % 100 };
   };
 
   const handleSceneryChange = async (newScenery: string) => {
@@ -422,7 +412,6 @@ export default function Chat() {
     await saveMessage(userMsg);
 
     try {
-      const { tier } = getRapportStatus(rapportScore);
       const companionProfile = companionProfileRef.current || {};
       
       const topMemories = memories.slice(0, 5);
@@ -433,7 +422,6 @@ export default function Chat() {
         body: JSON.stringify({
           messages: [...currentMessages, userMsg],
           companionProfile,
-          rapportTier: tier,
           isCallMode: isCallModeRef.current,
           memories: topMemories
         })
@@ -496,15 +484,10 @@ export default function Chat() {
     setInputText("");
   };
 
-  // Process Rapport and Memory extraction upon returning to IDLE from SPEAKING
+  // Process Memory extraction upon returning to IDLE from SPEAKING
   const prevAppStateRef = useRef(appState);
   useEffect(() => {
      if (prevAppStateRef.current === AppState.SPEAKING && appState === AppState.IDLE) {
-        // Increment rapport
-        const newScore = rapportScore + 1;
-        setRapportScore(newScore);
-        saveRapport({ score: newScore }).catch(console.error);
-
         // Asynchronous fact extraction
         const currentMessages = messagesRef.current;
         if (currentMessages.length >= 2) {
@@ -538,10 +521,10 @@ export default function Chat() {
         }
      }
      prevAppStateRef.current = appState;
-  }, [appState, rapportScore, memories]);
+  }, [appState, memories]);
 
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
-  const { tier: rapportTier, progress: rapportProgress } = getRapportStatus(rapportScore);
+
 
   return (
     <div className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" style={{ '--accent': activeAccent } as React.CSSProperties}>
@@ -582,24 +565,6 @@ export default function Chat() {
                <span className="text-xs font-semibold text-[var(--text-primary)] hidden sm:inline-block">Online</span>
             </div>
           </div>
-
-          {/* Center Block: Rapport */}
-          <button
-            onClick={() => { closeDrawers(); setIsRapportOpen(true); }}
-            className="pointer-events-auto flex flex-col items-center gap-1.5 p-2 px-4 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer min-w-[100px]"
-            aria-label="View Rapport"
-          >
-            <div className="flex items-center gap-2">
-              <Heart className="w-3.5 h-3.5 text-[var(--accent-primary)] fill-[var(--accent-primary)]" />
-              <span className="font-display text-[11px] sm:text-xs font-semibold text-[var(--text-primary)] tracking-wide">
-                <span className="sm:hidden">{rapportTier.split(':')[0]}</span>
-                <span className="hidden sm:inline">{rapportTier}</span>
-              </span>
-            </div>
-            <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700 bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" style={{ width: `${rapportProgress}%` }} />
-            </div>
-          </button>
 
           {/* Right Block: Wardrobe */}
           <div className="flex items-center gap-3">
@@ -693,11 +658,10 @@ export default function Chat() {
                 setIsCallMode(true);
                 if (!isListening && !isLyraSpeaking) toggleMic();
               }}
-              disabled={rapportScore < 100}
-              className={`p-3 transition-colors rounded-full ${rapportScore < 100 ? 'text-gray-600 cursor-not-allowed opacity-50' : 'text-[var(--text-muted)] hover:bg-white/[0.06]'}`}
-              title={rapportScore < 100 ? "Unlock at Tier 2" : "Call Mode"}
+              className="p-3 transition-colors rounded-full text-[var(--text-muted)] hover:bg-white/[0.06]"
+              title="Call Mode"
             >
-              <Phone className="w-5 h-5" style={{ color: rapportScore < 100 ? '#666' : 'var(--accent-primary)' }} />
+              <Phone className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
             </button>
             
             <button 
@@ -853,16 +817,16 @@ export default function Chat() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Voice Settings */}
               <div>
-                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Voice</div>
+                <Heading2 className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Voice</Heading2>
                 <VoicePicker />
               </div>
 
               {/* Microphone Settings */}
               <div>
-                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Microphone Mode</div>
+                <Heading2 className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Microphone Mode</Heading2>
                 <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
                   <button
                     onClick={async () => {
@@ -894,34 +858,7 @@ export default function Chat() {
                   </button>
                 </div>
                 <p className="text-[10px] text-[var(--text-muted)] mt-2 font-body leading-relaxed">
-                  {micMode === 'ptt' ? 'Hold or tap the mic button to speak. Listening stops automatically when you finish.' : 'Microphone stays on and listens continuously during conversations.'}
-                </p>
-              </div>
-
-              {/* Graphics Settings */}
-              <div>
-                <div className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Graphics</div>
-                <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
-                  {['low', 'medium', 'high'].map(tier => (
-                    <button
-                      key={tier}
-                      onClick={async () => {
-                        setGraphicsTier(tier as 'low'|'medium'|'high');
-                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
-                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, graphicsTier: tier }));
-                      }}
-                      className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-all capitalize ${
-                        graphicsTier === tier 
-                          ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
-                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {tier}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-[var(--text-muted)] mt-2 font-body leading-relaxed">
-                  {graphicsTier === 'low' ? 'Lower resolution and reduced anti-aliasing for better performance on older devices.' : graphicsTier === 'medium' ? 'Standard resolution and quality.' : 'High resolution, full effects. Recommended for fast devices.'}
+                  {micMode === 'ptt' ? 'Hold down the mic button to speak. Releasing automatically sends your message.' : 'Microphone stays on and listens continuously during conversations.'}
                 </p>
               </div>
             </div>
@@ -946,27 +883,13 @@ export default function Chat() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
-            {/* Sticky Tabs */}
-            <div className="sticky top-0 z-10 flex px-6 py-4 gap-4 border-b border-[var(--accent-primary)]/10 bg-[var(--bg-surface)]/80 backdrop-blur-md">
-              {['Outfits', 'Hairstyles', 'Accessories'].map((tab) => (
-                <button 
-                  key={tab}
-                  className={`pb-2 text-sm font-semibold transition-colors ${
-                    tab === 'Outfits' ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { id: '/models/lyra.vrm', label: 'Default' },
                   { id: '/models/lyra_casual.vrm', label: 'Casual' },
-                  { id: '/models/lyra_dress.vrm', label: 'Elegance' }
+                  { id: '/models/lyra_dress.vrm', label: 'Dress' }
                 ].map(item => (
                   <button
                     key={item.id}

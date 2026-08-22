@@ -45,9 +45,6 @@ function openLyraDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('memories')) {
         db.createObjectStore('memories', { keyPath: 'id' });
       }
-      if (!db.objectStoreNames.contains('rapport')) {
-        db.createObjectStore('rapport');
-      }
       if (!db.objectStoreNames.contains('notificationPreferences')) {
         db.createObjectStore('notificationPreferences');
       }
@@ -151,29 +148,6 @@ export async function deleteMemory(id: string): Promise<void> {
   });
 }
 
-export async function getRapport(): Promise<any> {
-  const db = await openLyraDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('rapport', 'readonly');
-    const store = tx.objectStore('rapport');
-    const req = store.get('current');
-    req.onsuccess = () => resolve(req.result || { tier: 'Tier 1', points: 0, lastUpdated: new Date().toISOString() });
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function saveRapport(data: any): Promise<void> {
-  const db = await openLyraDB();
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('rapport', 'readwrite');
-    const store = tx.objectStore('rapport');
-    const payload = withMeta(data);
-    const req = store.put(payload, 'current');
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
 export async function getNotificationPreferences(): Promise<any> {
   const db = await openLyraDB();
   return new Promise((resolve, reject) => {
@@ -224,7 +198,7 @@ export async function migrateIndexedDBToSupabase(_userId?: string) {}
 
 export async function clearAllData(): Promise<void> {
   const db = await openLyraDB();
-  const stores = ['companion', 'messages', 'memories', 'rapport', 'notificationPreferences', 'localProfile'];
+  const stores = ['companion', 'messages', 'memories', 'notificationPreferences', 'localProfile'];
   for (const storeName of stores) {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(storeName, 'readwrite');
@@ -258,7 +232,6 @@ export async function exportAllData(): Promise<string> {
   const companion = await getCompanion();
   const messages = await getMessages();
   const memories = await getMemories();
-  const rapport = await getRapport();
   const notificationPreferences = await getNotificationPreferences();
   const localProfile = await getLocalProfile();
 
@@ -268,7 +241,6 @@ export async function exportAllData(): Promise<string> {
     companion,
     messages,
     memories,
-    rapport,
     notificationPreferences,
     localProfile,
   };
@@ -295,7 +267,6 @@ export async function importAllData(jsonString: string): Promise<void> {
       await saveMemory(mem);
     }
   }
-  if (data.rapport) await saveRapport(data.rapport);
   if (data.notificationPreferences) await saveNotificationPreferences(data.notificationPreferences);
   if (data.localProfile) await saveLocalProfile(data.localProfile);
 }
@@ -308,8 +279,6 @@ export const storage = {
   saveMemory,
   getMemories,
   deleteMemory,
-  getRapport,
-  saveRapport,
   getNotificationPreferences,
   saveNotificationPreferences,
   getLocalProfile,

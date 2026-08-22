@@ -1,33 +1,34 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Shield, Clock } from "lucide-react";
-import { Heading1, Heading2, BodyText, Caption } from "../components/Typography";
+import { Heading1, Heading2, BodyText } from "../components/Typography";
+import Footer from "../components/Footer";
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-bg-base text-text-primary py-12 px-4 sm:px-6 flex flex-col items-center">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] py-12 px-4 sm:px-6 flex flex-col justify-between items-center">
       <div className="w-full max-w-2xl mb-6">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent-primary transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] rounded"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Home
         </Link>
       </div>
 
-      <div className="w-full max-w-2xl bg-bg-surface border border-accent-primary/12 rounded-2xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl">
+      <div className="w-full max-w-2xl bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl my-auto">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary">
+          <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
             <Shield className="w-5 h-5" />
           </div>
           <div>
             <Heading1>Privacy Policy</Heading1>
-            <div className="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+            <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-0.5">
               <Clock className="w-3.5 h-3.5" /> Last updated: August 21, 2026
             </div>
           </div>
         </div>
 
-        <div className="space-y-6 text-text-primary/90 text-sm leading-relaxed">
+        <div className="space-y-6 text-[var(--text-primary)]/90 text-sm leading-relaxed">
           <section className="space-y-2">
             <Heading2>1. What Data Is Collected</Heading2>
             <BodyText>
@@ -73,19 +74,13 @@ export default function Privacy() {
           <section className="space-y-2">
             <Heading2>7. Questions & Inquiries</Heading2>
             <BodyText>
-              If you have any questions or concerns regarding privacy practices, please reach out via our <Link to="/contact" className="text-accent-primary underline hover:text-accent-primary/80">Contact page</Link>.
+              If you have any questions or concerns regarding privacy practices, please reach out via our <Link to="/contact" className="text-[var(--accent-primary)] underline hover:text-[var(--accent-primary)]/80">Contact page</Link>.
             </BodyText>
           </section>
         </div>
       </div>
 
-      <footer className="mt-12 text-xs text-text-muted flex items-center gap-4">
-        <Link to="/privacy" className="hover:text-accent-primary transition-colors">Privacy</Link>
-        <span>•</span>
-        <Link to="/terms" className="hover:text-accent-primary transition-colors">Terms</Link>
-        <span>•</span>
-        <Link to="/contact" className="hover:text-accent-primary transition-colors">Contact</Link>
-      </footer>
+      <Footer />
     </div>
   );
 }

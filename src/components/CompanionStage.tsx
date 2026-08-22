@@ -4,15 +4,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { fetchAndCacheVRMModel, clearCachedModelBuffer } from '../lib/vrmCache';
 
-// Scratch variables to guarantee zero-allocation render loop on mobile GPUs
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
 const SCRATCH_COLOR_C = new THREE.Color();
-const SCRATCH_VEC_B = new THREE.Vector3();
 const VISEMES = ['aa', 'ih', 'ou', 'ee', 'oh'] as const;
 
 function resolveHexColor(colorStr?: string, fallback = "#FF8FC0"): string {
@@ -46,68 +43,112 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
   calm: { happy: 0.2, relaxed: 0.75, surprised: 0.0, neutral: 0.3, sad: 0.0 }
 };
 
-function CameraRig({ mode }: { mode: 'centered' | 'panned-left' }) {
-  const { camera, size, gl } = useThree();
+function frameFullBody(vrmScene: THREE.Group, camera: THREE.PerspectiveCamera, canvasHeightPx: number, reservedBottomPx: number, reservedTopPx: number) {
+  const box = new THREE.Box3().setFromObject(vrmScene);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const fov = camera.fov * (Math.PI / 180);
+  const paddingFactor = 1.15; // small headroom above her head
+  const visibleFraction = Math.max(0.1, (canvasHeightPx - reservedBottomPx - reservedTopPx) / canvasHeightPx);
+  const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
+
+  const targetDist = Math.max(1.5, Math.min(4.0, distance));
+  const posY = size.y * 0.5;
+  camera.position.set(0, posY, targetDist);
+  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
+  camera.lookAt(0, posY - verticalShift, 0);
+}
+
+function applyRestPose(vrm: VRM) {
+  const h = vrm.humanoid;
+  const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
+  const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
+  const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
+  const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
+
+  if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
+  if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
+  if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
+  if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
+
+  h.update();
+}
+
+const idleVariations = [
+  { name: 'breatheOnly', weight: 55, duration: 4 },
+  { name: 'weightShift', weight: 18, duration: 3 },
+  { name: 'lookAround', weight: 17, duration: 2.5 },
+  { name: 'fidget', weight: 10, duration: 2 },
+];
+
+function pickNextIdle() {
+  const total = idleVariations.reduce((sum, v) => sum + v.weight, 0);
+  let r = Math.random() * total;
+  for (const v of idleVariations) {
+    if (r < v.weight) return v;
+    r -= v.weight;
+  }
+  return idleVariations[0];
+}
+
+interface CameraRigProps {
+  mode: 'centered' | 'panned-left';
+  vrmScene?: THREE.Group | null;
+}
+
+function CameraRig({ mode, vrmScene }: CameraRigProps) {
+  const { camera, gl } = useThree();
   const target = useRef(new THREE.Vector3());
   const targetPos = useRef(new THREE.Vector3());
 
-  // Handle window/orientation resize correctly with camera aspect ratio update
   useEffect(() => {
     const canvasContainer = gl.domElement.parentElement;
     if (!canvasContainer) return;
 
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
+    const updateCamera = () => {
+      const width = canvasContainer.clientWidth;
+      const height = canvasContainer.clientHeight;
       if (width > 0 && height > 0) {
-        (camera as THREE.PerspectiveCamera).aspect = width / height;
-        (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+        const perspCam = camera as THREE.PerspectiveCamera;
+        perspCam.aspect = width / height;
+        perspCam.updateProjectionMatrix();
         gl.setSize(width, height, false);
+
+        if (mode === 'panned-left') {
+          targetPos.current.set(-0.9, 1.3, 2.4);
+          target.current.set(-0.4, 1.3, 0);
+        } else if (vrmScene) {
+          frameFullBody(vrmScene, perspCam, height, 120, 70);
+        } else {
+          targetPos.current.set(0, 1.3, 2.0);
+          target.current.set(0, 1.3, 0);
+        }
       }
+    };
+
+    const ro = new ResizeObserver(() => {
+      updateCamera();
     });
     ro.observe(canvasContainer);
-    return () => ro.disconnect();
-  }, [camera, gl]);
+    updateCamera();
 
-  useEffect(() => {
-    if (mode === 'panned-left') {
-      targetPos.current.set(-0.9, 1.3, 2.4);
-      target.current.set(-0.4, 1.3, 0);
-    } else {
-      targetPos.current.set(0, 1.3, 2.0);
-      target.current.set(0, 1.3, 0);
-    }
-  }, [mode]);
+    return () => ro.disconnect();
+  }, [camera, gl, mode, vrmScene]);
 
   useFrame((_, delta) => {
     const safeDelta = Math.min(delta, 0.05);
     camera.position.lerp(targetPos.current, safeDelta * 6);
-    
-    // Smoothly interpolate lookAt target
-    const currentLook = new THREE.Vector3();
-    camera.getWorldDirection(currentLook);
-    // lerp camera position and lookAt
     camera.lookAt(target.current);
   });
   return null;
 }
 
-function frameVRM(vrmScene: THREE.Group) {
-  const box = new THREE.Box3().setFromObject(vrmScene);
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  vrmScene.position.x -= center.x;
-  vrmScene.position.z -= center.z;
-  // keep feet on the floor, don't re-center vertically to 0
-  vrmScene.position.y -= box.min.y;
-}
-
-// Standing Ground Surface Platform beneath Lyra's feet
 const StandingSurface = memo(({ accentColor }: { accentColor: string }) => {
   const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
   const ringRef = useRef<THREE.Mesh>(null);
   const ringInnerRef = useRef<THREE.Mesh>(null);
 
-  // Generate ground radial aura texture
   const floorTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -191,7 +232,6 @@ const StandingSurface = memo(({ accentColor }: { accentColor: string }) => {
 
 function Starfield() {
   const pointsRef = useRef<THREE.Points>(null);
-  
   const [geometry] = useState(() => {
     const geo = new THREE.BufferGeometry();
     const count = 250;
@@ -285,7 +325,7 @@ interface VRMModelProps {
   url: string;
   emotion?: string;
   onProgress?: (percent: number) => void;
-  onLoaded?: () => void;
+  onLoaded?: (scene: THREE.Group) => void;
   onError?: (error: string) => void;
   retryKey?: number;
 }
@@ -298,7 +338,11 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
   const clips = useRef<Record<string, THREE.AnimationClip>>({});
   const currentAction = useRef<THREE.AnimationAction | null>(null);
   const targetLookAt = useRef(new THREE.Vector3(0, 1.35, 3));
-  const lastInteractionTime = useRef<number>(Date.now());
+
+  // Weighted idle system state
+  const currentIdle = useRef(idleVariations[0]);
+  const idleTimer = useRef(0);
+  const idleBlend = useRef(0); // 400ms cross-fade
 
   useEffect(() => {
     let currentVrm: VRM | null = null;
@@ -306,7 +350,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     const abortController = new AbortController();
 
     const timeoutId = setTimeout(() => {
-      abortController.abort(new Error("Model download timed out (25 seconds limit reached)."));
+      abortController.abort(new Error("Model download timed out."));
     }, 25000);
 
     const loadVRM = async () => {
@@ -329,8 +373,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             if (isCancelled) return;
             const vrmInstance = gltf.userData.vrm as VRM;
             if (!vrmInstance) {
-              const err = new Error("File parsed successfully as glTF, but contains no VRM humanoid metadata.");
-              if (onError) onError(err.message);
+              if (onError) onError("File parsed as glTF, but contains no VRM humanoid metadata.");
               return;
             }
 
@@ -344,8 +387,16 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
               }
             });
 
-            // Auto-frame VRM on load
-            frameVRM(vrmInstance.scene);
+            // 1. Apply rest pose immediately before any frame is rendered
+            applyRestPose(vrmInstance);
+
+            // 2. Center & floor VRM
+            const box = new THREE.Box3().setFromObject(vrmInstance.scene);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            vrmInstance.scene.position.x -= center.x;
+            vrmInstance.scene.position.z -= center.z;
+            vrmInstance.scene.position.y -= box.min.y;
 
             // Setup LookAt target
             lookTarget.current.position.set(0, 1.35, 3);
@@ -357,9 +408,9 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             mixer.current = new THREE.AnimationMixer(vrmInstance.scene);
 
             const head = vrmInstance.humanoid.getNormalizedBoneNode('head');
-            const chest = vrmInstance.humanoid.getNormalizedBoneNode('chest');
-            const upperArm = vrmInstance.humanoid.getNormalizedBoneNode('rightUpperArm');
-            const lowerArm = vrmInstance.humanoid.getNormalizedBoneNode('rightLowerArm');
+            const spine = vrmInstance.humanoid.getNormalizedBoneNode('spine');
+            const upperArmR = vrmInstance.humanoid.getNormalizedBoneNode('rightUpperArm');
+            const lowerArmR = vrmInstance.humanoid.getNormalizedBoneNode('rightLowerArm');
 
             const makeTrack = (node: THREE.Object3D | null, eulers: THREE.Euler[], times: number[]) => {
               if (!node) return null;
@@ -369,21 +420,18 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
 
             const qZero = new THREE.Euler(0, 0, 0);
 
-            if (upperArm && lowerArm) {
-              const tWaveUp = makeTrack(upperArm, [qZero, new THREE.Euler(0, 0, -Math.PI / 2.2), new THREE.Euler(0, 0, -Math.PI / 2.2), qZero], [0, 0.3, 1.7, 2.0]);
-              const tWaveLow = makeTrack(lowerArm, [qZero, qZero, new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, 0), qZero], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]);
+            if (upperArmR && lowerArmR) {
+              const tWaveUp = makeTrack(upperArmR, [qZero, new THREE.Euler(0, 0, -Math.PI / 2.2), new THREE.Euler(0, 0, -Math.PI / 2.2), qZero], [0, 0.3, 1.7, 2.0]);
+              const tWaveLow = makeTrack(lowerArmR, [qZero, qZero, new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, 0), qZero], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]);
               if (tWaveUp && tWaveLow) clips.current['wave'] = new THREE.AnimationClip('wave', 2.0, [tWaveUp, tWaveLow]);
             }
 
             if (head) {
-              const tNod = makeTrack(head, [qZero, new THREE.Euler(0.2, 0, 0), new THREE.Euler(0.2, 0, 0), qZero], [0, 0.2, 0.4, 0.6]);
+              const tNod = makeTrack(head, [qZero, new THREE.Euler(0.15, 0, 0), new THREE.Euler(0.15, 0, 0), qZero], [0, 0.2, 0.4, 0.6]);
               if (tNod) clips.current['nod'] = new THREE.AnimationClip('nod', 0.6, [tNod]);
-            }
 
-            const hips = vrmInstance.humanoid.getNormalizedBoneNode('hips');
-            if (hips) {
-              const tTwirl = makeTrack(hips, [qZero, new THREE.Euler(0, Math.PI, 0), new THREE.Euler(0, Math.PI * 1.99, 0), new THREE.Euler(0, Math.PI * 2, 0)], [0, 0.4, 0.75, 0.8]);
-              if (tTwirl) clips.current['twirl'] = new THREE.AnimationClip('twirl', 0.8, [tTwirl]);
+              const tThink = makeTrack(head, [qZero, new THREE.Euler(0.1, -0.15, 0.1), qZero], [0, 0.5, 1.0]);
+              if (tThink) clips.current['think'] = new THREE.AnimationClip('think', 1.0, [tThink]);
             }
 
             const playGesture = (name: string) => {
@@ -391,7 +439,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
               const clip = clips.current[name];
               const action = mixer.current.clipAction(clip);
               if (currentAction.current && currentAction.current !== action) {
-                currentAction.current.crossFadeTo(action, 0.25, false);
+                currentAction.current.crossFadeTo(action, 0.2, false);
               }
               action.reset();
               action.setLoop(THREE.LoopOnce, 1);
@@ -412,13 +460,8 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
             // @ts-ignore
             window.playGesture = playGesture;
 
-            if (!sessionStorage.getItem('lyra_has_waved')) {
-              sessionStorage.setItem('lyra_has_waved', 'true');
-              setTimeout(() => playGesture('wave'), 600);
-            }
-
             if (onProgress) onProgress(100);
-            if (onLoaded) onLoaded();
+            if (onLoaded) onLoaded(vrmInstance.scene);
 
             setVrm(vrmInstance);
             currentVrm = vrmInstance;
@@ -474,10 +517,8 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     return () => window.removeEventListener('lyraSpeak', handleSpeak);
   }, []);
 
-  // Gaze Tracking with Clamping (max 25 degrees off-center)
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
-      lastInteractionTime.current = Date.now();
       const normX = Math.max(-0.4, Math.min(0.4, (e.clientX / window.innerWidth) * 2 - 1));
       const normY = Math.max(-0.3, Math.min(0.3, -(e.clientY / window.innerHeight) * 2 + 1));
       targetLookAt.current.set(normX * 1.2, 1.35 + normY * 0.7, 3);
@@ -485,7 +526,6 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
-        lastInteractionTime.current = Date.now();
         const touch = e.touches[0];
         const normX = Math.max(-0.4, Math.min(0.4, (touch.clientX / window.innerWidth) * 2 - 1));
         const normY = Math.max(-0.3, Math.min(0.3, -(touch.clientY / window.innerHeight) * 2 + 1));
@@ -509,21 +549,43 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
       elapsedTimeRef.current += safeDelta;
       const time = elapsedTimeRef.current;
 
-      // Idle Motion Oscillators:
-      // 1. Breathing: chest bone or Y-scale, amplitude 0.6%, period ~4s
+      // Weighted Idle System progression
+      idleTimer.current += safeDelta;
+      if (idleTimer.current >= currentIdle.current.duration) {
+        idleTimer.current = 0;
+        currentIdle.current = pickNextIdle();
+        idleBlend.current = 0; // trigger cross-fade
+      }
+      idleBlend.current = Math.min(1, idleBlend.current + safeDelta / 0.4); // 400ms crossfade
+
+      // 1. Baseline Breathing
       const breathScale = 1 + Math.sin(time * (2 * Math.PI / 4)) * 0.006;
       vrm.scene.scale.set(breathScale, breathScale, breathScale);
 
-      // 2. Idle sway: spine rotation under 2 degrees (0.035 rad), period ~7s
+      // 2. Weighted Idle Variations Layering
       const spine = vrm.humanoid.getNormalizedBoneNode('spine');
-      if (spine) {
-        spine.rotation.z = Math.sin(time * (2 * Math.PI / 7)) * 0.02;
+      const head = vrm.humanoid.getNormalizedBoneNode('head');
+
+      if (spine && head) {
+        if (currentIdle.current.name === 'breatheOnly') {
+          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, Math.sin(time * 1.5) * 0.015, 0.1);
+          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0, 0.1);
+        } else if (currentIdle.current.name === 'weightShift') {
+          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, 0.03, 0.08);
+          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, -0.05, 0.08);
+        } else if (currentIdle.current.name === 'lookAround') {
+          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(time * 2) * 0.12, 0.1);
+          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.05, 0.1);
+        } else if (currentIdle.current.name === 'fidget') {
+          spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, Math.cos(time * 3) * 0.02, 0.1);
+          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0.04, 0.1);
+        }
       }
 
-      // 3. Gaze Tracking with Damping (no snap)
+      // 3. Gaze tracking damping
       lookTarget.current.position.lerp(targetLookAt.current, 0.08);
 
-      // Blink oscillator (randomized interval 2-6s, closed for ~120ms)
+      // Blink oscillator
       const state = blinkState.current;
       if (time > state.nextBlinkTime && !state.isBlinking) {
         state.isBlinking = true;
@@ -537,7 +599,6 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
           state.isBlinking = false;
           state.nextBlinkTime = time + 2 + Math.random() * 4;
         } else {
-          // Smooth easing curve
           blinkValue = Math.sin(blinkProgress * Math.PI);
         }
         if (vrm.expressionManager) {
@@ -576,30 +637,6 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
   return <primitive object={vrm.scene} position={[0, 0, 0]} />;
 }
 
-// Stage Loader Skeleton
-const StageLoader = memo(({ progress, accentColor, isInitial }: { progress: number; accentColor: string; isInitial: boolean }) => {
-  const safePercent = Math.max(0, Math.min(100, Math.round(progress)));
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-      <div className="relative flex flex-col items-center justify-center">
-        <div className="absolute w-52 h-52 rounded-full blur-[50px] opacity-25 animate-pulse" style={{ backgroundColor: accentColor }} />
-        <div className="flex flex-col items-center gap-2.5 bg-black/75 backdrop-blur-xl border border-white/10 px-6 py-3.5 rounded-2xl shadow-2xl">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-3.5 h-3.5 animate-spin" style={{ color: accentColor }} />
-            <span className="font-display text-xs font-semibold tracking-wider text-gray-200 uppercase">
-              {isInitial ? 'Connecting with Lyra' : 'Adapting Presence'}
-            </span>
-            <span className="font-mono text-xs font-bold" style={{ color: accentColor }}>{safePercent}%</span>
-          </div>
-          <div className="w-40 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-150 ease-out" style={{ width: `${safePercent}%`, backgroundColor: accentColor }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 export default function CompanionStage({
   isWardrobeOpen = false,
   accentColor = "#FF8FC0",
@@ -619,18 +656,17 @@ export default function CompanionStage({
   onModelLoaded?: () => void;
 }) {
   const { showError } = useToast();
-  const [loadProgress, setLoadProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasEverLoaded, setHasEverLoaded] = useState(false);
+  const [vrmSceneRef, setVrmSceneRef] = useState<THREE.Group | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
   const handleRetry = () => {
     setIsLoaded(false);
-    setLoadProgress(0);
+    setVrmSceneRef(null);
     setRetryKey(prev => prev + 1);
   };
 
-  const handleError = (errorMsg: string) => {
+  const handleError = () => {
     setIsLoaded(false);
     showError("Having trouble loading her right now, refreshing usually fixes it", {
       label: "Retry",
@@ -640,27 +676,29 @@ export default function CompanionStage({
 
   useEffect(() => {
     setIsLoaded(false);
-    setLoadProgress(0);
+    setVrmSceneRef(null);
   }, [outfitUrl]);
 
   return (
     <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[var(--bg-base)]">
       <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />
       
+      {/* While loading: show ONLY ambient presence glow from Fix 1, nothing else */}
       <AnimatePresence>
         {!isLoaded && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-25 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-md"
-          >
-            <StageLoader progress={loadProgress} accentColor={accentColor || "#FF8FC0"} isInitial={!hasEverLoaded} />
-          </motion.div>
+          <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
+            <div className="presence-glow" />
+          </div>
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 w-full h-full">
+      {/* Model Reveal: fade in over 500ms, opacity 0 to 1, scale 0.98 to 1 once fully posed & idle-animating */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 0.98 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative z-10 w-full h-full"
+      >
         <Canvas 
           camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
@@ -676,9 +714,7 @@ export default function CompanionStage({
             [1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]
           }
         >
-          {/* Programmatic Camera Rig (centered vs panned-left) */}
-          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'centered'} />
-
+          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'centered'} vrmScene={vrmSceneRef} />
           <AnimatedLighting scenery={scenery} accentColor={accentColor} />
           
           {scenery === 'night' && <Starfield />}
@@ -688,14 +724,17 @@ export default function CompanionStage({
             <VRMModel 
               url={outfitUrl} 
               emotion={emotion}
-              onProgress={setLoadProgress} 
-              onLoaded={() => { setIsLoaded(true); setHasEverLoaded(true); onModelLoaded?.(); }} 
+              onLoaded={(scene) => {
+                setVrmSceneRef(scene);
+                setIsLoaded(true);
+                onModelLoaded?.();
+              }} 
               onError={handleError}
               retryKey={retryKey}
             />
           </Suspense>
         </Canvas>
-      </div>
+      </motion.div>
     </div>
   );
 }

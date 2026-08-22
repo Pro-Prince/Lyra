@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, getRapport, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
 import { Trash2, Play, Heart, AlertTriangle, ArrowLeft, Volume2, Sparkles, Moon, Bell, Download, Upload } from "lucide-react";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
@@ -24,9 +24,6 @@ export default function Settings() {
   const navigate = useNavigate();
   const { showInfo, showError } = useToast();
   const [memories, setMemories] = useState<any[]>([]);
-
-  const [rapportTier, setRapportTier] = useState("Tier 1: Acquaintance");
-  const [rapportProgress, setRapportProgress] = useState(0);
 
   // Voice Settings
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -95,15 +92,6 @@ export default function Settings() {
     async function load() {
       const mems = await getMemories();
       setMemories(mems || []);
-
-      const r = await getRapport();
-      if (r && r.score) {
-        let tier = "Tier 1: Acquaintance";
-        if (r.score >= 200) tier = "Tier 3: Confidant";
-        else if (r.score >= 100) tier = "Tier 2: Friend";
-        setRapportTier(tier);
-        setRapportProgress(r.score >= 300 ? 100 : r.score % 100);
-      }
 
       const comp = await getCompanion();
       if (comp) {
@@ -218,15 +206,6 @@ export default function Settings() {
           <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)]">
             {t('settings_title')}
           </h1>
-        </div>
-
-        {/* Rapport Pill */}
-        <div className="flex items-center gap-2.5 bg-[var(--bg-surface)]/90 border border-[var(--accent-primary)]/20 px-4 py-2 rounded-full shadow-md">
-          <Heart className="w-4 h-4 text-[var(--accent-primary)] fill-[var(--accent-primary)]/20" />
-          <span className="text-xs font-medium text-[var(--text-primary)]">{rapportTier}</span>
-          <div className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden ml-1">
-            <div className="h-full bg-[var(--accent-primary)] rounded-full" style={{ width: `${rapportProgress}%` }} />
-          </div>
         </div>
       </header>
 

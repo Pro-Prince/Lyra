@@ -18,9 +18,9 @@ export const BodyText: React.FC<TypographyProps> = ({ children, className = '' }
 );
 
 export const Caption: React.FC<TypographyProps> = ({ children, className = '' }) => (
-  <span className={`font-body text-sm text-textMuted ${className}`}>{children}</span>
+  <span className={`font-body text-sm text-textMuted ${className}`}>{className}</span>
 );
 
 export const DisclosureLabel: React.FC<TypographyProps> = ({ children, className = '' }) => (
-  <span className={`font-mono text-xs text-textMuted ${className}`}>{children}</span>
+  <span className={`disclosure-label ${className}`}>{children}</span>
 );
