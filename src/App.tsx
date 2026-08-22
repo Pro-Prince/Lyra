@@ -15,10 +15,14 @@ import Contact from "./pages/Contact";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
+import { preloadAllOutfits } from "./lib/outfitCache";
 
 export default function App() {
 
   useEffect(() => {
+    // Preload all outfits once at startup
+    preloadAllOutfits().catch(err => console.warn('[App] Outfit preload warning:', err));
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }

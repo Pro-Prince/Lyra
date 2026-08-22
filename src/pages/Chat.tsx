@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles, Shirt } from "lucide-react";
+import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory } from "../lib/storage";
@@ -12,134 +12,7 @@ import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { fetchAndCacheVRMModel } from '../lib/vrmCache';
-
-function createThumbnailRenderer() {
-  const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    preserveDrawingBuffer: true,
-    antialias: true,
-  });
-  renderer.setSize(256, 256);
-  renderer.setClearColor(0x000000, 0);
-  return renderer;
-}
-
-async function loadVRMModel(url: string): Promise<VRM> {
-  const arrayBuffer = await fetchAndCacheVRMModel(url);
-  const loader = new GLTFLoader();
-  loader.register((parser) => new VRMLoaderPlugin(parser));
-  const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
-
-  return new Promise((resolve, reject) => {
-    loader.parse(
-      arrayBuffer,
-      resourcePath,
-      (gltf) => {
-        const vrm = gltf.userData.vrm as VRM;
-        if (!vrm) {
-          reject(new Error("No VRM found"));
-          return;
-        }
-        VRMUtils.removeUnnecessaryVertices(gltf.scene);
-        VRMUtils.combineSkeletons(gltf.scene);
-        resolve(vrm);
-      },
-      (err) => reject(err)
-    );
-  });
-}
-
-function applyRestPose(vrm: VRM) {
-  const h = vrm.humanoid;
-  const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
-  const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
-  const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
-  const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
-
-  if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
-  if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
-  if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
-  if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
-
-  h.update();
-}
-
-function frameFullBody(vrmScene: THREE.Group, camera: THREE.PerspectiveCamera, canvasHeightPx: number, reservedBottomPx: number, reservedTopPx: number) {
-  const box = new THREE.Box3().setFromObject(vrmScene);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  const fov = camera.fov * (Math.PI / 180);
-  const paddingFactor = 1.15;
-  const visibleFraction = Math.max(0.1, (canvasHeightPx - reservedBottomPx - reservedTopPx) / canvasHeightPx);
-  const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
-
-  const targetDist = Math.max(1.5, Math.min(4.0, distance));
-  const posY = size.y * 0.5;
-  camera.position.set(0, posY, targetDist);
-  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
-  camera.lookAt(0, posY - verticalShift, 0);
-}
-
-async function generateOutfitThumbnail(vrmUrl: string, renderer: THREE.WebGLRenderer) {
-  const vrm = await loadVRMModel(vrmUrl);
-  applyRestPose(vrm);
-
-  // We must render this exactly once to the passed-in renderer.
-  // Do not add the renderer's DOM element to the document.
-  
-  const scene = new THREE.Scene();
-  // Neutral lighting for the thumbnail
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  const key = new THREE.DirectionalLight(0xffffff, 1.2);
-  key.position.set(1, 2, 2);
-  scene.add(ambient, key, vrm.scene);
-
-  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 10);
-  camera.aspect = 1;
-  camera.updateProjectionMatrix();
-
-  // Frame the model using our utility
-  frameFullBody(vrm.scene, camera, 256, 0, 0);
-
-  // CRITICAL: Manually trigger a matrix update before rendering
-  vrm.scene.updateMatrixWorld(true);
-
-  // Render to the buffer
-  renderer.render(scene, camera);
-
-  // Extract the dataUrl immediately while preserveDrawingBuffer is still valid
-  const dataUrl = renderer.domElement.toDataURL('image/png');
-
-  // Cleanup
-  scene.remove(vrm.scene);
-  vrm.scene.traverse((obj: any) => {
-    if (obj.geometry) obj.geometry.dispose();
-  });
-
-  return dataUrl;
-}
-
-const thumbnailCache: Record<string, string> = {};
-
-async function getOutfitThumbnailDataUrl(vrmUrl: string, label: string): Promise<string> {
-  if (thumbnailCache[vrmUrl]) return thumbnailCache[vrmUrl];
-  try {
-    const renderer = createThumbnailRenderer();
-    const dataUrl = await generateOutfitThumbnail(vrmUrl, renderer);
-    renderer.dispose();
-    console.log(label, dataUrl.length);
-    thumbnailCache[vrmUrl] = dataUrl;
-    return dataUrl;
-  } catch (e) {
-    console.error("Failed to generate thumbnail for", label, e);
-    return "";
-  }
-}
+import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThumbnails } from "../lib/outfitCache";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -168,25 +41,21 @@ export default function Chat() {
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
   const [micMode, setMicMode] = useState<'ptt' | 'hands-free'>('hands-free');
   const [graphicsTier, setGraphicsTier] = useState<'low' | 'medium' | 'high'>('high');
-  const [outfitThumbnails, setOutfitThumbnails] = useState<Record<string, string>>({});
+  const [isOutfitsReady, setIsOutfitsReady] = useState(isPreloadComplete());
+  const [outfitThumbnails, setOutfitThumbnails] = useState<Record<string, string>>(() => getAllCachedThumbnails());
 
   useEffect(() => {
-    if (isWardrobeOpen) {
-      const outfits = [
-        { id: '/models/lyra.vrm', label: 'Default' },
-        { id: '/models/lyra_casual.vrm', label: 'Casual' },
-        { id: '/models/lyra_dress.vrm', label: 'Dress' }
-      ];
-      outfits.forEach(async (item) => {
-        if (!outfitThumbnails[item.id]) {
-          const url = await getOutfitThumbnailDataUrl(item.id, item.label);
-          if (url) {
-            setOutfitThumbnails(prev => ({ ...prev, [item.id]: url }));
-          }
+    preloadAllOutfits()
+      .then((cache) => {
+        setIsOutfitsReady(true);
+        const thumbs: Record<string, string> = {};
+        for (const [key, entry] of Object.entries(cache)) {
+          thumbs[key] = entry.thumbnail;
         }
-      });
-    }
-  }, [isWardrobeOpen]);
+        setOutfitThumbnails(thumbs);
+      })
+      .catch((err) => console.warn("Failed preloading outfits in Chat:", err));
+  }, []);
   
   const [messages, setMessages] = useState<{id: string, role: string, content: string, timestamp: number}[]>([]);
   const [subtitles, setSubtitles] = useState<LiveSubtitle[]>([]);
@@ -205,6 +74,8 @@ export default function Chat() {
   const [isMuted, setIsMuted] = useState(false);
 
   const [isCallMode, setIsCallMode] = useState(false);
+  const [isPortraitMode, setIsPortraitMode] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [speechPulse, setSpeechPulse] = useState(1);
   
   const [memories, setMemories] = useState<any[]>([]);
@@ -220,15 +91,17 @@ export default function Chat() {
   const leftDrawerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isSubmittingRef = useRef<boolean>(false);
 
   // Refs for callbacks
   const isCallModeRef = useRef(isCallMode);
   const appStateRef = useRef(appState);
   const messagesRef = useRef(messages);
 
-  const triggerSubtitle = (role: 'user' | 'model', text: string) => {
+  const triggerSubtitle = (role: 'user' | 'model', text: string, idStr?: string) => {
     if (!text || !text.trim()) return;
-    const id = crypto.randomUUID();
+    const id = idStr || crypto.randomUUID();
     const newSub: LiveSubtitle = {
       id,
       role,
@@ -242,8 +115,13 @@ export default function Chat() {
       : Math.max(5000, Math.min(14000, 3000 + text.length * 65));
 
     setSubtitles(prev => {
-      const next = [...prev, newSub];
-      return next.slice(-2); // Display only the 1-2 most recent lines
+      const existing = prev.find(s => s.id === id);
+      if (existing) {
+        return prev.map(s => s.id === id ? { ...s, text: text.trim() } : s);
+      } else {
+        const next = [...prev, newSub];
+        return next.slice(-2);
+      }
     });
 
     const timer = setTimeout(() => {
@@ -251,7 +129,9 @@ export default function Chat() {
       delete subtitleTimersRef.current[id];
     }, duration);
 
+    if (subtitleTimersRef.current[id]) clearTimeout(subtitleTimersRef.current[id]);
     subtitleTimersRef.current[id] = timer;
+    return id;
   };
 
   useEffect(() => {
@@ -431,19 +311,29 @@ export default function Chat() {
     }
   };
 
-  const speakText = (text: string) => {
+    const queuedChunksRef = useRef(0);
+  const isStreamFinishedRef = useRef(false);
+
+  const cancelSpeech = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    queuedChunksRef.current = 0;
+    isStreamFinishedRef.current = true;
+    window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
+  };
+
+  const speakTextChunk = (text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-       setAppState(AppState.IDLE);
        return;
     }
-    window.speechSynthesis.cancel();
-    if (isMuted || !companionProfileRef.current) {
-       setAppState(AppState.IDLE);
+    if (!companionProfileRef.current) {
        return;
     }
     
     const { voiceUri, pitch, rate, language } = companionProfileRef.current;
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.volume = isMuted ? 0 : 1;
     
     const allVoices = window.speechSynthesis.getVoices();
     const targetPrefix = (language || "en").split("-")[0];
@@ -462,8 +352,6 @@ export default function Chat() {
     let vIndex = 0;
     let resetTimeout: any = null;
 
-    setAppState(AppState.SPEAKING);
-
     utterance.onboundary = (e) => {
       if (e.name === 'word') {
         const viseme = visemes[vIndex % visemes.length];
@@ -477,11 +365,17 @@ export default function Chat() {
       }
     };
     
+    queuedChunksRef.current++;
+    
     utterance.onend = () => {
+       queuedChunksRef.current--;
        window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
-       setAppState(AppState.IDLE);
-       if (isCallModeRef.current) {
-          try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
+       
+       if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
+           setAppState(AppState.IDLE);
+           if (isCallModeRef.current) {
+              try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
+           }
        }
     };
 
@@ -534,17 +428,15 @@ export default function Chat() {
   };
 
   const executeSend = async (textToSend: string) => {
-    if (!textToSend.trim() || appStateRef.current === AppState.PROCESSING) return;
+    if (!textToSend.trim() || isSubmittingRef.current || appStateRef.current === AppState.PROCESSING) return;
+    isSubmittingRef.current = true;
 
     if (isListening) {
       recognitionRef.current?.stop();
       setAppState(AppState.IDLE);
     }
     
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
+    cancelSpeech();
 
     const userMsg = {
       id: crypto.randomUUID(),
@@ -558,10 +450,16 @@ export default function Chat() {
     triggerSubtitle('user', textToSend.trim());
     setAppState(AppState.PROCESSING);
     await saveMessage(userMsg);
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    let modelMsgId: string | null = null;
 
     try {
       const companionProfile = companionProfileRef.current || {};
-      
       const topMemories = memories.slice(0, 5);
 
       const response = await fetch('/api/chat', {
@@ -572,70 +470,161 @@ export default function Chat() {
           companionProfile,
           isCallMode: isCallModeRef.current,
           memories: topMemories
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
-      const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
+      if (!response.ok) {
+        throw new Error(`Chat API responded with HTTP status ${response.status}`);
+      }
 
-      if (!response.ok || data.error) {
-        console.warn('[ChatAPI] Backend response issue:', data?.error || `HTTP ${response.status}`);
-        const isFriendlyError = typeof data?.error === 'string' && data.error.includes('[');
-        showError(isFriendlyError ? data.error.replace(/\[.*?\]/g, '').trim() : "Lost the connection for a second, try sending that again", {
-          label: "Retry",
-          onClick: () => executeSend(textToSend)
-        });
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      if (!reader) throw new Error("No readable stream from chat response");
+
+      modelMsgId = crypto.randomUUID();
+      const modelMsg = {
+        id: modelMsgId,
+        role: 'model',
+        content: '',
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => [...prev, modelMsg]);
+      let subtitleId: string | undefined = undefined;
+
+      let accumulatedText = "";
+      let isFirstChunk = true;
+      let spokenIndex = 0;
+      
+      isStreamFinishedRef.current = false;
+      queuedChunksRef.current = 0;
+
+      while (true) {
+         const { value, done } = await reader.read();
+         if (done) break;
+         
+         const chunkStr = decoder.decode(value, { stream: true });
+         const lines = chunkStr.split('\n');
+         
+         for (const line of lines) {
+            if (line.startsWith('data: ')) {
+               const data = JSON.parse(line.slice(6));
+               if (data.error) {
+                 console.error('[ChatAPI Stream Error]', data.error);
+                 if (modelMsgId) {
+                   setMessages(prev => prev.filter(m => m.id !== modelMsgId));
+                 }
+                 showError(data.error.replace(/\[.*?\]/g, '').trim());
+                 setAppState(AppState.IDLE);
+                 return;
+               }
+               if (data.text) {
+                  if (isFirstChunk) {
+                      isFirstChunk = false;
+                      setAppState(AppState.SPEAKING);
+                  }
+                  
+                  accumulatedText += data.text;
+                  let displayContent = accumulatedText;
+                  
+                  let emotion: Emotion = 'warm';
+                  const tagMatch = displayContent.match(/\[(warm|playful|thoughtful|excited|calm|affectionate|shy)\]/i);
+                  if (tagMatch) {
+                    emotion = tagMatch[1].toLowerCase() as Emotion;
+                    setCurrentEmotion(emotion);
+                    displayContent = displayContent.replace(tagMatch[0], '').trim();
+                  }
+
+                  const actionMatch = displayContent.match(/\[(walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/i);
+                  if (actionMatch) {
+                    const actionTag = actionMatch[1].toLowerCase();
+                    window.dispatchEvent(new CustomEvent('lyraAction', { detail: actionTag }));
+                    displayContent = displayContent.replace(actionMatch[0], '').trim();
+                  }
+                  
+                  if (emotion === 'excited' && Math.random() > 0.95 && isFirstChunk) {
+                    // @ts-ignore
+                    if (window.playGesture) window.playGesture(Math.random() > 0.5 ? 'laugh' : 'wave');
+                  } else if (emotion === 'thoughtful' && Math.random() > 0.95 && isFirstChunk) {
+                    // @ts-ignore
+                    if (window.playGesture) window.playGesture('nod');
+                  }
+                  
+                  setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, content: displayContent } : m));
+                  subtitleId = triggerSubtitle('model', displayContent, subtitleId);
+                  
+                  const matches = [...displayContent.matchAll(/[^.?!]+[.?!]+/g)];
+                  for (let i = spokenIndex; i < matches.length; i++) {
+                      const sentence = matches[i][0].trim();
+                      if (sentence) {
+                         speakTextChunk(sentence);
+                      }
+                      spokenIndex = i + 1;
+                  }
+               }
+            }
+         }
+      }
+      
+      const finalDisplayContent = messagesRef.current.find(m => m.id === modelMsgId)?.content || accumulatedText;
+      if (!finalDisplayContent) {
+        if (modelMsgId) {
+          setMessages(prev => prev.filter(m => m.id !== modelMsgId));
+        }
+        setAppState(AppState.IDLE);
         return;
       }
 
-      let replyText = data.content || "I'm here with you. [warm]";
+      const finalMatches = [...finalDisplayContent.matchAll(/[^.?!]+[.?!]+/g)];
+      const lastIndex = finalMatches.length > 0 ? finalMatches[finalMatches.length-1].index! + finalMatches[finalMatches.length-1][0].length : 0;
+      const remainingText = finalDisplayContent.slice(lastIndex).trim();
       
-      let emotion: Emotion = 'warm';
-      const tagMatch = replyText.match(/\[(warm|playful|thoughtful|excited|calm)\]/i);
+      if (remainingText) {
+         speakTextChunk(remainingText);
+      }
       
-      if (tagMatch) {
-        emotion = tagMatch[1].toLowerCase() as Emotion;
-        setCurrentEmotion(emotion);
-        replyText = replyText.replace(tagMatch[0], '').trim();
+      isStreamFinishedRef.current = true;
+      
+      // If we didn't queue any chunks, or they somehow finished instantly, go to idle.
+      if (queuedChunksRef.current === 0) {
+         setAppState(AppState.IDLE);
       }
-
-      const actionMatch = replyText.match(/\[(walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/i);
-      if (actionMatch) {
-        const actionTag = actionMatch[1].toLowerCase();
-        window.dispatchEvent(new CustomEvent('lyraAction', { detail: actionTag }));
-        replyText = replyText.replace(actionMatch[0], '').trim();
-      }
-
-      if (emotion === 'excited' && Math.random() > 0.5) {
-        // @ts-ignore
-        if (window.playGesture) window.playGesture(Math.random() > 0.5 ? 'laugh' : 'wave');
-      } else if (emotion === 'thoughtful' && Math.random() > 0.5) {
-        // @ts-ignore
-        if (window.playGesture) window.playGesture('nod');
-      }
-
-      const modelMsg = {
-        id: crypto.randomUUID(),
+      
+      await saveMessage({
+        id: modelMsgId,
         role: 'model',
-        content: replyText,
+        content: finalDisplayContent,
         timestamp: Date.now()
-      };
-
-      setMessages(prev => [...prev, modelMsg]);
-      triggerSubtitle('model', replyText);
-      await saveMessage(modelMsg);
-      speakText(replyText); // transitions to SPEAKING and then IDLE
-
-    } catch (error) {
-      console.warn('[ChatAPI] Chat service communication warning:', error);
-      showError("Lost the connection for a second, try sending that again", {
-        label: "Retry",
-        onClick: () => executeSend(textToSend)
       });
-      setAppState(AppState.IDLE);
+
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+         console.log('Fetch aborted');
+      } else {
+        console.error('[ChatAPI] Chat request failed:', error);
+        if (modelMsgId) {
+          setMessages(prev => prev.filter(m => m.id !== modelMsgId));
+        }
+        showError("Lost connection for a second. Please try sending that again.");
+        setAppState(AppState.IDLE);
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
-  const handleSend = () => {
+    const handleSend = () => {
+    if (isLoading || isLyraSpeaking) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      cancelSpeech();
+      setAppState(AppState.IDLE);
+      window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
+      return;
+    }
     executeSend(inputText);
     setInputText("");
   };
@@ -696,7 +685,7 @@ export default function Chat() {
         {/* Click-away overlay when a drawer is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
-            className="absolute inset-0 z-50 cursor-pointer" 
+            className="absolute inset-0 z-50 cursor-pointer backdrop-blur-[10px]" 
             onClick={closeDrawers} 
             aria-label="Close menus" 
           />
@@ -707,41 +696,29 @@ export default function Chat() {
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
           className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-center pointer-events-none w-full max-w-5xl mx-auto"
         >
-          {/* Left Block: Session/Status + Settings */}
+          {/* Left Block: Home */}
           <div className="flex items-center gap-2 sm:gap-3">
-             <button
-              onClick={() => { closeDrawers(); setIsSettingsOpen(true); }}
-              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
-              aria-label="Settings"
+            <Link
+              to="/"
+              onClick={(e) => {
+                if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
+                  e.preventDefault();
+                  closeDrawers();
+                  setTimeout(() => navigate('/'), 300);
+                }
+              }}
+              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer flex items-center justify-center"
+              aria-label="Home"
             >
-              <Settings className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
-            <div className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 shadow-lg">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-               <span className="text-xs font-semibold text-[var(--text-primary)] hidden sm:inline-block">Online</span>
-            </div>
+              <Home className="w-5 h-5 text-[var(--text-muted)]" />
+            </Link>
           </div>
-
-          {/* Center Block: Lyra Wordmark */}
-          <Link
-            to="/"
-            onClick={(e) => {
-              if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
-                e.preventDefault();
-                closeDrawers();
-                setTimeout(() => navigate('/'), 300);
-              }
-            }}
-            className="pointer-events-auto font-display font-bold text-lg sm:text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors px-4 py-2 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 shadow-lg"
-          >
-            Lyra
-          </Link>
 
           {/* Right Block: Wardrobe */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => { closeDrawers(); setIsWardrobeOpen(true); }}
-              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer"
+              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer flex items-center justify-center"
               aria-label="Wardrobe"
             >
               <Shirt className="w-5 h-5 text-[var(--text-muted)]" />
@@ -759,6 +736,8 @@ export default function Chat() {
               outfitUrl={outfit} 
               emotion={currentEmotion}
               isWardrobeOpen={isWardrobeOpen}
+              isPortraitMode={isPortraitMode || isInputFocused}
+              isProcessing={isLoading}
             />
             {/* TouchInteractionLayer */}
             <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
@@ -820,72 +799,78 @@ export default function Chat() {
 
         {/* BOTTOM INPUT DOCK */}
         <motion.div 
-          animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
-          className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none"
+          initial={false}
+          animate={{ 
+             opacity: isCallMode ? 0 : 1, 
+             pointerEvents: isCallMode ? 'none' : 'auto',
+             y: isInputFocused ? -300 : 0
+          }}
+          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+          className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none flex flex-col items-center gap-3"
         >
-          <div className="max-w-3xl mx-auto pointer-events-auto flex items-end gap-2.5 bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-[16px] p-2.5 shadow-2xl relative">
-            <button 
-              onClick={() => {
-                setIsCallMode(true);
-                if (!isListening && !isLyraSpeaking) toggleMic();
+          {/* Input Bar */}
+          <div className="w-full max-w-lg pointer-events-auto flex items-center gap-2.5 bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-[16px] p-2 shadow-2xl relative">
+            <textarea
+              value={inputText}
+              disabled={isListening || isLoading}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!isLoading && inputText.trim()) {
+                    handleSend();
+                  }
+                }
               }}
-              className="p-3 transition-colors rounded-full text-[var(--text-muted)] hover:bg-white/[0.06]"
-              title="Call Mode"
+              className="flex-1 bg-transparent border-none focus:ring-0 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 resize-none py-3 px-3 max-h-32 min-h-[48px] font-body text-sm sm:text-base outline-none"
+              placeholder={isInputFocused ? "" : (isListening ? "Listening..." : "Ask Anything")}
+              rows={1}
+            />
+            <button 
+              onClick={handleSend}
+              disabled={(!inputText.trim() && !isListening && !isLoading && !isLyraSpeaking) || (isLoading && !isLyraSpeaking)}
+              className="p-3 text-[#2D0A1E] font-bold rounded-[12px] transition-all bg-[var(--accent-primary)] hover:brightness-105 shadow-[0_0_15px_rgba(255,143,192,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer w-12 h-12 flex items-center justify-center shrink-0"
             >
-              <Phone className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+              {(isLoading || isLyraSpeaking) ? (
+                <div className="w-4 h-4 bg-black rounded-sm" />
+              ) : (
+                <Send className="w-5 h-5 ml-0.5" />
+              )}
+            </button>
+          </div>
+
+          {/* Control Pills */}
+          <div className="flex items-center gap-4 pointer-events-auto">
+            {/* Video Pill */}
+            <button 
+              onClick={() => setIsPortraitMode(!isPortraitMode)}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer"
+              title="Toggle Camera"
+            >
+              {isPortraitMode ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
             </button>
             
+            {/* Volume Pill */}
             <button 
               onClick={() => setIsMuted(!isMuted)}
-              className="p-3 text-[var(--text-muted)] transition-colors rounded-full hover:bg-white/[0.06]" 
-              title={isMuted ? "Unmute Voice" : "Mute Voice"}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer relative"
+              title={isMuted ? "Unmute" : "Mute"}
             >
-              {isMuted ? <VolumeX className="w-5 h-5 text-gray-500" /> : <Volume2 className="w-5 h-5 text-[var(--accent-primary)]" />}
+              {isMuted ? (
+                <>
+                  <Volume2 className="w-5 h-5 opacity-50" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <div className="w-6 h-[2px] bg-[var(--text-danger)] rotate-45" />
+                  </div>
+                </>
+              ) : (
+                <Volume2 className="w-5 h-5 text-[var(--text-primary)]" />
+              )}
             </button>
 
-            <div className="relative">
-              <button
-                onClick={() => setShowGestureMenu(!showGestureMenu)}
-                className={`p-3 transition-colors rounded-full ${showGestureMenu ? 'bg-white/[0.08] text-white' : 'text-[var(--text-muted)] hover:bg-white/[0.06]'}`}
-                title="Gestures"
-              >
-                <Smile className="w-5 h-5" />
-              </button>
-              
-              <AnimatePresence>
-                {showGestureMenu && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-[-1]" 
-                      onClick={() => setShowGestureMenu(false)} 
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border border-[var(--accent-primary)]/20 rounded-2xl p-2 shadow-2xl flex flex-col sm:flex-row gap-1 z-50"
-                    >
-                      {[
-                        { id: 'wave', label: 'Wave', text: 'gives a little wave' },
-                        { id: 'nod', label: 'Nod', text: 'nods in agreement' },
-                        { id: 'laugh', label: 'Laugh', text: 'laughs warmly' },
-                        { id: 'think', label: 'Think', text: 'looks thoughtful' },
-                        { id: 'celebrate', label: 'Cheer', text: 'cheers happily' },
-                      ].map(g => (
-                        <button
-                          key={g.id}
-                          onClick={() => triggerGesture(g.id, g.text)}
-                          className="px-3.5 py-2 rounded-xl text-sm font-body font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.08] transition-colors whitespace-nowrap cursor-pointer"
-                        >
-                          {g.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-
+            {/* Mic Pill */}
             <button 
               onClick={toggleMic}
               onPointerDown={(e) => {
@@ -894,40 +879,37 @@ export default function Chat() {
               onPointerUp={(e) => {
                 // Let onend stop it naturally or stop it here if we want strict push-to-hold
               }}
-              className={`p-3 transition-all rounded-full ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all shadow-lg cursor-pointer relative ${
                 isListening 
-                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_12px_rgba(255,143,192,0.4)]' 
-                  : 'text-[var(--text-muted)] hover:bg-white/[0.06]'
+                  ? 'bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border-[var(--accent-primary)]/15 text-[var(--text-primary)]' 
+                  : 'bg-red-600/90 border-red-500/50 text-white'
               }`}
-              title="Tap to Listen"
+              title="Toggle Mic"
             >
-              {isListening ? <Mic className="w-5 h-5 animate-pulse" /> : <MicOff className="w-5 h-5" />}
+              {isListening ? (
+                 <Mic className="w-5 h-5" />
+              ) : (
+                 <>
+                   <Mic className="w-5 h-5" />
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-6 h-[2px] bg-white rotate-45" />
+                   </div>
+                 </>
+              )}
             </button>
 
-            <textarea
-              value={inputText}
-              disabled={isListening || isLoading}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 resize-none py-3 px-2 max-h-32 min-h-[48px] font-body text-sm sm:text-base"
-              placeholder={isListening ? "Listening..." : t('chat_placeholder')}
-              rows={1}
-            />
+            {/* Settings Pill */}
             <button 
-              onClick={handleSend}
-              disabled={isLoading || (!inputText.trim() && !isListening)}
-              className="p-3 text-[#2D0A1E] font-bold rounded-full transition-all bg-[var(--accent-primary)] hover:brightness-105 shadow-[0_0_15px_rgba(255,143,192,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              onClick={() => { closeDrawers(); setIsSettingsOpen(true); }}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer"
+              title="Settings"
             >
-              <Send className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </button>
           </div>
         </motion.div>
-      </motion.main>
+
+        </motion.main>
 
       {/* CALL MODE OVERLAY */}
       <AnimatePresence>
@@ -1056,34 +1038,45 @@ export default function Chat() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { id: '/models/lyra.vrm', label: 'Default' },
-                  { id: '/models/lyra_casual.vrm', label: 'Casual' },
-                  { id: '/models/lyra_dress.vrm', label: 'Dress' }
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleOutfitChange(item.id)}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-center transition-all group ${
-                      outfit === item.id 
-                        ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
-                        : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
-                    }`}
-                  >
-                    <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
-                      {outfitThumbnails[item.id] ? (
-                        <img src={outfitThumbnails[item.id]} alt={item.label} className="w-full h-full object-cover" />
-                      ) : (
-                        <OutfitThumbnail id={item.id} />
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {!isOutfitsReady ? (
+                <div className="relative w-full h-72 flex flex-col items-center justify-center rounded-2xl border border-[var(--accent-primary)]/10 overflow-hidden bg-[var(--bg-base)]/40">
+                  <div className="presence-glow" />
+                  <div className="w-10 h-10 rounded-full border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] animate-spin mb-3 z-10" />
+                  <span className="text-xs font-body text-[var(--text-muted)] z-10">Preparing wardrobe...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { id: '/models/lyra.vrm', label: 'Default' },
+                    { id: '/models/lyra_casual.vrm', label: 'Casual' },
+                    { id: '/models/lyra_dress.vrm', label: 'Dress' }
+                  ].map(item => {
+                    const thumb = outfitThumbnails[item.id] || getCachedOutfit(item.id)?.thumbnail;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleOutfitChange(item.id)}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-center transition-all group cursor-pointer ${
+                          outfit === item.id 
+                            ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
+                            : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
+                        }`}
+                      >
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
+                          {thumb ? (
+                            <img src={thumb} alt={item.label} className="w-full h-full object-cover" />
+                          ) : (
+                            <OutfitThumbnail id={item.id} />
+                          )}
+                        </div>
+                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </motion.aside>
         )}

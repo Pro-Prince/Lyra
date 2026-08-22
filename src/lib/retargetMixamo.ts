@@ -27,6 +27,26 @@ const mixamoVRMRigMap: Record<string, string> = {
   mixamorigRightToeBase: 'rightToes',
 };
 
+const fingerMap: Record<string, string> = {};
+['Left', 'Right'].forEach((side) => {
+  const vrmSide = side.toLowerCase();
+  const fingers = [
+    ['Thumb', 'Thumb'],
+    ['Index', 'Index'],
+    ['Middle', 'Middle'],
+    ['Ring', 'Ring'],
+    ['Pinky', 'Little'],
+  ];
+  fingers.forEach(([mixamoName, vrmName]) => {
+    [1, 2, 3].forEach((n, i) => {
+      const segment = ['Proximal', 'Intermediate', 'Distal'][i];
+      fingerMap[`mixamorig${side}Hand${mixamoName}${n}`] = `${vrmSide}${vrmName}${segment}`;
+    });
+  });
+});
+
+Object.assign(mixamoVRMRigMap, fingerMap);
+
 export async function loadMixamoAnimation(url: string, vrm: VRM): Promise<THREE.AnimationClip | null> {
   const loader = new FBXLoader();
   const asset = await loader.loadAsync(url);

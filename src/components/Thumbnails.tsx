@@ -1,7 +1,13 @@
 import React from "react";
+import { getCachedOutfit } from "../lib/outfitCache";
 
 // Outfit thumbnail illustrations with distinct visual styling for each outfit option
 export function OutfitThumbnail({ id, className = "w-full h-full" }: { id: string; className?: string }) {
+  const cached = getCachedOutfit(id);
+  if (cached?.thumbnail) {
+    return <img src={cached.thumbnail} alt={id} className={`${className} object-cover`} />;
+  }
+
   if (id.includes("casual")) {
     return (
       <svg viewBox="0 0 120 120" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, Suspense, memo, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRM } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../hooks/useToast';
-import { loadMixamoAnimation } from '../lib/retargetMixamo';
-import { fetchAndCacheVRMModel, clearCachedModelBuffer } from '../lib/vrmCache';
 import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
+import { applyRestPose } from '../lib/poseUtils';
+import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
 
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
@@ -43,63 +42,198 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
   playful: { happy: 0.75, relaxed: 0.1, surprised: 0.25, neutral: 0.0, sad: 0.0 },
   thoughtful: { happy: 0.05, relaxed: 0.25, surprised: 0.05, neutral: 0.65, sad: 0.0 },
   excited: { happy: 0.9, relaxed: 0.0, surprised: 0.45, neutral: 0.0, sad: 0.0 },
-  calm: { happy: 0.2, relaxed: 0.75, surprised: 0.0, neutral: 0.3, sad: 0.0 }
+  calm: { happy: 0.2, relaxed: 0.75, surprised: 0.0, neutral: 0.3, sad: 0.0 },
+  affectionate: { happy: 0.8, relaxed: 0.2, surprised: 0.0, neutral: 0.0, sad: 0.0 },
+  shy: { happy: 0.2, relaxed: 0.0, surprised: 0.1, neutral: 0.4, sad: 0.0 }
 };
 
-function frameFullBody(vrmScene: THREE.Group, camera: THREE.PerspectiveCamera, canvasHeightPx: number, reservedBottomPx: number, reservedTopPx: number) {
-  const box = new THREE.Box3().setFromObject(vrmScene);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  const fov = camera.fov * (Math.PI / 180);
-  const paddingFactor = 1.15; // small headroom above her head
-  const visibleFraction = Math.max(0.1, (canvasHeightPx - reservedBottomPx - reservedTopPx) / canvasHeightPx);
-  const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
-
-  const targetDist = Math.max(1.5, Math.min(4.0, distance));
-  const posY = size.y * 0.5;
-  camera.position.set(0, posY, targetDist);
-  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
-  camera.lookAt(0, posY - verticalShift, 0);
-}
-
-function applyRestPose(vrm: VRM) {
+function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const h = vrm.humanoid;
-  const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
-  const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
-  const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
-  const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
+  if (!h) return {};
 
-  if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
-  if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
-  if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
-  if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
+  const head = h.getNormalizedBoneNode('head');
+  const neck = h.getNormalizedBoneNode('neck');
+  const spine = h.getNormalizedBoneNode('spine');
+  const chest = h.getNormalizedBoneNode('chest');
+  const upperArmR = h.getNormalizedBoneNode('rightUpperArm');
+  const lowerArmR = h.getNormalizedBoneNode('rightLowerArm');
+  const handR = h.getNormalizedBoneNode('rightHand');
+  const upperArmL = h.getNormalizedBoneNode('leftUpperArm');
+  const lowerArmL = h.getNormalizedBoneNode('leftLowerArm');
+  const handL = h.getNormalizedBoneNode('leftHand');
 
-  h.update();
-}
+  const makeTrack = (node: THREE.Object3D | null, eulers: THREE.Euler[], times: number[]) => {
+    if (!node) return null;
+    const values = eulers.flatMap(e => new THREE.Quaternion().setFromEuler(e).toArray());
+    return new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, values);
+  };
 
-const idleVariations = [
-  { name: 'breatheOnly', weight: 45, duration: 4 },
-  { name: 'weightShift', weight: 15, duration: 3 },
-  { name: 'lookAround', weight: 15, duration: 2.5 },
-  { name: 'fidget', weight: 10, duration: 2 },
-  { name: 'subtleHandGesture', weight: 10, duration: 3 },
-  { name: 'deepBreath', weight: 10, duration: 4 },
-  { name: 'roam', weight: 5, duration: 3 }
-];
+  const qZero = new THREE.Euler(0, 0, 0);
+  const gestureClips: Record<string, THREE.AnimationClip> = {};
 
-function pickNextIdle() {
-  const total = idleVariations.reduce((sum, v) => sum + v.weight, 0);
-  let r = Math.random() * total;
-  for (const v of idleVariations) {
-    if (r < v.weight) return v;
-    r -= v.weight;
-  }
-  return idleVariations[0];
+  // 1. WAVE (2.0s)
+  const waveTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(upperArmR, [
+      qZero,
+      new THREE.Euler(0, 0, -Math.PI / 2.2),
+      new THREE.Euler(0, 0, -Math.PI / 2.2),
+      qZero
+    ], [0, 0.3, 1.7, 2.0]),
+    makeTrack(lowerArmR, [
+      qZero,
+      qZero,
+      new THREE.Euler(0, 0, -0.5),
+      new THREE.Euler(0, 0, 0.5),
+      new THREE.Euler(0, 0, -0.5),
+      new THREE.Euler(0, 0, 0.5),
+      new THREE.Euler(0, 0, 0),
+      qZero
+    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]),
+    makeTrack(handR, [
+      qZero,
+      qZero,
+      new THREE.Euler(0, 0, -0.2),
+      new THREE.Euler(0, 0, 0.2),
+      new THREE.Euler(0, 0, -0.2),
+      new THREE.Euler(0, 0, 0.2),
+      qZero
+    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 2.0]),
+    makeTrack(head, [
+      qZero,
+      new THREE.Euler(0, -0.08, -0.05),
+      new THREE.Euler(0, -0.08, -0.05),
+      qZero
+    ], [0, 0.3, 1.7, 2.0])
+  ];
+  const validWave = waveTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validWave.length > 0) gestureClips['wave'] = new THREE.AnimationClip('wave', 2.0, validWave);
+
+  // 2. NOD (0.9s)
+  const nodTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(head, [
+      qZero,
+      new THREE.Euler(0.22, 0, 0),
+      new THREE.Euler(-0.06, 0, 0),
+      new THREE.Euler(0.14, 0, 0),
+      qZero
+    ], [0, 0.25, 0.45, 0.68, 0.9]),
+    makeTrack(neck, [
+      qZero,
+      new THREE.Euler(0.08, 0, 0),
+      new THREE.Euler(-0.02, 0, 0),
+      new THREE.Euler(0.05, 0, 0),
+      qZero
+    ], [0, 0.25, 0.45, 0.68, 0.9])
+  ];
+  const validNod = nodTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 0.9, validNod);
+
+  // 3. LAUGH (1.5s)
+  const laughTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(head, [
+      qZero,
+      new THREE.Euler(-0.16, 0.06, 0.05),
+      new THREE.Euler(0.04, -0.02, 0),
+      new THREE.Euler(-0.12, 0.04, 0.03),
+      new THREE.Euler(0.02, 0, 0),
+      qZero
+    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5]),
+    makeTrack(chest, [
+      qZero,
+      new THREE.Euler(0.05, 0, 0),
+      new THREE.Euler(-0.02, 0, 0),
+      new THREE.Euler(0.04, 0, 0),
+      new THREE.Euler(-0.01, 0, 0),
+      qZero
+    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5]),
+    makeTrack(spine, [
+      qZero,
+      new THREE.Euler(-0.04, 0.02, 0.02),
+      new THREE.Euler(0.01, 0, 0),
+      new THREE.Euler(-0.03, 0.01, 0.01),
+      qZero
+    ], [0, 0.3, 0.6, 0.9, 1.5])
+  ];
+  const validLaugh = laughTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.5, validLaugh);
+
+  // 4. THINK (1.8s)
+  const thinkTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(head, [
+      qZero,
+      new THREE.Euler(0.12, -0.22, 0.14),
+      new THREE.Euler(0.12, -0.22, 0.14),
+      qZero
+    ], [0, 0.4, 1.4, 1.8]),
+    makeTrack(upperArmR, [
+      qZero,
+      new THREE.Euler(0.35, 0.15, -0.4),
+      new THREE.Euler(0.35, 0.15, -0.4),
+      qZero
+    ], [0, 0.4, 1.4, 1.8]),
+    makeTrack(lowerArmR, [
+      qZero,
+      new THREE.Euler(0.6, 0.1, 0.3),
+      new THREE.Euler(0.6, 0.1, 0.3),
+      qZero
+    ], [0, 0.4, 1.4, 1.8])
+  ];
+  const validThink = thinkTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 1.8, validThink);
+
+  // 5. CHEER (1.8s)
+  const cheerTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(upperArmL, [
+      qZero,
+      new THREE.Euler(0.3, 0, 1.5),
+      new THREE.Euler(0.3, 0, 1.6),
+      new THREE.Euler(0.3, 0, 1.5),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8]),
+    makeTrack(upperArmR, [
+      qZero,
+      new THREE.Euler(0.3, 0, -1.5),
+      new THREE.Euler(0.3, 0, -1.6),
+      new THREE.Euler(0.3, 0, -1.5),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8]),
+    makeTrack(lowerArmL, [
+      qZero,
+      new THREE.Euler(0.6, 0, 0.4),
+      new THREE.Euler(0.7, 0, 0.5),
+      new THREE.Euler(0.6, 0, 0.4),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8]),
+    makeTrack(lowerArmR, [
+      qZero,
+      new THREE.Euler(0.6, 0, -0.4),
+      new THREE.Euler(0.7, 0, -0.5),
+      new THREE.Euler(0.6, 0, -0.4),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8]),
+    makeTrack(chest, [
+      qZero,
+      new THREE.Euler(-0.08, 0, 0),
+      new THREE.Euler(-0.1, 0, 0),
+      new THREE.Euler(-0.08, 0, 0),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8]),
+    makeTrack(head, [
+      qZero,
+      new THREE.Euler(-0.18, 0, 0),
+      new THREE.Euler(-0.2, 0, 0),
+      new THREE.Euler(-0.18, 0, 0),
+      qZero
+    ], [0, 0.4, 0.8, 1.2, 1.8])
+  ];
+  const validCheer = cheerTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 1.8, validCheer);
+
+  return gestureClips;
 }
 
 interface CameraRigProps {
-  mode: 'centered' | 'panned-left' | 'room-wide';
+  mode: 'centered' | 'panned-left' | 'room-wide' | 'portrait';
   vrmScene?: THREE.Group | null;
 }
 
@@ -134,16 +268,34 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
 
   useFrame(() => {
     const companionPosition = vrmScene ? vrmScene.position : new THREE.Vector3();
-    if (mode === 'room-wide') {
-      targetPos.current.set(companionPosition.x, 1.6, companionPosition.z + 3.2);
+    const perspCam = camera as THREE.PerspectiveCamera;
+
+    if (vrmScene && mode === 'portrait') {
+      const box = new THREE.Box3().setFromObject(vrmScene);
+      const headTop = box.max.y;
+      const shoulderY = headTop - (box.max.y - box.min.y) * 0.25; // roughly shoulders to head top
+      const targetHeight = Math.max(0.2, headTop - shoulderY);
+      const paddingFactor = 1.4; // real headroom above her head so ears/head are never cropped
+      const fov = perspCam.fov * (Math.PI / 180);
+      const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
+      const midY = (headTop + shoulderY) / 2;
+
+      targetPos.current.set(companionPosition.x, Math.max(0.6, midY), companionPosition.z + distance);
+      lookTarget.current.set(companionPosition.x, midY, companionPosition.z);
+    } else if (mode === 'room-wide') {
+      targetPos.current.set(companionPosition.x, Math.max(0.8, 1.6), companionPosition.z + 3.2);
       lookTarget.current.set(companionPosition.x, 1.2, companionPosition.z);
     } else if (mode === 'panned-left') {
-      targetPos.current.set(-0.9, 1.3, 2.4);
+      targetPos.current.set(-0.9, Math.max(0.8, 1.3), 2.4);
       lookTarget.current.set(-0.4, 1.3, 0);
     } else {
-      targetPos.current.set(0, 1.3, 2.0);
+      targetPos.current.set(0, Math.max(0.8, 1.3), 2.0);
       lookTarget.current.set(0, 1.3, 0);
     }
+
+    // Clamp camera Y so it never drops below floor level (floor is y=0)
+    targetPos.current.y = Math.max(0.6, targetPos.current.y);
+
     camera.position.lerp(targetPos.current, 0.05);
     camera.lookAt(lookTarget.current);
   });
@@ -155,13 +307,14 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
 interface VRMModelProps {
   url: string;
   emotion?: string;
+  isProcessing?: boolean;
   onProgress?: (percent: number) => void;
   onLoaded?: (scene: THREE.Group) => void;
   onError?: (error: string) => void;
   retryKey?: number;
 }
 
-function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryKey = 0 }: VRMModelProps) {
+function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onLoaded, onError, retryKey = 0 }: VRMModelProps) {
   const [vrm, setVrm] = useState<VRM | null>(null);
 
   const lookTarget = useRef(new THREE.Object3D());
@@ -170,236 +323,150 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
   const currentAction = useRef<THREE.AnimationAction | null>(null);
   const targetLookAt = useRef(new THREE.Vector3(0, 1.35, 3));
 
-  // Weighted idle system state
-  const currentIdle = useRef(idleVariations[0]);
-  const idleTimer = useRef(0);
-  const idleBlend = useRef(0); // 400ms cross-fade
-
   useEffect(() => {
-    let currentVrm: VRM | null = null;
     let isCancelled = false;
-    const abortController = new AbortController();
 
-    const timeoutId = setTimeout(() => {
-      abortController.abort(new Error("Model download timed out."));
-    }, 25000);
-
-    const loadVRM = async () => {
+    const setupVRM = async () => {
       try {
-        if (onProgress) onProgress(10);
-        const arrayBuffer = await fetchAndCacheVRMModel(url, abortController.signal);
-        if (onProgress) onProgress(95);
+        if (onProgress) onProgress(20);
+        let cached = getCachedOutfit(url);
+        if (!cached) {
+          if (onProgress) onProgress(50);
+          await preloadAllOutfits();
+          cached = getCachedOutfit(url);
+        }
 
-        clearTimeout(timeoutId);
-        if (isCancelled || !arrayBuffer) return;
+        if (isCancelled || !cached) {
+          if (!cached && onError) onError(`Failed to resolve outfit for ${url}`);
+          return;
+        }
 
-        const loader = new GLTFLoader();
-        loader.register((parser) => new VRMLoaderPlugin(parser));
-        const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
+        const vrmInstance = cached.vrm;
 
-        loader.parse(
-          arrayBuffer,
-          resourcePath,
-          async (gltf) => {
-            if (isCancelled) return;
-            const vrmInstance = gltf.userData.vrm as VRM;
-            if (!vrmInstance) {
-              if (onError) onError("File parsed as glTF, but contains no VRM humanoid metadata.");
-              return;
-            }
+        // Apply rest pose
+        applyRestPose(vrmInstance);
 
-            VRMUtils.removeUnnecessaryVertices(gltf.scene);
-            VRMUtils.combineSkeletons(gltf.scene);
-            vrmInstance.scene.traverse((obj) => {
-              obj.frustumCulled = false;
-              if (obj instanceof THREE.Mesh) {
-                obj.castShadow = true;
-                obj.receiveShadow = true;
-              }
-            });
+        // Center & floor VRM
+        const box = new THREE.Box3().setFromObject(vrmInstance.scene);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        vrmInstance.scene.position.x -= center.x;
+        vrmInstance.scene.position.z -= center.z;
+        vrmInstance.scene.position.y -= box.min.y;
 
-            // 1. Apply rest pose immediately before any frame is rendered
-            applyRestPose(vrmInstance);
+        // Setup LookAt target
+        lookTarget.current.position.set(0, 1.35, 3);
+        vrmInstance.scene.add(lookTarget.current);
+        if (vrmInstance.lookAt) {
+          vrmInstance.lookAt.target = lookTarget.current;
+        }
 
-            // 2. Center & floor VRM
-            const box = new THREE.Box3().setFromObject(vrmInstance.scene);
-            const center = new THREE.Vector3();
-            box.getCenter(center);
-            vrmInstance.scene.position.x -= center.x;
-            vrmInstance.scene.position.z -= center.z;
-            vrmInstance.scene.position.y -= box.min.y;
+        mixer.current = new THREE.AnimationMixer(vrmInstance.scene);
 
-            // Setup LookAt target
-            lookTarget.current.position.set(0, 1.35, 3);
-            vrmInstance.scene.add(lookTarget.current);
-            if (vrmInstance.lookAt) {
-              vrmInstance.lookAt.target = lookTarget.current;
-            }
+        // Integrate generated tap gesture clips with loaded Mixamo clips
+        const proceduralGestures = createGestureClips(vrmInstance);
+        clips.current = {
+          ...proceduralGestures,
+          ...(cached.clips || {})
+        };
 
-            mixer.current = new THREE.AnimationMixer(vrmInstance.scene);
-
-            const head = vrmInstance.humanoid.getNormalizedBoneNode('head');
-            const spine = vrmInstance.humanoid.getNormalizedBoneNode('spine');
-            const upperArmR = vrmInstance.humanoid.getNormalizedBoneNode('rightUpperArm');
-            const lowerArmR = vrmInstance.humanoid.getNormalizedBoneNode('rightLowerArm');
-
-            const makeTrack = (node: THREE.Object3D | null, eulers: THREE.Euler[], times: number[]) => {
-              if (!node) return null;
-              const values = eulers.flatMap(e => new THREE.Quaternion().setFromEuler(e).toArray());
-              return new THREE.QuaternionKeyframeTrack(node.name + '.quaternion', times, values);
-            };
-
-            const qZero = new THREE.Euler(0, 0, 0);
-
-            if (upperArmR && lowerArmR) {
-              const tWaveUp = makeTrack(upperArmR, [qZero, new THREE.Euler(0, 0, -Math.PI / 2.2), new THREE.Euler(0, 0, -Math.PI / 2.2), qZero], [0, 0.3, 1.7, 2.0]);
-              const tWaveLow = makeTrack(lowerArmR, [qZero, qZero, new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, -0.5), new THREE.Euler(0, 0, 0.5), new THREE.Euler(0, 0, 0), qZero], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]);
-              if (tWaveUp && tWaveLow) clips.current['wave'] = new THREE.AnimationClip('wave', 2.0, [tWaveUp, tWaveLow]);
-            }
-
-            if (head) {
-              const tNod = makeTrack(head, [qZero, new THREE.Euler(0.15, 0, 0), new THREE.Euler(0.15, 0, 0), qZero], [0, 0.2, 0.4, 0.6]);
-              if (tNod) clips.current['nod'] = new THREE.AnimationClip('nod', 0.6, [tNod]);
-
-              const tThink = makeTrack(head, [qZero, new THREE.Euler(0.1, -0.15, 0.1), qZero], [0, 0.5, 1.0]);
-              if (tThink) clips.current['think'] = new THREE.AnimationClip('think', 1.0, [tThink]);
-            }
-
-            const playGesture = (name: string) => {
-              if (!mixer.current || !clips.current[name]) return;
-              const clip = clips.current[name];
-              const action = mixer.current.clipAction(clip);
-              if (currentAction.current && currentAction.current !== action) {
-                currentAction.current.crossFadeTo(action, 0.2, false);
-              }
-              action.reset();
-              action.setLoop(THREE.LoopOnce, 1);
-              action.clampWhenFinished = true;
-              action.play();
-              currentAction.current = action;
-
-              const onFinished = (e: any) => {
-                if (e.action === action) {
-                  action.fadeOut(0.3);
-                  mixer.current?.removeEventListener('finished', onFinished);
-                  // We could return to idle here if we want
-                  if (currentAction.current === action) {
-                     if (clips.current['idle']) {
-                       crossfadeToAction('idle', 0.5, true);
-                     } else {
-                       currentAction.current = null;
-                     }
-                  }
-                }
-              };
-              mixer.current.addEventListener('finished', onFinished);
-            };
-
-            const playAction = (name: string, loop = true) => {
-              if (!mixer.current || !clips.current[name]) return;
-              const clip = clips.current[name];
-              const action = mixer.current.clipAction(clip);
-              action.reset();
-              action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-              action.clampWhenFinished = !loop;
-              action.play();
-              currentAction.current = action;
-            };
-
-            const crossfadeToAction = (name: string, duration = 0.5, loop = true) => {
-              if (!mixer.current || !clips.current[name]) return;
-              const clip = clips.current[name];
-              const nextAction = mixer.current.clipAction(clip);
-              nextAction.reset();
-              nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-              nextAction.clampWhenFinished = !loop;
-              nextAction.play();
-              
-              if (currentAction.current && currentAction.current !== nextAction) {
-                currentAction.current.crossFadeTo(nextAction, duration, false);
-              }
-              
-              currentAction.current = nextAction;
-
-              if (!loop) {
-                const onFinished = (e: any) => {
-                  if (e.action === nextAction) {
-                    nextAction.fadeOut(0.3);
-                    mixer.current?.removeEventListener('finished', onFinished);
-                    if (currentAction.current === nextAction) {
-                       crossfadeToAction('idle', 0.5, true);
-                       window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
-                    }
-                  }
-                };
-                mixer.current.addEventListener('finished', onFinished);
-              }
-            };
-
-            // @ts-ignore
-            window.playGesture = playGesture;
-            // @ts-ignore
-            window.playAction = playAction;
-            // @ts-ignore
-            window.crossfadeToAction = crossfadeToAction;
-
-            // Load Mixamo Animations
-            if (onProgress) onProgress(98);
-            const mixamoFiles = ['idle', 'walk_forward', 'walk_backward', 'turn_left', 'turn_right', 'dance', 'strafe_left', 'strafe_right', 'turn_around'];
-            for (const file of mixamoFiles) {
-              try {
-                const url = new URL(`../assets/animations/mixamo/${file}.fbx`, import.meta.url).href;
-                const clip = await loadMixamoAnimation(url, vrmInstance);
-                if (clip) {
-                  clips.current[file] = clip;
-                }
-              } catch (err) {
-                console.warn(`Failed to load Mixamo animation ${file}`, err);
-              }
-            }
-
-            if (clips.current['idle']) {
-               playAction('idle', true);
-            }
-
-            if (onProgress) onProgress(100);
-            if (onLoaded) onLoaded(vrmInstance.scene);
-
-            setVrm(vrmInstance);
-            currentVrm = vrmInstance;
-          },
-          async (err) => {
-            clearTimeout(timeoutId);
-            await clearCachedModelBuffer(url);
-            const msg = err instanceof Error ? err.message : String(err);
-            if (onError) onError(`3D model parsing failed: ${msg}`);
+        const playGesture = (name: string) => {
+          if (!mixer.current || !clips.current[name]) return;
+          const clip = clips.current[name];
+          const action = mixer.current.clipAction(clip);
+          if (currentAction.current && currentAction.current !== action) {
+            currentAction.current.crossFadeTo(action, 0.25, false);
           }
-        );
+          action.reset();
+          action.setLoop(THREE.LoopOnce, 1);
+          action.clampWhenFinished = true;
+          action.play();
+          currentAction.current = action;
+
+          const onFinished = (e: any) => {
+            if (e.action === action) {
+              action.fadeOut(0.3);
+              mixer.current?.removeEventListener('finished', onFinished);
+              if (currentAction.current === action) {
+                 if (clips.current['idle']) {
+                   crossfadeToAction('idle', 0.4, true);
+                 } else {
+                   currentAction.current = null;
+                 }
+              }
+            }
+          };
+          mixer.current.addEventListener('finished', onFinished);
+        };
+
+        const playAction = (name: string, loop = true) => {
+          if (!mixer.current || !clips.current[name]) return;
+          const clip = clips.current[name];
+          const action = mixer.current.clipAction(clip);
+          action.reset();
+          action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+          action.clampWhenFinished = !loop;
+          action.play();
+          currentAction.current = action;
+        };
+
+        const crossfadeToAction = (name: string, duration = 0.5, loop = true) => {
+          if (!mixer.current || !clips.current[name]) return;
+          const clip = clips.current[name];
+          const nextAction = mixer.current.clipAction(clip);
+          nextAction.reset();
+          nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+          nextAction.clampWhenFinished = !loop;
+          nextAction.play();
+          
+          if (currentAction.current && currentAction.current !== nextAction) {
+            currentAction.current.crossFadeTo(nextAction, duration, false);
+          }
+          
+          currentAction.current = nextAction;
+
+          if (!loop) {
+            const onFinished = (e: any) => {
+              if (e.action === nextAction) {
+                nextAction.fadeOut(0.3);
+                mixer.current?.removeEventListener('finished', onFinished);
+                if (currentAction.current === nextAction) {
+                   crossfadeToAction('idle', 0.4, true);
+                   window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
+                }
+              }
+            };
+            mixer.current.addEventListener('finished', onFinished);
+          }
+        };
+
+        // @ts-ignore
+        window.playGesture = playGesture;
+        // @ts-ignore
+        window.playAction = playAction;
+        // @ts-ignore
+        window.crossfadeToAction = crossfadeToAction;
+
+        if (clips.current['idle']) {
+          playAction('idle', true);
+        }
+
+        if (onProgress) onProgress(100);
+        if (onLoaded) onLoaded(vrmInstance.scene);
+
+        setVrm(vrmInstance);
       } catch (err: any) {
-        clearTimeout(timeoutId);
-        await clearCachedModelBuffer(url);
         if (isCancelled) return;
         if (onError) onError(err?.message || String(err));
       }
     };
 
-    loadVRM();
+    setupVRM();
 
     return () => {
       isCancelled = true;
-      clearTimeout(timeoutId);
-      abortController.abort();
-      // @ts-ignore
-      window.playGesture = undefined;
-      if (currentVrm) {
-        currentVrm.scene.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mat = (child as THREE.Mesh).material;
-            if (Array.isArray(mat)) mat.forEach(m => m.dispose());
-            else if (mat) mat.dispose();
-            if ((child as THREE.Mesh).geometry) (child as THREE.Mesh).geometry.dispose();
-          }
-        });
+      if (mixer.current) {
+        mixer.current.stopAllAction();
       }
     };
   }, [url, retryKey]);
@@ -454,27 +521,14 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
 
       movement.update(safeDelta);
 
-      // Weighted Idle System progression
-      idleTimer.current += safeDelta;
-      if (idleTimer.current >= currentIdle.current.duration) {
-        idleTimer.current = 0;
-        currentIdle.current = pickNextIdle();
-        idleBlend.current = 0; // trigger cross-fade
-        
-        if (currentIdle.current.name === 'roam') {
-          window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'walk_forward' }));
-        }
+      // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
+      let targetGaze = targetLookAt.current.clone();
+      if (isProcessing) {
+         targetGaze.set(0, 1.15, 2.8);
       }
-      idleBlend.current = Math.min(1, idleBlend.current + safeDelta / 0.4); // 400ms crossfade
+      lookTarget.current.position.lerp(targetGaze, 0.08);
 
-      // 1. Baseline Breathing
-      const breathScale = 1 + Math.sin(time * (2 * Math.PI / 4)) * 0.006;
-      vrm.scene.scale.set(breathScale, breathScale, breathScale);
-
-      // 3. Gaze tracking damping
-      lookTarget.current.position.lerp(targetLookAt.current, 0.08);
-
-      // Blink oscillator
+      // Blink oscillator (expression blendshape)
       const state = blinkState.current;
       if (time > state.nextBlinkTime && !state.isBlinking) {
         state.isBlinking = true;
@@ -495,7 +549,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         }
       }
 
-      // Emotion & Lip Sync
+      // Emotion & Lip Sync (expression blendshapes)
       if (vrm.expressionManager) {
         const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
         const happyVal = vrm.expressionManager.getValue('happy') || 0;
@@ -505,6 +559,13 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3));
         vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3));
         vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3));
+
+        const isBlush = emotion === 'affectionate' || emotion === 'shy';
+        const currentBlush = vrm.expressionManager.getValue('blush') || 0;
+        const targetBlush = isBlush ? 1.0 : 0.0;
+        if (Math.abs(currentBlush - targetBlush) > 0.01) {
+            vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
+        }
 
         for (let i = 0; i < VISEMES.length; i++) {
           const v = VISEMES[i];
@@ -516,40 +577,9 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         }
       }
 
-      if (mixer.current) mixer.current.update(safeDelta);
-
-      // 2. Weighted Idle Variations Layering (After mixer update to layer additively)
-      const spine = vrm.humanoid.getNormalizedBoneNode('spine');
-      const head = vrm.humanoid.getNormalizedBoneNode('head');
-      const chest = vrm.humanoid.getNormalizedBoneNode('chest');
-      const leftHand = vrm.humanoid.getNormalizedBoneNode('leftHand');
-      const rightHand = vrm.humanoid.getNormalizedBoneNode('rightHand');
-
-      if (spine && head) {
-        if (currentIdle.current.name === 'breatheOnly') {
-          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, Math.sin(time * 1.5) * 0.015, 0.1);
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0, 0.1);
-        } else if (currentIdle.current.name === 'weightShift') {
-          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, 0.03, 0.08);
-          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, -0.05, 0.08);
-        } else if (currentIdle.current.name === 'lookAround') {
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(time * 2) * 0.12, 0.1);
-          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.05, 0.1);
-        } else if (currentIdle.current.name === 'fidget') {
-          spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, Math.cos(time * 3) * 0.02, 0.1);
-          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0.04, 0.1);
-        } else if (currentIdle.current.name === 'subtleHandGesture') {
-          if (leftHand && rightHand) {
-            leftHand.rotation.z = THREE.MathUtils.lerp(leftHand.rotation.z, Math.sin(time * 2.5) * 0.08, 0.1);
-            rightHand.rotation.z = THREE.MathUtils.lerp(rightHand.rotation.z, Math.cos(time * 2) * 0.08, 0.1);
-          }
-        } else if (currentIdle.current.name === 'deepBreath') {
-          if (chest) {
-            chest.rotation.x = THREE.MathUtils.lerp(chest.rotation.x, Math.sin(time * 1.2) * 0.05, 0.1);
-          }
-          spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, Math.sin(time * 1.2) * 0.03, 0.1);
-          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, Math.sin(time * 1.2) * -0.02, 0.1);
-        }
+      // Exactly ONE authority drives skeletal body pose: AnimationMixer
+      if (mixer.current) {
+        mixer.current.update(safeDelta);
       }
 
       vrm.update(safeDelta);
@@ -568,6 +598,8 @@ export default function CompanionStage({
   outfitUrl = '/models/lyra.vrm',
   emotion = 'warm',
   graphicsTier = 'high',
+  isPortraitMode = false,
+  isProcessing = false,
   onModelLoaded
 }: {
   accentColor?: string;
@@ -577,6 +609,8 @@ export default function CompanionStage({
   emotion?: string;
   isWardrobeOpen?: boolean;
   graphicsTier?: 'low' | 'medium' | 'high';
+  isPortraitMode?: boolean;
+  isProcessing?: boolean;
   onModelLoaded?: () => void;
 }) {
   const { showError } = useToast();
@@ -599,13 +633,35 @@ export default function CompanionStage({
   };
 
   useEffect(() => {
-    setIsLoaded(false);
-    setVrmSceneRef(null);
+    if (!getCachedOutfit(outfitUrl)) {
+      setIsLoaded(false);
+      setVrmSceneRef(null);
+    }
   }, [outfitUrl]);
 
   return (
     <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[var(--bg-base)]">
       <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />
+      
+      <AnimatePresence>
+        {isProcessing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            className="absolute bottom-32 w-16 h-16 rounded-full border-[3px] border-[var(--accent-primary)] z-20 pointer-events-none"
+            style={{ 
+              boxShadow: '0 0 20px var(--accent-primary), inset 0 0 20px var(--accent-primary)'
+            }}
+          >
+            <motion.div 
+              animate={{ scale: [1, 1.5], opacity: [0.6, 0] }} 
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+              className="absolute inset-0 rounded-full border-[2px] border-[var(--accent-primary)]"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* While loading: show ONLY ambient presence glow from Fix 1, nothing else */}
       <AnimatePresence>
@@ -638,7 +694,7 @@ export default function CompanionStage({
             [1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]
           }
         >
-          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'room-wide'} vrmScene={vrmSceneRef} />
+          <CameraRig mode={isWardrobeOpen ? 'panned-left' : (isPortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
 
@@ -646,6 +702,7 @@ export default function CompanionStage({
             <VRMModel 
               url={outfitUrl} 
               emotion={emotion}
+              isProcessing={isProcessing}
               onLoaded={(scene) => {
                 setVrmSceneRef(scene);
                 setIsLoaded(true);

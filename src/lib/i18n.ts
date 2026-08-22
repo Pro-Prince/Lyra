@@ -2,16 +2,18 @@ export type Language = 'en-US';
 
 export const translations = {
   'en-US': {
+    landing_eyebrow: "AI COMPANION",
     landing_title: "the companion who gets you",
     landing_subtitle: "A quiet, reflective presence that listens, remembers, and responds when you need to talk.",
     landing_button: "Begin Experience",
     landing_disclaimer: "AI companion, not a real person. For adults 18+.",
+    landing_closing_title: "Ready when you are.",
     card1_title: "Voice & Vibe",
-    card1_desc: "Tune pitch, speed, and conversational warmth to match your comfort.",
+    card1_desc: "Curated voice presets and natural conversational warmth tailored for gentle, comforting connection.",
     card2_title: "3D Companion Stage",
-    card2_desc: "Interactive visual presence with real-time expressions and custom wardrobe.",
+    card2_desc: "A living 3D space where she breathes, gestures, walks, turns, dances, and shares your physical presence.",
     card3_title: "Reflective Memory",
-    card3_desc: "Learns your nuances over time to form a deeper, persistent rapport.",
+    card3_desc: "Listens and remembers your nuances over time to form a meaningful, private dialogue.",
     landing_verify: "Verify your age",
     landing_verify_desc: "Lyra is an AI experience restricted to adults 18 and older. Please confirm your date of birth to continue.",
     landing_dob: "Date of Birth",
