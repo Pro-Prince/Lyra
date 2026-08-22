@@ -44,6 +44,7 @@ export function preloadAllOutfits(): Promise<Record<string, CachedOutfitEntry>> 
     // this is what actually prevents the Casual-shows-Default bug
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
       try {
+        console.log('loading', id, url);
         console.log('generating thumbnail for', url);
         const vrm = await loadVRM(url);
         applyRestPose(vrm);
@@ -85,6 +86,7 @@ export function preloadAllOutfits(): Promise<Record<string, CachedOutfitEntry>> 
     }
 
     cache = Object.fromEntries(entries);
+    console.log('[outfitCache] Cache resolved keys:', Object.keys(cache));
     return cache;
   })();
 

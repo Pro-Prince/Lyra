@@ -20,12 +20,24 @@ export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
 }
 
 export function applyRestPose(vrm: VRM) {
+  console.log('applying rest pose to', vrm);
   const h = vrm.humanoid;
-  if (!h) return;
+  if (!h) {
+    console.warn('[applyRestPose] No humanoid found on VRM');
+    return;
+  }
   const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
   const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
   const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
   const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
+
+  console.log('[applyRestPose] normalized leftUpperArm node:', leftUpperArm ? leftUpperArm.name : 'null');
+  console.log('[applyRestPose] arm rotation BEFORE:', {
+    leftUpperArmZ: leftUpperArm?.rotation.z,
+    rightUpperArmZ: rightUpperArm?.rotation.z,
+    leftLowerArmY: leftLowerArm?.rotation.y,
+    rightLowerArmY: rightLowerArm?.rotation.y,
+  });
 
   if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
   if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
@@ -36,6 +48,13 @@ export function applyRestPose(vrm: VRM) {
   applyRelaxedHandPose(vrm, 'right');
 
   h.update();
+
+  console.log('[applyRestPose] arm rotation AFTER:', {
+    leftUpperArmZ: leftUpperArm?.rotation.z,
+    rightUpperArmZ: rightUpperArm?.rotation.z,
+    leftLowerArmY: leftLowerArm?.rotation.y,
+    rightLowerArmY: rightLowerArm?.rotation.y,
+  });
 }
 
 export function frameFullBody(
