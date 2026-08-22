@@ -5,7 +5,10 @@ import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../hooks/useToast';
+import { loadMixamoAnimation } from '../lib/retargetMixamo';
 import { fetchAndCacheVRMModel, clearCachedModelBuffer } from '../lib/vrmCache';
+import { useCompanionMovement } from '../hooks/useCompanionMovement';
+import { RoomEnvironment } from './RoomEnvironment';
 
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
@@ -76,10 +79,13 @@ function applyRestPose(vrm: VRM) {
 }
 
 const idleVariations = [
-  { name: 'breatheOnly', weight: 55, duration: 4 },
-  { name: 'weightShift', weight: 18, duration: 3 },
-  { name: 'lookAround', weight: 17, duration: 2.5 },
+  { name: 'breatheOnly', weight: 45, duration: 4 },
+  { name: 'weightShift', weight: 15, duration: 3 },
+  { name: 'lookAround', weight: 15, duration: 2.5 },
   { name: 'fidget', weight: 10, duration: 2 },
+  { name: 'subtleHandGesture', weight: 10, duration: 3 },
+  { name: 'deepBreath', weight: 10, duration: 4 },
+  { name: 'roam', weight: 5, duration: 3 }
 ];
 
 function pickNextIdle() {
@@ -93,14 +99,14 @@ function pickNextIdle() {
 }
 
 interface CameraRigProps {
-  mode: 'centered' | 'panned-left';
+  mode: 'centered' | 'panned-left' | 'room-wide';
   vrmScene?: THREE.Group | null;
 }
 
 function CameraRig({ mode, vrmScene }: CameraRigProps) {
   const { camera, gl } = useThree();
-  const target = useRef(new THREE.Vector3());
   const targetPos = useRef(new THREE.Vector3());
+  const lookTarget = useRef(new THREE.Vector3());
 
   useEffect(() => {
     const canvasContainer = gl.domElement.parentElement;
@@ -114,16 +120,6 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
         perspCam.aspect = width / height;
         perspCam.updateProjectionMatrix();
         gl.setSize(width, height, false);
-
-        if (mode === 'panned-left') {
-          targetPos.current.set(-0.9, 1.3, 2.4);
-          target.current.set(-0.4, 1.3, 0);
-        } else if (vrmScene) {
-          frameFullBody(vrmScene, perspCam, height, 120, 70);
-        } else {
-          targetPos.current.set(0, 1.3, 2.0);
-          target.current.set(0, 1.3, 0);
-        }
       }
     };
 
@@ -134,192 +130,27 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     updateCamera();
 
     return () => ro.disconnect();
-  }, [camera, gl, mode, vrmScene]);
+  }, [camera, gl]);
 
-  useFrame((_, delta) => {
-    const safeDelta = Math.min(delta, 0.05);
-    camera.position.lerp(targetPos.current, safeDelta * 6);
-    camera.lookAt(target.current);
+  useFrame(() => {
+    const companionPosition = vrmScene ? vrmScene.position : new THREE.Vector3();
+    if (mode === 'room-wide') {
+      targetPos.current.set(companionPosition.x, 1.6, companionPosition.z + 3.2);
+      lookTarget.current.set(companionPosition.x, 1.2, companionPosition.z);
+    } else if (mode === 'panned-left') {
+      targetPos.current.set(-0.9, 1.3, 2.4);
+      lookTarget.current.set(-0.4, 1.3, 0);
+    } else {
+      targetPos.current.set(0, 1.3, 2.0);
+      lookTarget.current.set(0, 1.3, 0);
+    }
+    camera.position.lerp(targetPos.current, 0.05);
+    camera.lookAt(lookTarget.current);
   });
   return null;
 }
 
-const StandingSurface = memo(({ accentColor }: { accentColor: string }) => {
-  const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
-  const ringRef = useRef<THREE.Mesh>(null);
-  const ringInnerRef = useRef<THREE.Mesh>(null);
-
-  const floorTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d')!;
-
-    const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 0.50)');
-    grad.addColorStop(0.2, 'rgba(255, 143, 192, 0.32)');
-    grad.addColorStop(0.5, 'rgba(255, 143, 192, 0.12)');
-    grad.addColorStop(0.8, 'rgba(255, 143, 192, 0.03)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 512, 512);
-
-    ctx.beginPath();
-    ctx.arc(256, 256, 175, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.40)';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-
-  const shadowTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d')!;
-
-    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-    grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
-    grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.30)');
-    grad.addColorStop(0.7, 'rgba(0, 0, 0, 0.08)');
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 256, 256);
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-
-  useFrame((state, delta) => {
-    const time = state.clock.getElapsedTime();
-    if (ringRef.current) {
-      ringRef.current.rotation.z += Math.min(delta, 0.05) * 0.12;
-    }
-    if (ringInnerRef.current) {
-      ringInnerRef.current.rotation.z -= Math.min(delta, 0.05) * 0.08;
-      const scalePulse = 1 + Math.sin(time * 1.5) * 0.03;
-      ringInnerRef.current.scale.set(scalePulse, scalePulse, 1);
-    }
-  });
-
-  return (
-    <group position={[0, -0.005, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
-        <planeGeometry args={[1.5, 1.5]} />
-        <meshBasicMaterial map={shadowTexture} transparent opacity={0.75} depthWrite={false} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[4.2, 4.2]} />
-        <meshBasicMaterial map={floorTexture} transparent opacity={0.85} depthWrite={false} />
-      </mesh>
-      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
-        <ringGeometry args={[1.2, 1.23, 64]} />
-        <meshBasicMaterial color={safeAccent} transparent opacity={0.35} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-      <mesh ref={ringInnerRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0015, 0]}>
-        <ringGeometry args={[0.7, 0.72, 48]} />
-        <meshBasicMaterial color="#FFFFFF" transparent opacity={0.25} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-    </group>
-  );
-});
-
-function Starfield() {
-  const pointsRef = useRef<THREE.Points>(null);
-  const [geometry] = useState(() => {
-    const geo = new THREE.BufferGeometry();
-    const count = 250;
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 10;
-      positions[i * 3 + 1] = Math.random() * 5 + 0.5;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 10 - 2;
-    }
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geo;
-  });
-
-  useFrame((_, delta) => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += Math.min(delta, 0.05) * 0.02;
-    }
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry attach="geometry" {...geometry} />
-      <pointsMaterial size={0.025} color="#ffffff" transparent opacity={0.55} sizeAttenuation />
-    </points>
-  );
-}
-
-function AnimatedLighting({ scenery, accentColor }: { scenery: string; accentColor: string }) {
-  const ambientRef = useRef<THREE.AmbientLight>(null);
-  const keyRef = useRef<THREE.DirectionalLight>(null);
-  const fillRef = useRef<THREE.DirectionalLight>(null);
-  const safeAccent = resolveHexColor(accentColor, "#FF8FC0");
-
-  useFrame((_, delta) => {
-    const safeDelta = Math.min(delta, 0.05);
-    const lerpSpeed = safeDelta * 4;
-
-    SCRATCH_COLOR_A.set("#FFEBF4");
-    let targetAmbientIntensity = 0.7;
-    
-    SCRATCH_COLOR_B.set("#FFF5F8");
-    let targetKeyIntensity = 1.05;
-    
-    SCRATCH_COLOR_C.set(safeAccent || "#FF8FC0");
-    let targetFillIntensity = 0.6;
-    const targetFillPos = new THREE.Vector3(-2, 1, 3);
-
-    if (scenery === 'cozy') {
-      SCRATCH_COLOR_A.set("#FFF0E6");
-      targetAmbientIntensity = 0.65;
-      targetKeyIntensity = 0.95;
-      targetFillIntensity = 0.5;
-    } else if (scenery === 'dusk') {
-      SCRATCH_COLOR_A.set("#F4E8FF");
-      targetAmbientIntensity = 0.55;
-      targetKeyIntensity = 0.85;
-      targetFillIntensity = 0.55;
-      targetFillPos.set(-2, 1.2, 2);
-    } else if (scenery === 'night') {
-      SCRATCH_COLOR_A.set("#EBDDFF");
-      targetAmbientIntensity = 0.45;
-      targetKeyIntensity = 0.75;
-      targetFillIntensity = 0.45;
-    }
-    
-    if (ambientRef.current) {
-      ambientRef.current.color.lerp(SCRATCH_COLOR_A, lerpSpeed);
-      ambientRef.current.intensity = THREE.MathUtils.lerp(ambientRef.current.intensity, targetAmbientIntensity, lerpSpeed);
-    }
-    if (keyRef.current) {
-      keyRef.current.color.lerp(SCRATCH_COLOR_B, lerpSpeed);
-      keyRef.current.intensity = THREE.MathUtils.lerp(keyRef.current.intensity, targetKeyIntensity, lerpSpeed);
-    }
-    if (fillRef.current) {
-      fillRef.current.color.lerp(SCRATCH_COLOR_C, lerpSpeed);
-      fillRef.current.intensity = THREE.MathUtils.lerp(fillRef.current.intensity, targetFillIntensity, lerpSpeed);
-      fillRef.current.position.lerp(targetFillPos, lerpSpeed);
-    }
-  });
-
-  return (
-    <>
-      <ambientLight ref={ambientRef} intensity={0.7} color="#FFEBF4" />
-      <directionalLight ref={keyRef} position={[2, 3, 2]} intensity={1.05} color="#FFF5F8" />
-      <directionalLight ref={fillRef} position={[-2, 1, 3]} intensity={0.6} color={safeAccent} />
-    </>
-  );
-}
+// removed StandingSurface, Starfield, AnimatedLighting
 
 interface VRMModelProps {
   url: string;
@@ -369,7 +200,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
         loader.parse(
           arrayBuffer,
           resourcePath,
-          (gltf) => {
+          async (gltf) => {
             if (isCancelled) return;
             const vrmInstance = gltf.userData.vrm as VRM;
             if (!vrmInstance) {
@@ -451,14 +282,85 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
                 if (e.action === action) {
                   action.fadeOut(0.3);
                   mixer.current?.removeEventListener('finished', onFinished);
-                  if (currentAction.current === action) currentAction.current = null;
+                  // We could return to idle here if we want
+                  if (currentAction.current === action) {
+                     if (clips.current['idle']) {
+                       crossfadeToAction('idle', 0.5, true);
+                     } else {
+                       currentAction.current = null;
+                     }
+                  }
                 }
               };
               mixer.current.addEventListener('finished', onFinished);
             };
 
+            const playAction = (name: string, loop = true) => {
+              if (!mixer.current || !clips.current[name]) return;
+              const clip = clips.current[name];
+              const action = mixer.current.clipAction(clip);
+              action.reset();
+              action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+              action.clampWhenFinished = !loop;
+              action.play();
+              currentAction.current = action;
+            };
+
+            const crossfadeToAction = (name: string, duration = 0.5, loop = true) => {
+              if (!mixer.current || !clips.current[name]) return;
+              const clip = clips.current[name];
+              const nextAction = mixer.current.clipAction(clip);
+              nextAction.reset();
+              nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+              nextAction.clampWhenFinished = !loop;
+              nextAction.play();
+              
+              if (currentAction.current && currentAction.current !== nextAction) {
+                currentAction.current.crossFadeTo(nextAction, duration, false);
+              }
+              
+              currentAction.current = nextAction;
+
+              if (!loop) {
+                const onFinished = (e: any) => {
+                  if (e.action === nextAction) {
+                    nextAction.fadeOut(0.3);
+                    mixer.current?.removeEventListener('finished', onFinished);
+                    if (currentAction.current === nextAction) {
+                       crossfadeToAction('idle', 0.5, true);
+                       window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
+                    }
+                  }
+                };
+                mixer.current.addEventListener('finished', onFinished);
+              }
+            };
+
             // @ts-ignore
             window.playGesture = playGesture;
+            // @ts-ignore
+            window.playAction = playAction;
+            // @ts-ignore
+            window.crossfadeToAction = crossfadeToAction;
+
+            // Load Mixamo Animations
+            if (onProgress) onProgress(98);
+            const mixamoFiles = ['idle', 'walk_forward', 'walk_backward', 'turn_left', 'turn_right', 'dance', 'strafe_left', 'strafe_right', 'turn_around'];
+            for (const file of mixamoFiles) {
+              try {
+                const url = new URL(`../assets/animations/mixamo/${file}.fbx`, import.meta.url).href;
+                const clip = await loadMixamoAnimation(url, vrmInstance);
+                if (clip) {
+                  clips.current[file] = clip;
+                }
+              } catch (err) {
+                console.warn(`Failed to load Mixamo animation ${file}`, err);
+              }
+            }
+
+            if (clips.current['idle']) {
+               playAction('idle', true);
+            }
 
             if (onProgress) onProgress(100);
             if (onLoaded) onLoaded(vrmInstance.scene);
@@ -541,6 +443,7 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
     };
   }, []);
 
+  const movement = useCompanionMovement(vrm?.scene || null);
   const elapsedTimeRef = useRef(0);
 
   useFrame((_, delta) => {
@@ -549,38 +452,24 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
       elapsedTimeRef.current += safeDelta;
       const time = elapsedTimeRef.current;
 
+      movement.update(safeDelta);
+
       // Weighted Idle System progression
       idleTimer.current += safeDelta;
       if (idleTimer.current >= currentIdle.current.duration) {
         idleTimer.current = 0;
         currentIdle.current = pickNextIdle();
         idleBlend.current = 0; // trigger cross-fade
+        
+        if (currentIdle.current.name === 'roam') {
+          window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'walk_forward' }));
+        }
       }
       idleBlend.current = Math.min(1, idleBlend.current + safeDelta / 0.4); // 400ms crossfade
 
       // 1. Baseline Breathing
       const breathScale = 1 + Math.sin(time * (2 * Math.PI / 4)) * 0.006;
       vrm.scene.scale.set(breathScale, breathScale, breathScale);
-
-      // 2. Weighted Idle Variations Layering
-      const spine = vrm.humanoid.getNormalizedBoneNode('spine');
-      const head = vrm.humanoid.getNormalizedBoneNode('head');
-
-      if (spine && head) {
-        if (currentIdle.current.name === 'breatheOnly') {
-          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, Math.sin(time * 1.5) * 0.015, 0.1);
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0, 0.1);
-        } else if (currentIdle.current.name === 'weightShift') {
-          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, 0.03, 0.08);
-          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, -0.05, 0.08);
-        } else if (currentIdle.current.name === 'lookAround') {
-          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(time * 2) * 0.12, 0.1);
-          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.05, 0.1);
-        } else if (currentIdle.current.name === 'fidget') {
-          spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, Math.cos(time * 3) * 0.02, 0.1);
-          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0.04, 0.1);
-        }
-      }
 
       // 3. Gaze tracking damping
       lookTarget.current.position.lerp(targetLookAt.current, 0.08);
@@ -628,6 +517,41 @@ function VRMModel({ url, emotion = 'warm', onProgress, onLoaded, onError, retryK
       }
 
       if (mixer.current) mixer.current.update(safeDelta);
+
+      // 2. Weighted Idle Variations Layering (After mixer update to layer additively)
+      const spine = vrm.humanoid.getNormalizedBoneNode('spine');
+      const head = vrm.humanoid.getNormalizedBoneNode('head');
+      const chest = vrm.humanoid.getNormalizedBoneNode('chest');
+      const leftHand = vrm.humanoid.getNormalizedBoneNode('leftHand');
+      const rightHand = vrm.humanoid.getNormalizedBoneNode('rightHand');
+
+      if (spine && head) {
+        if (currentIdle.current.name === 'breatheOnly') {
+          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, Math.sin(time * 1.5) * 0.015, 0.1);
+          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0, 0.1);
+        } else if (currentIdle.current.name === 'weightShift') {
+          spine.rotation.z = THREE.MathUtils.lerp(spine.rotation.z, 0.03, 0.08);
+          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, -0.05, 0.08);
+        } else if (currentIdle.current.name === 'lookAround') {
+          head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(time * 2) * 0.12, 0.1);
+          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.05, 0.1);
+        } else if (currentIdle.current.name === 'fidget') {
+          spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, Math.cos(time * 3) * 0.02, 0.1);
+          head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0.04, 0.1);
+        } else if (currentIdle.current.name === 'subtleHandGesture') {
+          if (leftHand && rightHand) {
+            leftHand.rotation.z = THREE.MathUtils.lerp(leftHand.rotation.z, Math.sin(time * 2.5) * 0.08, 0.1);
+            rightHand.rotation.z = THREE.MathUtils.lerp(rightHand.rotation.z, Math.cos(time * 2) * 0.08, 0.1);
+          }
+        } else if (currentIdle.current.name === 'deepBreath') {
+          if (chest) {
+            chest.rotation.x = THREE.MathUtils.lerp(chest.rotation.x, Math.sin(time * 1.2) * 0.05, 0.1);
+          }
+          spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, Math.sin(time * 1.2) * 0.03, 0.1);
+          head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, Math.sin(time * 1.2) * -0.02, 0.1);
+        }
+      }
+
       vrm.update(safeDelta);
     }
   });
@@ -714,11 +638,9 @@ export default function CompanionStage({
             [1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]
           }
         >
-          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'centered'} vrmScene={vrmSceneRef} />
-          <AnimatedLighting scenery={scenery} accentColor={accentColor} />
+          <CameraRig mode={isWardrobeOpen ? 'panned-left' : 'room-wide'} vrmScene={vrmSceneRef} />
           
-          {scenery === 'night' && <Starfield />}
-          <StandingSurface accentColor={accentColor} />
+          <RoomEnvironment />
 
           <Suspense fallback={null}>
             <VRMModel 

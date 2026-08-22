@@ -6,6 +6,58 @@ import { GoogleGenAI } from "@google/genai";
 import "dotenv/config";
 
 let ai: GoogleGenAI | null = null;
+
+async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 6) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await aiClient.models.generateContent(params);
+    } catch (error: any) {
+      const errorString = (error?.message || error?.statusText || "").toString();
+      const is503 = error?.status === 503 || 
+                    error?.status === "UNAVAILABLE" || 
+                    errorString.includes("503") ||
+                    errorString.includes("high demand") ||
+                    errorString.includes("temporarily overloaded") ||
+                    errorString.includes("UNAVAILABLE");
+                    
+      const is429 = error?.status === 429 ||
+                    error?.status === "RESOURCE_EXHAUSTED" ||
+                    errorString.includes("429") ||
+                    errorString.includes("Quota exceeded");
+                    
+      if (is503 || is429) {
+        attempt++;
+        
+        let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        
+        if (is429) {
+          const match = errorString.match(/retry in (d+)/i);
+          if (match && match[1]) {
+            const seconds = parseInt(match[1], 10);
+            if (seconds > 10) {
+              // If the wait is too long, throw a graceful error immediately
+              throw new Error("I'm thinking a little too fast! Let's take a short break for about a minute. [thoughtful]");
+            }
+            delay = (seconds * 1000) + 1000;
+          } else {
+            delay = 3000 * attempt;
+          }
+        }
+
+        if (attempt >= maxRetries) {
+          throw new Error("I'm sorry, I'm getting a little overwhelmed right now. Give me just a second to catch my breath! [thoughtful]");
+        }
+        
+        console.warn(`[Gemini API] ${is429 ? '429 Rate Limit' : '503 Unavailable'}. Retrying attempt ${attempt}/${maxRetries} in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 function getAI() {
   if (!ai) {
     const key = process.env.GEMINI_API_KEY;
@@ -65,7 +117,7 @@ async function startServer() {
         ? validHistory.pop() 
         : { role: 'user', parts: [{ text: 'Hello' }] };
 
-      const response = await aiClient.models.generateContent({
+      const response = await generateContentWithRetry(aiClient, {
         model: "gemini-3.7-flash",
         contents: [...validHistory, currentMessage],
         config: {
@@ -75,14 +127,21 @@ async function startServer() {
 
       const rawText = response.text || "";
       let emotionTag = "warm";
+      let actionTag = undefined;
+
       const match = rawText.match(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft)\]/i);
       if (match) {
         emotionTag = match[1].toLowerCase();
       }
+      
+      const actionMatch = rawText.match(/\[(walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/i);
+      if (actionMatch) {
+        actionTag = actionMatch[1].toLowerCase();
+      }
 
-      res.json({ text: rawText, emotionTag });
+      res.json({ text: rawText, emotionTag, actionTag });
     } catch (err: any) {
-      console.error("Error in /api/gemini:", err);
+      console.warn("Warning in /api/gemini:", err.message || err);
       res.status(500).json({ error: err.message || "Internal server error" });
     }
   });
@@ -124,6 +183,7 @@ Guidelines:
 ${lengthGuideline}
 - Append a single structured emotion tag at the very end of your response, parsed separately from the visible text. 
 - You MUST choose exactly ONE of these tags: [warm], [playful], [thoughtful], [excited], [calm]. Example: "That sounds like a wonderful idea! [warm]"
+- Optionally, if the user explicitly asks for a physical action (e.g. "dance for me", "turn around", "come closer", "spin around"), include a single action tag from exactly this vocabulary: [walk_forward], [walk_backward], [strafe_left], [strafe_right], [turn_left], [turn_right], [turn_around], [dance]. Put this right after the emotion tag. Example: "Sure! [playful] [dance]"
 
 Hard constraints:
 - NEVER claim to be human if asked directly.
@@ -141,7 +201,7 @@ Hard constraints:
         ? formattedHistory.pop() 
         : { role: 'user', parts: [{ text: userText || 'Hello' }] };
 
-      const response = await aiClient.models.generateContent({
+      const response = await generateContentWithRetry(aiClient, {
         model: "gemini-3.7-flash",
         contents: [...formattedHistory, currentMessage],
         config: {
@@ -152,8 +212,12 @@ Hard constraints:
       const finalResponseText = response.text || "I'm here with you. [warm]";
       res.json({ content: finalResponseText });
     } catch (error: any) {
-      console.error("Gemini API Error:", error);
-      res.status(500).json({ error: error.message || "Sorry, I'm having a little trouble thinking right now. [thoughtful]" });
+      console.warn("Gemini API Warning:", error.message || error);
+      const isFriendly = error.message && error.message.includes('[');
+      if (isFriendly) {
+        return res.json({ content: error.message });
+      }
+      res.status(500).json({ error: "Sorry, I'm having a little trouble thinking right now. [thoughtful]" });
     }
   });
 
@@ -172,7 +236,7 @@ Return ONLY a valid JSON array of strings, where each string is a clear, concise
 Conversation:
 ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
 
-      const response = await aiClient.models.generateContent({
+      const response = await generateContentWithRetry(aiClient, {
         model: "gemini-3.7-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
@@ -183,7 +247,7 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
       const facts = JSON.parse(response.text || "[]");
       res.json({ facts });
     } catch (error) {
-      console.error("Memory Extraction Error:", error);
+      console.warn("Memory Extraction Warning:", error.message || error);
       res.status(500).json({ error: "Extraction failed" });
     }
   });

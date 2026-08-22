@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, Settings, Mic, MicOff, Send, Heart, MessageSquare, Loader2, Volume2, VolumeX, Phone, Smile, Sparkles, Shirt } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
@@ -12,6 +12,134 @@ import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { fetchAndCacheVRMModel } from '../lib/vrmCache';
+
+function createThumbnailRenderer() {
+  const renderer = new THREE.WebGLRenderer({
+    alpha: true,
+    preserveDrawingBuffer: true,
+    antialias: true,
+  });
+  renderer.setSize(256, 256);
+  renderer.setClearColor(0x000000, 0);
+  return renderer;
+}
+
+async function loadVRMModel(url: string): Promise<VRM> {
+  const arrayBuffer = await fetchAndCacheVRMModel(url);
+  const loader = new GLTFLoader();
+  loader.register((parser) => new VRMLoaderPlugin(parser));
+  const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
+
+  return new Promise((resolve, reject) => {
+    loader.parse(
+      arrayBuffer,
+      resourcePath,
+      (gltf) => {
+        const vrm = gltf.userData.vrm as VRM;
+        if (!vrm) {
+          reject(new Error("No VRM found"));
+          return;
+        }
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
+        VRMUtils.combineSkeletons(gltf.scene);
+        resolve(vrm);
+      },
+      (err) => reject(err)
+    );
+  });
+}
+
+function applyRestPose(vrm: VRM) {
+  const h = vrm.humanoid;
+  const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
+  const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
+  const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
+  const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
+
+  if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
+  if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
+  if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
+  if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
+
+  h.update();
+}
+
+function frameFullBody(vrmScene: THREE.Group, camera: THREE.PerspectiveCamera, canvasHeightPx: number, reservedBottomPx: number, reservedTopPx: number) {
+  const box = new THREE.Box3().setFromObject(vrmScene);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const fov = camera.fov * (Math.PI / 180);
+  const paddingFactor = 1.15;
+  const visibleFraction = Math.max(0.1, (canvasHeightPx - reservedBottomPx - reservedTopPx) / canvasHeightPx);
+  const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
+
+  const targetDist = Math.max(1.5, Math.min(4.0, distance));
+  const posY = size.y * 0.5;
+  camera.position.set(0, posY, targetDist);
+  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
+  camera.lookAt(0, posY - verticalShift, 0);
+}
+
+async function generateOutfitThumbnail(vrmUrl: string, renderer: THREE.WebGLRenderer) {
+  const vrm = await loadVRMModel(vrmUrl);
+  applyRestPose(vrm);
+
+  // We must render this exactly once to the passed-in renderer.
+  // Do not add the renderer's DOM element to the document.
+  
+  const scene = new THREE.Scene();
+  // Neutral lighting for the thumbnail
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  const key = new THREE.DirectionalLight(0xffffff, 1.2);
+  key.position.set(1, 2, 2);
+  scene.add(ambient, key, vrm.scene);
+
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 10);
+  camera.aspect = 1;
+  camera.updateProjectionMatrix();
+
+  // Frame the model using our utility
+  frameFullBody(vrm.scene, camera, 256, 0, 0);
+
+  // CRITICAL: Manually trigger a matrix update before rendering
+  vrm.scene.updateMatrixWorld(true);
+
+  // Render to the buffer
+  renderer.render(scene, camera);
+
+  // Extract the dataUrl immediately while preserveDrawingBuffer is still valid
+  const dataUrl = renderer.domElement.toDataURL('image/png');
+
+  // Cleanup
+  scene.remove(vrm.scene);
+  vrm.scene.traverse((obj: any) => {
+    if (obj.geometry) obj.geometry.dispose();
+  });
+
+  return dataUrl;
+}
+
+const thumbnailCache: Record<string, string> = {};
+
+async function getOutfitThumbnailDataUrl(vrmUrl: string, label: string): Promise<string> {
+  if (thumbnailCache[vrmUrl]) return thumbnailCache[vrmUrl];
+  try {
+    const renderer = createThumbnailRenderer();
+    const dataUrl = await generateOutfitThumbnail(vrmUrl, renderer);
+    renderer.dispose();
+    console.log(label, dataUrl.length);
+    thumbnailCache[vrmUrl] = dataUrl;
+    return dataUrl;
+  } catch (e) {
+    console.error("Failed to generate thumbnail for", label, e);
+    return "";
+  }
+}
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -33,12 +161,32 @@ const emotionColors: Record<Emotion, string> = {
 };
 
 export default function Chat() {
+  const navigate = useNavigate();
   const { showError, showInfo } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRapportOpen, setIsRapportOpen] = useState(false);
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
   const [micMode, setMicMode] = useState<'ptt' | 'hands-free'>('hands-free');
   const [graphicsTier, setGraphicsTier] = useState<'low' | 'medium' | 'high'>('high');
+  const [outfitThumbnails, setOutfitThumbnails] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (isWardrobeOpen) {
+      const outfits = [
+        { id: '/models/lyra.vrm', label: 'Default' },
+        { id: '/models/lyra_casual.vrm', label: 'Casual' },
+        { id: '/models/lyra_dress.vrm', label: 'Dress' }
+      ];
+      outfits.forEach(async (item) => {
+        if (!outfitThumbnails[item.id]) {
+          const url = await getOutfitThumbnailDataUrl(item.id, item.label);
+          if (url) {
+            setOutfitThumbnails(prev => ({ ...prev, [item.id]: url }));
+          }
+        }
+      });
+    }
+  }, [isWardrobeOpen]);
   
   const [messages, setMessages] = useState<{id: string, role: string, content: string, timestamp: number}[]>([]);
   const [subtitles, setSubtitles] = useState<LiveSubtitle[]>([]);
@@ -430,8 +578,9 @@ export default function Chat() {
       const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
 
       if (!response.ok || data.error) {
-        console.error('[ChatAPI] Backend response error:', data?.error || `HTTP ${response.status}`);
-        showError("Lost the connection for a second, try sending that again", {
+        console.warn('[ChatAPI] Backend response issue:', data?.error || `HTTP ${response.status}`);
+        const isFriendlyError = typeof data?.error === 'string' && data.error.includes('[');
+        showError(isFriendlyError ? data.error.replace(/\[.*?\]/g, '').trim() : "Lost the connection for a second, try sending that again", {
           label: "Retry",
           onClick: () => executeSend(textToSend)
         });
@@ -447,6 +596,13 @@ export default function Chat() {
         emotion = tagMatch[1].toLowerCase() as Emotion;
         setCurrentEmotion(emotion);
         replyText = replyText.replace(tagMatch[0], '').trim();
+      }
+
+      const actionMatch = replyText.match(/\[(walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/i);
+      if (actionMatch) {
+        const actionTag = actionMatch[1].toLowerCase();
+        window.dispatchEvent(new CustomEvent('lyraAction', { detail: actionTag }));
+        replyText = replyText.replace(actionMatch[0], '').trim();
       }
 
       if (emotion === 'excited' && Math.random() > 0.5) {
@@ -470,7 +626,7 @@ export default function Chat() {
       speakText(replyText); // transitions to SPEAKING and then IDLE
 
     } catch (error) {
-      console.error('[ChatAPI] Failed to communicate with chat service:', error);
+      console.warn('[ChatAPI] Chat service communication warning:', error);
       showError("Lost the connection for a second, try sending that again", {
         label: "Retry",
         onClick: () => executeSend(textToSend)
@@ -549,7 +705,7 @@ export default function Chat() {
         {/* TOP HUD */}
         <motion.header 
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
-          className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-start pointer-events-none w-full max-w-5xl mx-auto"
+          className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-center pointer-events-none w-full max-w-5xl mx-auto"
         >
           {/* Left Block: Session/Status + Settings */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -565,6 +721,21 @@ export default function Chat() {
                <span className="text-xs font-semibold text-[var(--text-primary)] hidden sm:inline-block">Online</span>
             </div>
           </div>
+
+          {/* Center Block: Lyra Wordmark */}
+          <Link
+            to="/"
+            onClick={(e) => {
+              if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
+                e.preventDefault();
+                closeDrawers();
+                setTimeout(() => navigate('/'), 300);
+              }
+            }}
+            className="pointer-events-auto font-display font-bold text-lg sm:text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors px-4 py-2 rounded-2xl bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 shadow-lg"
+          >
+            Lyra
+          </Link>
 
           {/* Right Block: Wardrobe */}
           <div className="flex items-center gap-3">
@@ -901,7 +1072,11 @@ export default function Chat() {
                     }`}
                   >
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
-                      <OutfitThumbnail id={item.id} />
+                      {outfitThumbnails[item.id] ? (
+                        <img src={outfitThumbnails[item.id]} alt={item.label} className="w-full h-full object-cover" />
+                      ) : (
+                        <OutfitThumbnail id={item.id} />
+                      )}
                     </div>
                     <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
                       {item.label}

@@ -203,7 +203,13 @@ export default function Settings() {
           >
             <ArrowLeft className="w-4 h-4" /> Back to Chat
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)]">
+          <Link 
+            to="/" 
+            className="font-display font-bold text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors ml-2"
+          >
+            Lyra
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)] ml-2">
             {t('settings_title')}
           </h1>
         </div>
