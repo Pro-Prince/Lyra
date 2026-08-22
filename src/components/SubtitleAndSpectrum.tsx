@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles } from "lucide-react";
 import { AppState } from "../hooks/useAppState";
@@ -14,7 +15,7 @@ interface SubtitleAndSpectrumProps {
   speechPulse: number;
 }
 
-export default function SubtitleAndSpectrum({ subtitles, appState, speechPulse }: SubtitleAndSpectrumProps) {
+function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: SubtitleAndSpectrumProps) {
   const isProcessing = appState === AppState.PROCESSING;
   const isSpeaking = appState === AppState.SPEAKING;
   const isListening = appState === AppState.LISTENING;
@@ -125,3 +126,6 @@ export default function SubtitleAndSpectrum({ subtitles, appState, speechPulse }
     </div>
   );
 }
+
+const SubtitleAndSpectrum = memo(SubtitleAndSpectrumComponent);
+export default SubtitleAndSpectrum;

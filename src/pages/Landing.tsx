@@ -1,30 +1,47 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { getCompanion } from "../lib/storage";
+import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
-import { ArrowRight, Sparkles, UserCheck, Volume2, Heart } from "lucide-react";
+import { ArrowRight, Sparkles, UserCheck, Volume2, BookOpen } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
 import CompanionStage from "../components/CompanionStage";
 import { isPreloadComplete, preloadAllOutfits, getStoredHeroPortrait, getCachedOutfit } from "../lib/outfitCache";
+import { DEFAULT_HERO_PORTRAIT } from "../lib/heroAssets";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
+  const [canGoToChat, setCanGoToChat] = useState(false);
   const [isLiveReady, setIsLiveReady] = useState(() => isPreloadComplete());
-  const [portraitUrl, setPortraitUrl] = useState<string | null>(() => {
-    return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || getCachedOutfit('lyra')?.thumbnail || null;
+  const [portraitUrl, setPortraitUrl] = useState<string>(() => {
+    return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || DEFAULT_HERO_PORTRAIT;
   });
 
   useEffect(() => {
     let isCancelled = false;
 
+    // Check if user is a verified returning user with existing companion
+    async function verifyReturningStatus() {
+      try {
+        const profile = await getLocalProfile();
+        const companion = await getCompanion();
+        if (!isCancelled && profile?.adultConfirmed && companion?.initialized && companion?.name) {
+          setCanGoToChat(true);
+        }
+      } catch (err) {
+        if (!isCancelled) setCanGoToChat(false);
+      }
+    }
+    verifyReturningStatus();
+
+    // Preload outfits and hero portrait in background
     if (isPreloadComplete()) {
       setIsLiveReady(true);
       const cached = getCachedOutfit('lyra');
-      if (cached?.heroPortrait && !portraitUrl) {
+      if (cached?.heroPortrait) {
         setPortraitUrl(cached.heroPortrait);
       }
     }
@@ -39,7 +56,8 @@ export default function Landing() {
         setIsLiveReady(true);
       })
       .catch((err) => {
-        console.warn("[Landing] Outfit preload notice:", err);
+        console.warn("[Landing] Background 3D hydration notice:", err);
+        // Silently continue displaying static baseline portrait
       });
 
     return () => {
@@ -52,12 +70,21 @@ export default function Landing() {
     if (!isAuthenticated) {
       await continueAsGuest();
     }
+    const profile = await getLocalProfile();
     const companion = await getCompanion();
-    navigate(companion && companion.initialized ? "/chat" : "/onboarding");
+    
+    if (profile?.adultConfirmed && companion?.initialized) {
+      navigate("/chat");
+    } else {
+      navigate("/onboarding");
+    }
   };
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-hidden flex flex-col justify-between">
+      {/* Subtle Grain Texture Overlay for Depth */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
+
       {/* Top Header */}
       <header className="relative z-20 w-full max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -67,11 +94,12 @@ export default function Landing() {
           <span className="font-display text-xl font-bold tracking-tight text-[var(--text-primary)]">Lyra</span>
         </div>
 
+        {/* Go to Chat only renders for returning users who have completed onboarding */}
         <div className="flex items-center gap-3">
-          {(user || isGuestMode) && (
+          {canGoToChat && (
             <Link
               to="/chat"
-              className="flex items-center gap-2 bg-[var(--bg-surface)]/80 hover:bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)]"
+              className="flex items-center gap-2 bg-[var(--bg-surface)]/90 hover:bg-[var(--bg-surface)] border border-[var(--accent-primary)]/24 text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] shadow-sm"
             >
               <UserCheck className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>Go to Chat</span>
@@ -97,25 +125,23 @@ export default function Landing() {
               <div 
                 className="w-[120%] h-[120%] max-w-[500px] max-h-[500px] rounded-full blur-3xl opacity-75 animate-pulse" 
                 style={{ 
-                  background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.26) 0%, rgba(201,166,255,0.14) 45%, transparent 70%)',
+                  background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.28) 0%, rgba(201,166,255,0.16) 45%, transparent 70%)',
                   animationDuration: '6s'
                 }} 
               />
             </div>
 
             {/* Presence Container */}
-            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[380px] sm:h-[460px] lg:h-[540px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/30 backdrop-blur-[12px] border border-[var(--accent-primary)]/15 shadow-2xl flex items-center justify-center">
+            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[380px] sm:h-[460px] lg:h-[540px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
               
-              {/* Immediate Stage: High-Resolution Static Portrait */}
-              {portraitUrl && (
-                <motion.img
-                  src={portraitUrl}
-                  alt="Lyra portrait"
-                  className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
-                  animate={{ opacity: isLiveReady ? 0 : 1 }}
-                  transition={{ duration: 0.4, ease: "easeInOut" }}
-                />
-              )}
+              {/* Reliable Static Baseline Portrait: Always rendered immediately at 0ms */}
+              <motion.img
+                src={portraitUrl}
+                alt="Lyra portrait"
+                className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
+                animate={{ opacity: isLiveReady ? 0 : 1 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+              />
 
               {/* Live Stage: Hydrated 3D CompanionStage (crossfades in once ready) */}
               <AnimatePresence>
@@ -130,17 +156,12 @@ export default function Landing() {
                     <CompanionStage 
                       isPortraitMode={true}
                       emotion="warm"
+                      silentError={true}
+                      onError={() => setIsLiveReady(false)}
                     />
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Graceful ambient silhouette placeholder if neither static nor live loaded yet */}
-              {!portraitUrl && !isLiveReady && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-[var(--accent-primary)]/40 p-6">
-                  <Sparkles className="w-10 h-10 animate-pulse" />
-                </div>
-              )}
             </div>
           </motion.div>
 
@@ -169,7 +190,7 @@ export default function Landing() {
               {t("landing_subtitle")}
             </p>
 
-            {/* CTA Button: Depth on interaction */}
+            {/* Primary Call to Action Button */}
             <button
               onClick={handleCTAClick}
               className="inline-flex items-center justify-center gap-3 bg-[var(--accent-primary)] text-[#2D0A1E] px-8 py-4 rounded-[12px] font-body font-semibold text-base md:text-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,143,192,0.35)] active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] w-full sm:w-auto"
@@ -188,7 +209,7 @@ export default function Landing() {
 
         </div>
 
-        {/* Feature Cards Grid (Moment 2: Staggered entrance on scroll into view) */}
+        {/* Feature Cards Grid (Defined edges and subtle grain depth) */}
         <motion.div 
           initial="hidden"
           whileInView="visible"
@@ -204,13 +225,13 @@ export default function Landing() {
           }}
           className="w-full mt-24 sm:mt-28 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
         >
-          {/* Card 1 */}
+          {/* Card 1: Voice & Vibe */}
           <motion.div 
             variants={{
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/24 hover:shadow-xl"
+            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
               <div 
@@ -228,13 +249,13 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Card 2 */}
+          {/* Card 2: 3D Live Companion Stage */}
           <motion.div 
             variants={{
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/24 hover:shadow-xl"
+            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
               <div 
@@ -252,20 +273,20 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Card 3 */}
+          {/* Card 3: Reflective Memory (BookOpen icon) */}
           <motion.div 
             variants={{
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/24 hover:shadow-xl"
+            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
               <div 
                 className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--accent-primary)] mb-5 shadow-inner"
                 style={{ background: 'radial-gradient(circle, rgba(255,143,192,0.18), transparent 70%)' }}
               >
-                <Heart className="w-6 h-6" />
+                <BookOpen className="w-6 h-6" />
               </div>
               <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
                 {t("card3_title")}

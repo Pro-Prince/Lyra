@@ -241,6 +241,26 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
   const { camera, gl } = useThree();
   const targetPos = useRef(new THREE.Vector3());
   const lookTarget = useRef(new THREE.Vector3());
+  const portraitFraming = useRef({ midY: 1.35, distance: 1.2 });
+
+  // Compute portrait camera framing ONCE per VRM load and on resize - NEVER inside useFrame!
+  const updateFraming = () => {
+    if (!vrmScene) return;
+    const box = new THREE.Box3().setFromObject(vrmScene);
+    const headTop = box.max.y;
+    const shoulderY = headTop - (box.max.y - box.min.y) * 0.25;
+    const targetHeight = Math.max(0.2, headTop - shoulderY);
+    const paddingFactor = 1.4; // real headroom above her head so ears/head are never cropped
+    const perspCam = camera as THREE.PerspectiveCamera;
+    const fov = perspCam.fov * (Math.PI / 180);
+    const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
+    const midY = (headTop + shoulderY) / 2;
+    portraitFraming.current = { midY, distance };
+  };
+
+  useEffect(() => {
+    updateFraming();
+  }, [vrmScene, camera]);
 
   useEffect(() => {
     const canvasContainer = gl.domElement.parentElement;
@@ -254,6 +274,7 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
         perspCam.aspect = width / height;
         perspCam.updateProjectionMatrix();
         gl.setSize(width, height, false);
+        updateFraming();
       }
     };
 
@@ -264,22 +285,13 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     updateCamera();
 
     return () => ro.disconnect();
-  }, [camera, gl]);
+  }, [camera, gl, vrmScene]);
 
   useFrame(() => {
     const companionPosition = vrmScene ? vrmScene.position : new THREE.Vector3();
-    const perspCam = camera as THREE.PerspectiveCamera;
 
     if (vrmScene && mode === 'portrait') {
-      const box = new THREE.Box3().setFromObject(vrmScene);
-      const headTop = box.max.y;
-      const shoulderY = headTop - (box.max.y - box.min.y) * 0.25; // roughly shoulders to head top
-      const targetHeight = Math.max(0.2, headTop - shoulderY);
-      const paddingFactor = 1.4; // real headroom above her head so ears/head are never cropped
-      const fov = perspCam.fov * (Math.PI / 180);
-      const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
-      const midY = (headTop + shoulderY) / 2;
-
+      const { midY, distance } = portraitFraming.current;
       targetPos.current.set(companionPosition.x, Math.max(0.6, midY), companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, midY, companionPosition.z);
     } else if (mode === 'room-wide') {
@@ -591,7 +603,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   return <primitive object={vrm.scene} position={[0, 0, 0]} />;
 }
 
-export default function CompanionStage({
+function CompanionStageComponent({
   isWardrobeOpen = false,
   accentColor = "#FF8FC0",
   scenery = 'neutral',
@@ -600,7 +612,9 @@ export default function CompanionStage({
   graphicsTier = 'high',
   isPortraitMode = false,
   isProcessing = false,
-  onModelLoaded
+  silentError = false,
+  onModelLoaded,
+  onError
 }: {
   accentColor?: string;
   isCallMode?: boolean;
@@ -611,12 +625,25 @@ export default function CompanionStage({
   graphicsTier?: 'low' | 'medium' | 'high';
   isPortraitMode?: boolean;
   isProcessing?: boolean;
+  silentError?: boolean;
   onModelLoaded?: () => void;
+  onError?: (err?: string) => void;
 }) {
   const { showError } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
   const [vrmSceneRef, setVrmSceneRef] = useState<THREE.Group | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [isTabVisible, setIsTabVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(document.visibilityState !== 'hidden');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const handleRetry = () => {
     setIsLoaded(false);
@@ -624,12 +651,17 @@ export default function CompanionStage({
     setRetryKey(prev => prev + 1);
   };
 
-  const handleError = () => {
+  const handleError = (err?: string) => {
     setIsLoaded(false);
-    showError("Having trouble loading her right now, refreshing usually fixes it", {
-      label: "Retry",
-      onClick: () => handleRetry()
-    });
+    if (onError) {
+      onError(err);
+    }
+    if (!silentError) {
+      showError("Having trouble loading her right now, refreshing usually fixes it", {
+        label: "Retry",
+        onClick: () => handleRetry()
+      });
+    }
   };
 
   useEffect(() => {
@@ -680,6 +712,7 @@ export default function CompanionStage({
         className="relative z-10 w-full h-full"
       >
         <Canvas 
+          frameloop={isTabVisible ? "always" : "never"}
           camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
             alpha: true, 
@@ -717,3 +750,6 @@ export default function CompanionStage({
     </div>
   );
 }
+
+const CompanionStage = memo(CompanionStageComponent);
+export default CompanionStage;

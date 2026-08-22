@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
@@ -36,6 +36,30 @@ const emotionColors: Record<Emotion, string> = {
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo } = useToast();
+  const [isAdultVerified, setIsAdultVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function verifyAdultAccess() {
+      try {
+        const profile = await getLocalProfile();
+        if (!isMounted) return;
+        if (!profile || !profile.adultConfirmed) {
+          navigate("/onboarding", { replace: true });
+        } else {
+          setIsAdultVerified(true);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        navigate("/onboarding", { replace: true });
+      }
+    }
+    verifyAdultAccess();
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRapportOpen, setIsRapportOpen] = useState(false);
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
@@ -552,7 +576,8 @@ export default function Chat() {
                     if (window.playGesture) window.playGesture('nod');
                   }
                   
-                  setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, content: displayContent } : m));
+                  // Update ref immediately and display subtitle
+                  messagesRef.current = messagesRef.current.map(m => m.id === modelMsgId ? { ...m, content: displayContent } : m);
                   subtitleId = triggerSubtitle('model', displayContent, subtitleId);
                   
                   const matches = [...displayContent.matchAll(/[^.?!]+[.?!]+/g)];
@@ -576,6 +601,9 @@ export default function Chat() {
         setAppState(AppState.IDLE);
         return;
       }
+
+      // Sync final completed message to state once stream concludes
+      setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, content: finalDisplayContent } : m));
 
       const finalMatches = [...finalDisplayContent.matchAll(/[^.?!]+[.?!]+/g)];
       const lastIndex = finalMatches.length > 0 ? finalMatches[finalMatches.length-1].index! + finalMatches[finalMatches.length-1][0].length : 0;
@@ -670,6 +698,9 @@ export default function Chat() {
 
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
 
+  if (isAdultVerified !== true) {
+    return <div className="w-full h-screen bg-[var(--bg-base)]" />;
+  }
 
   return (
     <div className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" style={{ '--accent': activeAccent } as React.CSSProperties}>
