@@ -78,7 +78,7 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-display font-semibold tracking-wider uppercase text-[var(--text-primary)]">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-xs font-heading font-medium tracking-wider uppercase text-[var(--text-primary)]">
                     <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                     <span>Lyra</span>
                   </div>

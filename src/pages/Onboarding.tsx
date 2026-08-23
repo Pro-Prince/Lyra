@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, Sparkles, ArrowRight, ArrowLeft, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
+import { Volume2, Sparkles, ArrowRight, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
 import CompanionStage from "../components/CompanionStage";
+import { Heading2, BodyText } from "../components/Typography";
 import { getLocalProfile, saveLocalProfile, saveCompanion, saveMemory } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
@@ -223,43 +224,36 @@ export default function Onboarding() {
   const currentEmotion = step === 1 ? "warm" : step === 3 ? "playful" : "thoughtful";
 
   return (
-    <div className="relative w-full h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-hidden flex flex-col items-center justify-between select-none">
-      {/* Background 3D Companion Stage */}
-      <div className="absolute inset-0 w-full h-full z-0">
-        <CompanionStage
-          accentColor="#FF8FC0"
-          isCallMode={false}
-          scenery="neutral"
-          outfitUrl="/models/lyra.vrm"
-          emotion={currentEmotion}
-          onModelLoaded={handleModelLoaded}
+    <div className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none">
+      {/* Thin, full-width progress bar fixed at top */}
+      <div className="fixed top-0 left-0 right-0 z-50 onboarding-progress">
+        <div 
+          className="onboarding-progress-fill" 
+          style={{ width: `${(step / 4) * 100}%` }}
         />
       </div>
-
-      {/* Atmospheric Top Gradient Vignette */}
-      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg-base)]/90 via-[var(--bg-base)]/40 to-transparent pointer-events-none z-10" />
 
       {/* Adult Confirmation Modal (fires once before step 1 if not confirmed) */}
       <AnimatePresence>
         {adultConfirmed === false && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 rounded-3xl p-6 sm:p-8 shadow-2xl text-center"
+              className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 rounded-3xl p-8 shadow-2xl text-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] mx-auto mb-4">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h2 className="font-heading text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-2">Age Verification</h2>
-              <p className="font-body text-sm text-[var(--text-muted)] mb-6 leading-relaxed">
+              <Heading2 className="mb-2">Age Verification</Heading2>
+              <BodyText className="text-[var(--text-muted)] mb-6 leading-relaxed">
                 {t("landing_verify_desc")}
-              </p>
+              </BodyText>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={confirmAdult}
-                  className="w-full bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-semibold py-3.5 px-6 rounded-xl transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                  className="w-full bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-medium py-3 px-6 rounded-xl transition-all hover:brightness-105 shadow-sm cursor-pointer"
                 >
                   I am 18 or older — Enter
                 </button>
@@ -275,244 +269,282 @@ export default function Onboarding() {
         )}
       </AnimatePresence>
 
-      {/* Thin Segmented Progress Bar Pinned at Top */}
-      {adultConfirmed && (
-        <header className="relative z-20 w-full max-w-xl px-6 pt-5 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {step > 1 && (
-                <button
-                  onClick={handleBack}
-                  className="w-8 h-8 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-md border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/20 transition-all cursor-pointer"
-                  title="Back"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-              )}
-              <span className="text-xs font-body font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                Step {step} of 4
-              </span>
-            </div>
-            <span className="text-xs font-body text-[var(--text-muted)]">
-              {step === 1 ? "Greeting" : step === 2 ? "Name" : step === 3 ? "Vibe" : "Topics"}
-            </span>
-          </div>
-
-          <div className="w-full grid grid-cols-4 gap-1.5">
-            <div className={`h-1 rounded-full transition-all duration-300 ${step >= 1 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-white/10"}`} />
-            <div className={`h-1 rounded-full transition-all duration-300 ${step >= 2 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-white/10"}`} />
-            <div className={`h-1 rounded-full transition-all duration-300 ${step >= 3 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-white/10"}`} />
-            <div className={`h-1 rounded-full transition-all duration-300 ${step >= 4 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-white/10"}`} />
-          </div>
-        </header>
-      )}
-
-      {/* Atmospheric Bottom Gradient */}
-      <div className="absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-[var(--bg-base)] via-[var(--bg-base)]/80 to-transparent pointer-events-none z-10" />
-
-      {/* Interactive Step Cards with 200ms Crossfade */}
-      <div className="relative z-20 w-full max-w-lg px-4 pb-6 sm:pb-8 flex flex-col items-center">
-        <AnimatePresence mode="wait">
-          {adultConfirmed && step === 1 && (
-            <motion.div
-              key="step-1"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <div className="inline-flex items-center gap-2 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 px-3.5 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-                  <span className="text-xs font-body text-[var(--accent-primary)] uppercase tracking-wider font-semibold">
-                    First Meeting
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => speakWelcomeLine()}
-                  className={`flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-full border transition-all ${
-                    isSpeaking
-                      ? "bg-[var(--accent-primary)]/20 border-[var(--accent-primary)] text-[var(--accent-primary)] animate-pulse"
-                      : "bg-[var(--bg-surface)] border-white/10 text-[var(--text-muted)] hover:border-white/30"
-                  }`}
-                  title="Replay Voice"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>{isSpeaking ? "Speaking..." : "Hear voice"}</span>
-                </button>
-              </div>
-
-              <div className="mb-8">
-                <h1 className="font-heading text-3xl sm:text-4xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-                  {t("onboarding_step1_greeting")}
-                </h1>
-                <p className="font-body text-[var(--text-muted)] text-base sm:text-lg leading-relaxed">
-                  {t("onboarding_step1_sub")}
-                </p>
-              </div>
-
-              <button
-                onClick={handleNext}
-                className="w-full group inline-flex items-center justify-center gap-3 bg-[var(--accent-primary)] text-[#2D0A1E] py-4 px-6 rounded-2xl font-body font-bold text-base transition-all hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              >
-                <span>{t("onboarding_step1_cta")}</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </motion.div>
-          )}
-
-          {adultConfirmed && step === 2 && (
-            <motion.div
-              key="step-2"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
-            >
-              <div className="mb-6">
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-                  What should I call you?
-                </h2>
-                <p className="font-body text-sm text-[var(--text-muted)]">
-                  Enter your name or preferred nickname so Lyra can address you personally.
-                </p>
-              </div>
-
-              <div className="mb-8">
-                <input
-                  type="text"
-                  value={userName}
-                  onChange={e => setUserName(e.target.value)}
-                  placeholder="e.g. Alex, Jordan..."
-                  maxLength={30}
-                  autoFocus
-                  className="w-full bg-[var(--bg-base)]/70 border border-[var(--accent-primary)]/20 rounded-xl px-4 py-3.5 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body text-base"
+      {/* Main Grid: Same 55/45 split across all 4 steps */}
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-6 py-8 sm:py-12 flex-1 flex flex-col justify-center my-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center w-full">
+          
+          {/* Her Presence: Right Column on Desktop (5/12 = ~45%), Top on Mobile */}
+          <div className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full">
+            {/* Ambient Presence Glow anchored directly behind her silhouette */}
+            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
+                <div 
+                  className="w-[120%] h-[120%] max-w-[500px] max-h-[500px] rounded-full blur-3xl opacity-75 animate-pulse" 
+                  style={{ 
+                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.28) 0%, rgba(201,166,255,0.16) 45%, transparent 70%)',
+                    animationDuration: '6s'
+                  }} 
                 />
               </div>
 
-              <button
-                onClick={handleNext}
-                disabled={!userName.trim()}
-                className={`w-full group inline-flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl font-body font-bold text-base transition-all ${
-                  userName.trim()
-                    ? "bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] cursor-pointer"
-                    : "bg-white/10 text-white/40 cursor-not-allowed"
-                }`}
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </motion.div>
-          )}
+              <CompanionStage
+                accentColor="#FF8FC0"
+                isCallMode={false}
+                scenery="neutral"
+                outfitUrl="/models/lyra.vrm"
+                emotion={currentEmotion}
+                onModelLoaded={handleModelLoaded}
+              />
+            </div>
+          </div>
 
-          {adultConfirmed && step === 3 && (
-            <motion.div
-              key="step-3"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
-            >
-              <div className="mb-6">
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-                  Choose her conversational vibe
-                </h2>
-                <p className="font-body text-sm text-[var(--text-muted)]">
-                  Select the tone that best matches how you like to converse.
-                </p>
-              </div>
+          {/* Left Column (Content): 7/12 (~55%), Swaps steps smoothly inside same card frame */}
+          <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col justify-center w-full">
+            <AnimatePresence mode="wait">
+              {/* Step 1: Greeting */}
+              {adultConfirmed && step === 1 && (
+                <motion.div
+                  key="step-1"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="inline-flex items-center gap-2 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 px-3.5 py-1.5 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+                      <span className="text-xs font-body text-[var(--accent-primary)] uppercase tracking-wider font-semibold">
+                        First Meeting
+                      </span>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                {VIBE_OPTIONS.map(vibe => {
-                  const Icon = vibe.icon;
-                  const isSelected = selectedVibe === vibe.id;
-                  return (
                     <button
-                      key={vibe.id}
-                      type="button"
-                      onClick={() => setSelectedVibe(vibe.id)}
-                      className={`flex flex-col text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.3)] ring-1 ring-[var(--accent-primary)]/50"
-                          : "bg-[var(--bg-surface)] border-white/10 hover:border-[var(--accent-primary)]/30 hover:bg-white/[0.05]"
+                      onClick={() => speakWelcomeLine()}
+                      className={`flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
+                        isSpeaking
+                          ? "bg-[var(--accent-primary)]/20 border-[var(--accent-primary)] text-[var(--accent-primary)] animate-pulse"
+                          : "bg-[var(--bg-surface)] border-white/10 text-[var(--text-muted)] hover:border-white/30"
+                      }`}
+                      title="Replay Voice"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>{isSpeaking ? "Speaking..." : "Hear voice"}</span>
+                    </button>
+                  </div>
+
+                  <div className="mb-6">
+                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                      {t("onboarding_step1_greeting")}
+                    </Heading2>
+                    <BodyText className="text-[var(--text-muted)] leading-relaxed">
+                      {t("onboarding_step1_sub")}
+                    </BodyText>
+                  </div>
+
+                  <button
+                    onClick={handleNext}
+                    className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                  >
+                    <span>{t("onboarding_step1_cta")}</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Step 2: Name */}
+              {adultConfirmed && step === 2 && (
+                <motion.div
+                  key="step-2"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                >
+                  <div className="mb-6">
+                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                      What should I call you?
+                    </Heading2>
+                    <BodyText className="text-[var(--text-muted)] text-sm">
+                      Enter your name or preferred nickname so Lyra can address you personally.
+                    </BodyText>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mb-6">
+                    <label htmlFor="user-name-input" className="text-xs font-body font-medium text-[var(--text-muted)]">
+                      Your Name
+                    </label>
+                    <input
+                      id="user-name-input"
+                      type="text"
+                      value={userName}
+                      onChange={e => setUserName(e.target.value)}
+                      placeholder="e.g. Alex, Jordan..."
+                      maxLength={30}
+                      autoFocus
+                      className="w-full bg-[var(--bg-base)]/70 border border-[var(--accent-primary)]/20 rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body text-base"
+                    />
+                  </div>
+
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <button
+                      onClick={handleNext}
+                      disabled={!userName.trim()}
+                      className={`w-full inline-flex items-center justify-center gap-4 py-3 px-6 rounded-xl font-body font-medium text-base transition-all ${
+                        userName.trim()
+                          ? "bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 shadow-sm cursor-pointer"
+                          : "bg-white/10 text-white/40 cursor-not-allowed"
                       }`}
                     >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Icon className={`w-4.5 h-4.5 ${isSelected ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`} />
-                        <span className={`text-xs font-body font-semibold ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
-                          {vibe.label}
-                        </span>
-                      </div>
-                      <span className="text-[11px] font-body text-[var(--text-muted)] leading-snug">{vibe.desc}</span>
+                      <span>Continue</span>
+                      <ArrowRight className="w-5 h-5" />
                     </button>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={handleNext}
-                disabled={!selectedVibe}
-                className="w-full group inline-flex items-center justify-center gap-2.5 bg-[var(--accent-primary)] text-[#2D0A1E] py-4 px-6 rounded-2xl font-body font-bold text-base transition-all hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] cursor-pointer"
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </motion.div>
-          )}
-
-          {adultConfirmed && step === 4 && (
-            <motion.div
-              key="step-4"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
-            >
-              <div className="mb-6">
-                <h2 className="font-heading text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">
-                  What topics interest you most?
-                </h2>
-                <p className="font-body text-sm text-[var(--text-muted)]">
-                  Pick up to 5 topic tags to help shape your initial conversations (multi-select).
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-8">
-                {INTEREST_TAGS.map(tag => {
-                  const active = selectedInterests.includes(tag);
-                  return (
                     <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleInterest(tag)}
-                      className={`px-3.5 py-2 rounded-full text-xs font-body border transition-all cursor-pointer ${
-                        active
-                          ? "bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] font-semibold shadow-[0_0_12px_rgba(255,143,192,0.35)]"
-                          : "bg-[var(--bg-surface)] text-[var(--text-muted)] border-white/10 hover:border-[var(--accent-primary)]/30"
-                      }`}
+                      onClick={handleBack}
+                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
                     >
-                      {tag}
+                      Back
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
+                </motion.div>
+              )}
 
-              <button
-                onClick={handleNext}
-                className="w-full group inline-flex items-center justify-center gap-2.5 bg-[var(--accent-primary)] text-[#2D0A1E] py-4 px-6 rounded-2xl font-body font-bold text-base transition-all hover:brightness-105 hover:shadow-[0_0_25px_rgba(255,143,192,0.4)] cursor-pointer"
-              >
-                <span>Begin</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              {/* Step 3: Vibe */}
+              {adultConfirmed && step === 3 && (
+                <motion.div
+                  key="step-3"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                >
+                  <div className="mb-6">
+                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                      Choose her conversational vibe
+                    </Heading2>
+                    <BodyText className="text-[var(--text-muted)] text-sm">
+                      Select the tone that best matches how you like to converse.
+                    </BodyText>
+                  </div>
+
+                  {/* Clean vertical list of selectable rows */}
+                  <div className="flex flex-col gap-3 mb-6">
+                    {VIBE_OPTIONS.map(vibe => {
+                      const Icon = vibe.icon;
+                      const isSelected = selectedVibe === vibe.id;
+                      return (
+                        <button
+                          key={vibe.id}
+                          type="button"
+                          onClick={() => setSelectedVibe(vibe.id)}
+                          className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer text-left ${
+                            isSelected
+                              ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.2)] ring-1 ring-[var(--accent-primary)]/50"
+                              : "bg-[var(--bg-surface)] border-white/10 hover:border-[var(--accent-primary)]/30 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-white/5 text-[var(--text-muted)]"}`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className={`block text-sm font-body font-medium ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
+                                {vibe.label}
+                              </span>
+                              <span className="text-xs font-body text-[var(--text-muted)]">{vibe.desc}</span>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <button
+                      onClick={handleNext}
+                      disabled={!selectedVibe}
+                      className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                    >
+                      <span>Continue</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={handleBack}
+                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 4: Topics */}
+              {adultConfirmed && step === 4 && (
+                <motion.div
+                  key="step-4"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                >
+                  <div className="mb-6">
+                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                      What topics interest you most?
+                    </Heading2>
+                    <BodyText className="text-[var(--text-muted)] text-sm">
+                      Pick up to 5 topics to help shape your initial conversations.
+                    </BodyText>
+                  </div>
+
+                  {/* Wrapped row of topic chips with --space-xs (8px) gap */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {INTEREST_TAGS.map(tag => {
+                      const active = selectedInterests.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleInterest(tag)}
+                          className={`px-4 py-2 rounded-full text-sm font-body transition-all cursor-pointer ${
+                            active
+                              ? "bg-[var(--accent-primary)] text-[#2D0A1E] font-medium shadow-sm"
+                              : "bg-transparent border border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    <button
+                      onClick={handleNext}
+                      className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                    >
+                      <span>Begin</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={handleBack}
+                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+        </div>
+      </main>
     </div>
   );
 }

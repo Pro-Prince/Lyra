@@ -205,11 +205,11 @@ export default function Settings() {
           </Link>
           <Link 
             to="/" 
-            className="font-display font-bold text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors ml-2"
+            className="font-heading font-medium text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors ml-2"
           >
             Lyra
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)] ml-2">
+          <h1 className="text-2xl sm:text-3xl font-medium font-heading tracking-tight text-[var(--text-primary)] ml-2">
             {t('settings_title')}
           </h1>
         </div>
@@ -227,7 +227,7 @@ export default function Settings() {
                   <Volume2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Voice Configuration</h2>
+                  <h2 className="text-base sm:text-lg font-heading font-medium text-[var(--text-primary)]">Voice Configuration</h2>
                   <p className="text-xs font-body text-[var(--text-muted)]">Synthesis and acoustic tuning</p>
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function Settings() {
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Daily Check-in</h2>
+                <h2 className="text-base sm:text-lg font-heading font-medium text-[var(--text-primary)]">Daily Check-in</h2>
                 <p className="text-xs font-body text-[var(--text-muted)]">Gentle reminders to connect</p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function Settings() {
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Visuals: Wardrobe & Scenery</h2>
+                <h2 className="text-base sm:text-lg font-heading font-medium text-[var(--text-primary)]">Visuals: Wardrobe & Scenery</h2>
                 <p className="text-xs font-body text-[var(--text-muted)]">Live 3D avatar styling and atmospheric backdrop</p>
               </div>
             </div>
@@ -470,7 +470,7 @@ export default function Settings() {
                 <Moon className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-display font-semibold text-[var(--text-primary)]">Remembered Context</h2>
+                <h2 className="text-base sm:text-lg font-heading font-medium text-[var(--text-primary)]">Remembered Context</h2>
                 <p className="text-xs font-body text-[var(--text-muted)]">Continuous long-term conversational memory</p>
               </div>
             </div>
@@ -509,7 +509,7 @@ export default function Settings() {
                 <Download className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-base font-display font-semibold text-[var(--text-primary)]">Account & Data Portability</h2>
+                <h2 className="text-base font-heading font-medium text-[var(--text-primary)]">Account & Data Portability</h2>
                 <p className="text-xs text-[var(--text-muted)]">Local-first export and migration payload controls</p>
               </div>
             </div>

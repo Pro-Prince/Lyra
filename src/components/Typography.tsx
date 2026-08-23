@@ -6,11 +6,11 @@ interface TypographyProps {
 }
 
 export const Heading1: React.FC<TypographyProps> = ({ children, className = '' }) => (
-  <h1 className={`font-heading text-[32px] text-textPrimary ${className}`}>{children}</h1>
+  <h1 className={`font-heading font-medium text-[32px] text-textPrimary ${className}`}>{children}</h1>
 );
 
 export const Heading2: React.FC<TypographyProps> = ({ children, className = '' }) => (
-  <h2 className={`font-heading text-[22px] text-textPrimary ${className}`}>{children}</h2>
+  <h2 className={`font-heading font-medium text-[22px] text-textPrimary ${className}`}>{children}</h2>
 );
 
 export const BodyText: React.FC<TypographyProps> = ({ children, className = '' }) => (

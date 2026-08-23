@@ -801,7 +801,7 @@ export default function Chat() {
               className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto"
             >
               <div className="bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border border-[var(--accent-primary)]/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-                <h2 className="text-2xl font-display font-bold text-[var(--text-primary)] mb-3 tracking-tight">Important Notice</h2>
+                <h2 className="text-2xl font-heading font-medium text-[var(--text-primary)] mb-3 tracking-tight">Important Notice</h2>
                 <p className="font-body text-[var(--text-muted)] text-sm mb-6 leading-relaxed">
                   Lyra is an AI companion designed for entertainment and conversation. She is not human and does not have real feelings or thoughts. 
                   <br/><br/>
@@ -995,7 +995,7 @@ export default function Chat() {
             className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Settings</h2>
+              <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Settings</h2>
               <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -1004,13 +1004,13 @@ export default function Chat() {
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Voice Settings */}
               <div>
-                <Heading2 className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Voice</Heading2>
+                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Voice</Heading2>
                 <VoicePicker />
               </div>
 
               {/* Microphone Settings */}
               <div>
-                <Heading2 className="text-xs font-display font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Microphone Mode</Heading2>
+                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Microphone Mode</Heading2>
                 <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
                   <button
                     onClick={async () => {
@@ -1062,7 +1062,7 @@ export default function Chat() {
             className="fixed top-0 right-0 bottom-0 w-[420px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-display font-bold text-2xl text-[var(--text-primary)]">Wardrobe</h2>
+              <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Wardrobe</h2>
               <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
                 <X className="w-5 h-5" />
               </button>

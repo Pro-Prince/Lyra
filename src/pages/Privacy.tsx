@@ -1,21 +1,15 @@
-import { Link } from "react-router-dom";
-import { ArrowLeft, Shield, Clock } from "lucide-react";
+import { Shield, Clock } from "lucide-react";
 import { Heading1, Heading2, BodyText } from "../components/Typography";
+import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] py-12 px-4 sm:px-6 flex flex-col justify-between items-center">
-      <div className="w-full max-w-2xl mb-6">
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] rounded"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Home
-        </Link>
-      </div>
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
+      <AppHeader />
 
-      <div className="w-full max-w-2xl bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl my-auto">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-12 flex flex-col justify-center my-auto">
+        <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
             <Shield className="w-5 h-5" />
@@ -87,7 +81,8 @@ export default function Privacy() {
             If you have any questions about this Privacy Policy, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a>.
           </div>
         </div>
-      </div>
+        </div>
+      </main>
 
       <Footer />
     </div>

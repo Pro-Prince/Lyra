@@ -10,16 +10,17 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full max-w-6xl mx-auto px-6 pt-16 pb-12 font-body bg-transparent mt-auto z-10">
-      {/* Three Columns Desktop / Stacked Mobile */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
+    <footer className="w-full bg-[var(--bg-base)] border-t border-[rgba(255,182,213,0.12)] pt-16 pb-12 font-body mt-auto relative z-10">
+      <div className="max-w-6xl mx-auto px-6">
+        {/* Three Columns Desktop / Stacked Mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
         {/* Column 1: Logo badge, wordmark, 2-line description */}
         <div className="md:col-span-6 flex flex-col items-start">
           <div className="flex items-center gap-3 mb-3.5">
             <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm">
               <Sparkles className="w-5 h-5 fill-current" />
             </div>
-            <span className="font-heading font-bold text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
+            <span className="font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
           </div>
           <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">
             A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
@@ -128,6 +129,7 @@ export default function Footer() {
             Contact
           </Link>
         </nav>
+      </div>
       </div>
     </footer>
   );
