@@ -160,7 +160,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-hidden flex flex-col justify-between">
+    <div className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-clip flex flex-col justify-between">
       {/* Subtle Grain Texture Overlay for Depth */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 

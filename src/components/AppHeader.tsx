@@ -26,7 +26,7 @@ export default function AppHeader() {
   }, []);
 
   return (
-    <header className="app-header sticky top-0 z-50 w-full h-[54px] px-6 sm:px-8 bg-[var(--bg-surface)]/95 backdrop-blur-md flex items-center justify-between">
+    <header className="app-header sticky top-0 z-50 w-full h-[54px] px-6 sm:px-8 bg-[rgba(36,24,35,0.90)] backdrop-blur-sm flex items-center justify-between transition-colors">
       <Link 
         to="/" 
         className="header-logo flex items-center gap-2.5 m-0 p-0 group focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-surface)] rounded-lg"

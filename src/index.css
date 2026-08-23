@@ -131,9 +131,9 @@ h3, .heading-3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(36, 24, 35, 0.90);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .emphasis {
