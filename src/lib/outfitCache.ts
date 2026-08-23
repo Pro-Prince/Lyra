@@ -1,13 +1,15 @@
+import { useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { applyRestPose } from './poseUtils';
-import { generateOutfitThumbnail, generateHeroPortrait, createThumbnailRenderer } from './thumbnailUtils';
+import { generateOutfitThumbnail, generateHeroPortrait, generateFullBodyRender, createThumbnailRenderer } from './thumbnailUtils';
 import { loadVRM } from './vrmLoader';
 import { loadMixamoAnimation } from './retargetMixamo';
 
 export interface CachedOutfitEntry {
   vrm: VRM;
   thumbnail: string;
+  fullBodyRender?: string;
   heroPortrait?: string;
   clips: Record<string, THREE.AnimationClip>;
 }
@@ -38,7 +40,7 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    const renderer = createThumbnailRenderer(800, 1000);
+    const renderer = createThumbnailRenderer(500, 625);
 
     // Sequential load of VRMs to keep Three.js context clean
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
@@ -48,6 +50,7 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         const vrm = await loadVRM(url);
         applyRestPose(vrm);
         const thumbnail = await generateOutfitThumbnail(vrm, renderer);
+        const fullBodyRender = await generateFullBodyRender(vrm, renderer);
         const heroPortrait = await generateHeroPortrait(vrm, renderer);
 
         // Preload essential idle animation first
@@ -60,7 +63,7 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
           console.warn(`Failed to preload idle for outfit ${id}:`, err);
         }
 
-        const entry: CachedOutfitEntry = { vrm, thumbnail, heroPortrait, clips };
+        const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
         cache[id] = entry;
         cache[url] = entry;
 
@@ -100,6 +103,10 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
       // Ignore dispose errors
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lyraOutfitsReady'));
+    }
+
     console.log('[outfitCache] Cache resolved keys:', Object.keys(cache));
     return cache;
   })();
@@ -137,5 +144,45 @@ export function getAllCachedThumbnails(): Record<string, string> {
     result[k] = entry.thumbnail;
   }
   return result;
+}
+
+export function getAllFullBodyRenders(): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const id of ['lyra', 'lyra_casual', 'lyra_dress']) {
+    const entry = getCachedOutfit(id);
+    if (entry?.fullBodyRender) {
+      result[id] = entry.fullBodyRender;
+    } else if (entry?.thumbnail) {
+      result[id] = entry.thumbnail;
+    }
+  }
+  return result;
+}
+
+export function useOutfitRenders(): Record<string, string> {
+  const [renders, setRenders] = useState<Record<string, string>>(() => getAllFullBodyRenders());
+
+  useEffect(() => {
+    let isMounted = true;
+    preloadAllOutfits('useOutfitRenders').then(() => {
+      if (isMounted) {
+        setRenders(getAllFullBodyRenders());
+      }
+    });
+
+    const handleReady = () => {
+      if (isMounted) {
+        setRenders(getAllFullBodyRenders());
+      }
+    };
+
+    window.addEventListener('lyraOutfitsReady', handleReady);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('lyraOutfitsReady', handleReady);
+    };
+  }, []);
+
+  return renders;
 }
 

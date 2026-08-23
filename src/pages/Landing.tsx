@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
 import { 
   ArrowRight, 
   Sparkles, 
-  UserCheck, 
   Volume2, 
   BookOpen, 
   ChevronDown, 
@@ -18,7 +17,7 @@ import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
-import CompanionStage from "../components/CompanionStage";
+import { useOutfitRenders } from "../lib/outfitCache";
 
 function IconBadge({ 
   icon: Icon, 
@@ -78,62 +77,38 @@ const FAQ_ITEMS: FAQItem[] = [
   }
 ];
 
-interface HeroVisualProps {
-  onFail: () => void;
-}
-
-function HeroVisual({ onFail }: HeroVisualProps) {
-  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
-  const [retryKey, setRetryKey] = useState(0);
-  const attemptsRef = useRef(0);
-  const glowRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = glowRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-
-    const observer = new IntersectionObserver(([entry]) => {
-      el.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
-    }, { threshold: 0 });
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const handleStageError = () => {
-    attemptsRef.current += 1;
-    if (attemptsRef.current < 2) {
-      setTimeout(() => {
-        setRetryKey(k => k + 1);
-      }, 1000);
-    } else {
-      console.error('Hero visual failed to load after retry');
-      setStatus('failed');
-      onFail();
-    }
-  };
-
-  const handleStageLoaded = () => {
-    setStatus('ready');
-  };
-
-  if (status === 'failed') return null;
+function OutfitShowcase() {
+  const outfits = useOutfitRenders(); // { lyra, lyra_casual, lyra_dress }
+  const labels: Record<string, string> = { lyra: 'Default', lyra_casual: 'Casual', lyra_dress: 'Dress' };
 
   return (
-    <div className="hero-visual">
-      <div ref={glowRef} className="hero-glow" />
-      <div className="relative w-full h-full flex items-center justify-center">
-        <CompanionStage 
-          key={retryKey}
-          isPortraitMode={true}
-          emotion="warm"
-          silentError={true}
-          transparentBg={true}
-          onModelLoaded={handleStageLoaded}
-          onError={handleStageError}
-        />
+    <section className="outfit-showcase mt-20 sm:mt-24 w-full">
+      <div className="text-center mb-8 sm:mb-10">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
+          Wardrobe
+        </span>
+        <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)]">
+          Three looks, one presence
+        </h2>
       </div>
-    </div>
+      <div className="outfit-grid">
+        {Object.entries(labels).map(([id, label]) => {
+          const render = outfits[id];
+          return (
+            <div key={id} className="outfit-card">
+              {render ? (
+                <img src={render} alt={label} className="outfit-render" />
+              ) : (
+                <div className="outfit-render flex items-center justify-center bg-[var(--bg-surface)] rounded-xl opacity-60">
+                  <div className="w-8 h-8 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <span className="outfit-label">{label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -141,9 +116,8 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
-  const [canGoToChat, setCanGoToChat] = useState(false);
+  const [, setCanGoToChat] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
-  const [visualFailed, setVisualFailed] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -197,30 +171,13 @@ export default function Landing() {
       {/* Hero & Feature Cards Section: --bg-base */}
       <section className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">
         <div className="w-full max-w-6xl mx-auto px-6">
-          {/* Hero: Asymmetric 55/45 Split Layout or Single Column on Visual Failure */}
-          <div className={`hero ${visualFailed ? 'hero-single-column' : 'hero-split'}`}>
-            
-            {/* Her 3D Presence Stage */}
-            {!visualFailed && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full"
-              >
-                <HeroVisual onFail={() => setVisualFailed(true)} />
-              </motion.div>
-            )}
-
-            {/* Headline & CTA Column */}
+          {/* Centered Hero Text Layout */}
+          <div className="hero hero-single-column">
             <motion.div 
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              className={visualFailed 
-                ? "hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
-                : "hero-text order-2 lg:order-1 lg:col-span-7 flex flex-col items-start text-left w-full"
-              }
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 inline-block">
@@ -236,7 +193,7 @@ export default function Landing() {
               </h1>
 
               {/* Subhead in Poppins */}
-              <p className={`font-body text-base sm:text-lg md:text-xl text-[var(--text-muted)] mb-8 leading-relaxed text-balance ${visualFailed ? 'max-w-xl mx-auto' : 'max-w-xl'}`}>
+              <p className="font-body text-base sm:text-lg md:text-xl text-[var(--text-muted)] mb-8 leading-relaxed text-balance max-w-xl mx-auto">
                 {t("landing_subtitle")}
               </p>
 
@@ -256,8 +213,10 @@ export default function Landing() {
                 </span>
               </div>
             </motion.div>
-
           </div>
+
+          {/* Outfit Showcase Section */}
+          <OutfitShowcase />
 
           {/* Feature Cards Grid: Left-aligned, top-left badge */}
           <motion.div 
@@ -274,7 +233,7 @@ export default function Landing() {
                 }
               }
             }}
-            className="w-full mt-24 sm:mt-28 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
+            className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
             {/* Card 1: Voice & Vibe */}
             <motion.div 

@@ -74,7 +74,7 @@ export function frameFullBody(
   const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
 
   const targetDist = Math.max(1.5, Math.min(4.0, distance));
-  const posY = size.y * 0.5;
+  const posY = (box.min.y + box.max.y) / 2;
   camera.position.set(0, posY, targetDist);
   const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
   camera.lookAt(0, posY - verticalShift, 0);

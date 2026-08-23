@@ -37,12 +37,12 @@ export async function generateOutfitThumbnail(vrm: VRM, renderer: THREE.WebGLRen
   
   scene.add(ambient, key, fill, vrm.scene);
 
-  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 10);
-  camera.aspect = 1;
+  const camera = new THREE.PerspectiveCamera(30, 0.8, 0.1, 10);
+  camera.aspect = 0.8;
   camera.updateProjectionMatrix();
 
   // Frame the model using full-body framing
-  frameFullBody(vrm.scene, camera, 256, 0, 0);
+  frameFullBody(vrm.scene, camera, 625, 0, 0);
 
   // CRITICAL: Manually trigger world matrix update before rendering
   vrm.scene.updateMatrixWorld(true);
@@ -55,6 +55,38 @@ export async function generateOutfitThumbnail(vrm: VRM, renderer: THREE.WebGLRen
 
   // Detach model from temporary thumbnail scene without disposing geometry
   scene.remove(vrm.scene);
+
+  return blobUrl;
+}
+
+export async function generateFullBodyRender(vrm: VRM, renderer?: THREE.WebGLRenderer): Promise<string> {
+  const shouldDispose = !renderer;
+  const r = renderer || createThumbnailRenderer(500, 625);
+  r.setSize(500, 625);
+
+  const scene = new THREE.Scene();
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  const key = new THREE.DirectionalLight(0xffd9b3, 1.4);
+  key.position.set(1.5, 2.5, 2.5);
+  const fill = new THREE.DirectionalLight(0xc9a6ff, 0.7);
+  fill.position.set(-1.5, 1.5, -1);
+
+  scene.add(ambient, key, fill, vrm.scene);
+
+  const camera = new THREE.PerspectiveCamera(30, 500 / 625, 0.1, 10);
+  camera.aspect = 500 / 625;
+  camera.updateProjectionMatrix();
+
+  frameFullBody(vrm.scene, camera, 625, 0, 0);
+
+  vrm.scene.updateMatrixWorld(true);
+  r.render(scene, camera);
+  const blobUrl = await canvasToBlobUrl(r.domElement);
+  scene.remove(vrm.scene);
+
+  if (shouldDispose) {
+    try { r.dispose(); } catch {}
+  }
 
   return blobUrl;
 }

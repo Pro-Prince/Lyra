@@ -304,6 +304,49 @@ h3, .heading-3 {
   border-bottom: 1px solid rgba(255, 182, 213, 0.06);
   padding: var(--space-md) 0;
 }
+
+/* Outfit Showcase Section */
+.outfit-showcase {
+  width: 100%;
+}
+.outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 24px;
+}
+@media (min-width: 768px) {
+  .outfit-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.outfit-card {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 182, 213, 0.16);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.outfit-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 143, 192, 0.38);
+  box-shadow: 0 12px 32px rgba(255, 143, 192, 0.12);
+}
+.outfit-render {
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+}
+.outfit-label {
+  margin-top: 16px;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
 .faq-row-header {
   display: flex;
   align-items: center;
