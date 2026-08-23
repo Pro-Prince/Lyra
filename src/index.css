@@ -123,13 +123,17 @@ h3, .heading-3 {
 }
 
 .app-header {
-  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 54px;
   padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-base);
-  border-bottom: 1px solid rgba(255, 182, 213, 0.08);
+  background: var(--bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .emphasis {
@@ -181,14 +185,14 @@ h3, .heading-3 {
   padding: var(--space-lg);
   border-radius: 24px;
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 182, 213, 0.16);
+  border: 1px solid rgba(255, 182, 213, 0.10);
 }
 
 .feature-card {
   padding: var(--space-lg);
   border-radius: 20px;
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 182, 213, 0.16);
+  border: 1px solid rgba(255, 182, 213, 0.10);
   text-align: left;
 }
 .feature-card .icon-badge {
@@ -209,7 +213,7 @@ h3, .heading-3 {
 }
 
 .faq-row {
-  border-bottom: 1px solid rgba(255, 182, 213, 0.12);
+  border-bottom: 1px solid rgba(255, 182, 213, 0.06);
   padding: var(--space-md) 0;
 }
 .faq-row-header {

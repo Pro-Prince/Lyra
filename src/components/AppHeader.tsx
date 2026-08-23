@@ -26,16 +26,16 @@ export default function AppHeader() {
   }, []);
 
   return (
-    <header className="app-header relative z-20 w-full h-[72px] px-8 bg-[var(--bg-base)] border-b border-[rgba(255,182,213,0.08)] flex items-center justify-between">
+    <header className="app-header sticky top-0 z-50 w-full h-[54px] px-6 sm:px-8 bg-[var(--bg-surface)]/95 backdrop-blur-md flex items-center justify-between">
       <Link 
         to="/" 
-        className="header-logo flex items-center gap-3 m-0 p-0 group focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] rounded-xl"
+        className="header-logo flex items-center gap-2.5 m-0 p-0 group focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-surface)] rounded-lg"
         aria-label="Lyra Home"
       >
-        <div className="logo-badge w-10 h-10 m-0 rounded-xl bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm group-hover:scale-105 transition-transform">
-          <Sparkles className="w-5 h-5 fill-current" />
+        <div className="logo-badge w-7 h-7 m-0 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm group-hover:scale-105 transition-transform">
+          <Sparkles className="w-3.5 h-3.5 fill-current" />
         </div>
-        <span className="wordmark m-0 font-heading font-medium text-[20px] tracking-tight text-[var(--text-primary)] leading-none">
+        <span className="wordmark m-0 font-heading font-medium text-[17px] tracking-tight text-[var(--text-primary)] leading-none">
           Lyra
         </span>
       </Link>
@@ -44,7 +44,7 @@ export default function AppHeader() {
         {canGoToChat && (
           <Link
             to="/chat"
-            className="header-cta m-0 flex items-center gap-2 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface)]/90 border border-[rgba(255,182,213,0.16)] text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] shadow-sm"
+            className="header-cta m-0 flex items-center gap-1.5 bg-[var(--bg-base)] hover:bg-[var(--bg-base)]/90 border border-[rgba(255,182,213,0.12)] text-[var(--text-primary)] px-3 py-1.5 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-surface)] shadow-sm"
           >
             <UserCheck className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>Go to Chat</span>

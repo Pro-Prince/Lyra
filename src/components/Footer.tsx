@@ -10,7 +10,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full bg-[var(--bg-base)] border-t border-[rgba(255,182,213,0.12)] pt-16 pb-12 font-body mt-auto relative z-10">
+    <footer className="w-full bg-[var(--bg-surface)] pt-16 pb-12 font-body mt-auto relative z-10">
       <div className="max-w-6xl mx-auto px-6">
         {/* Three Columns Desktop / Stacked Mobile */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
@@ -99,7 +99,7 @@ export default function Footer() {
       </div>
 
       {/* Full-width 1px divider */}
-      <div className="w-full h-px bg-[rgba(255,182,213,0.12)] mb-8" />
+      <div className="w-full h-px bg-[rgba(255,182,213,0.06)] mb-8" />
 
       {/* Bottom bar: space-between copyright & repeated inline links */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--text-muted)]">
