@@ -78,28 +78,16 @@ const FAQ_ITEMS: FAQItem[] = [
   }
 ];
 
-export default function Landing() {
-  const navigate = useNavigate();
-  const { user, isGuestMode, continueAsGuest } = useAuth();
+interface HeroVisualProps {
+  onFail: () => void;
+}
 
-  const [canGoToChat, setCanGoToChat] = useState(false);
-  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
-  const [has3DFailed, setHas3DFailed] = useState(false);
-  const [is3DLoaded, setIs3DLoaded] = useState(false);
-
+function HeroVisual({ onFail }: HeroVisualProps) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [retryKey, setRetryKey] = useState(0);
+  const attemptsRef = useRef(0);
   const glowRef = useRef<HTMLDivElement>(null);
 
-  // Safety net timeout for 3D model loading (fallback to static PNG if loading stalls)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!is3DLoaded) {
-        setHas3DFailed(true);
-      }
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [is3DLoaded]);
-
-  // Pause ambient presence glow when scrolled out of viewport
   useEffect(() => {
     const el = glowRef.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
@@ -111,6 +99,51 @@ export default function Landing() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  const handleStageError = () => {
+    attemptsRef.current += 1;
+    if (attemptsRef.current < 2) {
+      setTimeout(() => {
+        setRetryKey(k => k + 1);
+      }, 1000);
+    } else {
+      console.error('Hero visual failed to load after retry');
+      setStatus('failed');
+      onFail();
+    }
+  };
+
+  const handleStageLoaded = () => {
+    setStatus('ready');
+  };
+
+  if (status === 'failed') return null;
+
+  return (
+    <div className="hero-visual">
+      <div ref={glowRef} className="hero-glow" />
+      <div className="relative w-full h-full flex items-center justify-center">
+        <CompanionStage 
+          key={retryKey}
+          isPortraitMode={true}
+          emotion="warm"
+          silentError={true}
+          transparentBg={true}
+          onModelLoaded={handleStageLoaded}
+          onError={handleStageError}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function Landing() {
+  const navigate = useNavigate();
+  const { user, isGuestMode, continueAsGuest } = useAuth();
+
+  const [canGoToChat, setCanGoToChat] = useState(false);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+  const [visualFailed, setVisualFailed] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -164,41 +197,30 @@ export default function Landing() {
       {/* Hero & Feature Cards Section: --bg-base */}
       <section className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">
         <div className="w-full max-w-6xl mx-auto px-6">
-          {/* Hero: Asymmetric 55/45 Desktop Layout, Presence-First Mobile */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center w-full">
+          {/* Hero: Asymmetric 55/45 Split Layout or Single Column on Visual Failure */}
+          <div className={`hero ${visualFailed ? 'hero-single-column' : 'hero-split'}`}>
             
-            {/* Her Presence: First on Mobile (order-1), Right Column on Desktop (lg:col-span-5 lg:order-2) */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full"
-            >
-              <div className="hero-visual">
-                <div ref={glowRef} className="hero-glow" />
-                {!has3DFailed ? (
-                  <div className="relative w-full h-full flex items-center justify-center">
-                    <CompanionStage 
-                      isPortraitMode={true}
-                      emotion="warm"
-                      silentError={true}
-                      transparentBg={true}
-                      onModelLoaded={() => setIs3DLoaded(true)}
-                      onError={() => setHas3DFailed(true)}
-                    />
-                  </div>
-                ) : (
-                  <img src="/images/lyra-hero.png" alt="Lyra" className="hero-portrait" />
-                )}
-              </div>
-            </motion.div>
+            {/* Her 3D Presence Stage */}
+            {!visualFailed && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full"
+              >
+                <HeroVisual onFail={() => setVisualFailed(true)} />
+              </motion.div>
+            )}
 
-            {/* Left Column: Eyebrow, Headline, Subhead, CTA (order-2 on Mobile, lg:col-span-7 lg:order-1 on Desktop) */}
+            {/* Headline & CTA Column */}
             <motion.div 
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              className="order-2 lg:order-1 lg:col-span-7 flex flex-col items-start text-left w-full"
+              className={visualFailed 
+                ? "hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
+                : "hero-text order-2 lg:order-1 lg:col-span-7 flex flex-col items-start text-left w-full"
+              }
             >
               {/* Eyebrow Label: small Poppins caps */}
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 inline-block">
@@ -214,7 +236,7 @@ export default function Landing() {
               </h1>
 
               {/* Subhead in Poppins */}
-              <p className="font-body text-base sm:text-lg md:text-xl text-[var(--text-muted)] mb-8 max-w-xl leading-relaxed text-balance">
+              <p className={`font-body text-base sm:text-lg md:text-xl text-[var(--text-muted)] mb-8 leading-relaxed text-balance ${visualFailed ? 'max-w-xl mx-auto' : 'max-w-xl'}`}>
                 {t("landing_subtitle")}
               </p>
 
