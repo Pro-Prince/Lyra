@@ -1,6 +1,6 @@
 /**
  * Default instant static hero portrait asset for Lyra.
- * Guarantees zero blank-gap or layout-shift on 0ms initial landing render.
+ * Accurate silhouette and likeness matching lyra.vrm with signature bunny ears.
  */
 
 export const DEFAULT_HERO_PORTRAIT = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -18,14 +18,22 @@ export const DEFAULT_HERO_PORTRAIT = `data:image/svg+xml;utf8,${encodeURICompone
       <stop offset="100%" stop-color="#7B3356" stop-opacity="0.1"/>
     </radialGradient>
     <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FFF0F5"/>
-      <stop offset="100%" stop-color="#F5D5E0"/>
+      <stop offset="0%" stop-color="#FFF4F7"/>
+      <stop offset="100%" stop-color="#F7D8E2"/>
     </linearGradient>
     <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFE4EC"/>
-      <stop offset="40%" stop-color="#FFB3D1"/>
+      <stop offset="35%" stop-color="#FFB3D1"/>
       <stop offset="85%" stop-color="#9A527A"/>
-      <stop offset="100%" stop-color="#542544"/>
+      <stop offset="100%" stop-color="#4E233F"/>
+    </linearGradient>
+    <linearGradient id="earOuterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD1E3"/>
+      <stop offset="100%" stop-color="#7A395E"/>
+    </linearGradient>
+    <linearGradient id="earInnerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#361B2E"/>
+      <stop offset="100%" stop-color="#210F1D"/>
     </linearGradient>
     <linearGradient id="outfitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#362335"/>
@@ -48,6 +56,20 @@ export const DEFAULT_HERO_PORTRAIT = `data:image/svg+xml;utf8,${encodeURICompone
   <!-- Ambient Light Aureole -->
   <circle cx="400" cy="400" r="280" fill="url(#hairGlow)" filter="url(#softGlow)"/>
 
+  <!-- Bunny Ears (Lyra's Signature Headpiece) -->
+  <!-- Left Ear -->
+  <g transform="rotate(-12 300 240)">
+    <path d="M260 270 C240 180 250 80 300 30 C340 70 330 180 310 270 Z" fill="url(#earOuterGrad)"/>
+    <path d="M272 255 C260 185 268 95 300 50 C325 85 320 185 302 255 Z" fill="url(#earInnerGrad)"/>
+    <ellipse cx="298" cy="90" rx="6" ry="18" fill="#FF8FC0" opacity="0.4" filter="url(#softGlow)"/>
+  </g>
+  <!-- Right Ear -->
+  <g transform="rotate(12 500 240)">
+    <path d="M490 270 C470 180 460 70 500 30 C550 80 560 180 540 270 Z" fill="url(#earOuterGrad)"/>
+    <path d="M498 255 C480 185 475 85 500 50 C532 95 540 185 528 255 Z" fill="url(#earInnerGrad)"/>
+    <ellipse cx="502" cy="90" rx="6" ry="18" fill="#FF8FC0" opacity="0.4" filter="url(#softGlow)"/>
+  </g>
+
   <!-- Back Hair Silhouette -->
   <path d="M220 380 C200 520 220 750 250 860 C320 880 480 880 550 860 C580 750 600 520 580 380 C560 200 240 200 220 380 Z" fill="url(#hairGrad)" opacity="0.95"/>
 
@@ -66,10 +88,10 @@ export const DEFAULT_HERO_PORTRAIT = `data:image/svg+xml;utf8,${encodeURICompone
   <path d="M310 440 Q310 630 400 665 Q490 630 490 440 Q490 320 400 320 Q310 320 310 440 Z" fill="url(#skinGrad)"/>
 
   <!-- Soft Cheeks Blush -->
-  <ellipse cx="345" cy="535" rx="28" ry="14" fill="#FF8FC0" opacity="0.32" filter="url(#softGlow)"/>
-  <ellipse cx="455" cy="535" rx="28" ry="14" fill="#FF8FC0" opacity="0.32" filter="url(#softGlow)"/>
+  <ellipse cx="345" cy="535" rx="28" ry="14" fill="#FF8FC0" opacity="0.35" filter="url(#softGlow)"/>
+  <ellipse cx="455" cy="535" rx="28" ry="14" fill="#FF8FC0" opacity="0.35" filter="url(#softGlow)"/>
 
-  <!-- Eyes - Calm, Warm, Expressive -->
+  <!-- Eyes - Calm, Warm, Expressive with signature highlights -->
   <!-- Left Eye -->
   <path d="M335 485 Q355 470 375 485" fill="none" stroke="#3D1C2E" stroke-width="5" stroke-linecap="round"/>
   <ellipse cx="355" cy="498" rx="14" ry="18" fill="#5E2C4A"/>

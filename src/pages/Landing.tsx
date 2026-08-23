@@ -115,6 +115,13 @@ export default function Landing() {
       }
     }
 
+    const onHeroReady = (e: any) => {
+      if (e.detail && !isCancelled) {
+        setPortraitUrl(e.detail);
+      }
+    };
+    window.addEventListener('lyraHeroReady', onHeroReady);
+
     preloadAllOutfits('Landing.tsx')
       .then((cache) => {
         if (isCancelled) return;
@@ -125,11 +132,11 @@ export default function Landing() {
       })
       .catch((err) => {
         console.warn("[Landing] Background 3D hydration notice:", err);
-        // Silently continue displaying static baseline portrait
       });
 
     return () => {
       isCancelled = true;
+      window.removeEventListener('lyraHeroReady', onHeroReady);
     };
   }, []);
 
@@ -245,7 +252,7 @@ export default function Landing() {
               {t("landing_eyebrow")}
             </span>
 
-            {/* Headline with fluid clamp type in Fredoka and two-chip highlighted treatment */}
+            {/* Headline with fluid clamp type in Space Grotesk and two-chip highlighted treatment */}
             <h1 
               className="hero-headline font-heading font-bold tracking-tight text-[var(--text-primary)] leading-[1.05] text-balance mb-6"
               style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}

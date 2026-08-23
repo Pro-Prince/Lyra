@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-heading: 'Fredoka', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Poppins', sans-serif;
 
   --color-bg-base: var(--bg-base);
@@ -24,7 +25,8 @@
   --text-primary: #FBF3F6;
   --text-muted: #B79AAE;
   --text-danger: #F2A8B8;
-  --font-heading: 'Fredoka', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Poppins', sans-serif;
   color-scheme: dark;
 }
@@ -96,8 +98,10 @@ body {
 
 .chip {
   padding: 0.05em 0.3em;
+  line-height: 1.1; /* prevents the extra vertical whitespace currently visible inside the neutral chip */
   border-radius: 8px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
 }
 .chip-neutral {
@@ -131,8 +135,11 @@ body {
   margin-bottom: 20px;
 }
 .feature-card h3 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--font-heading);
   font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
   margin-bottom: 8px;
 }
 .feature-card p {

@@ -30,7 +30,7 @@ const MIXAMO_FILES = [
   'turn_around',
 ];
 
-let cache: Record<string, CachedOutfitEntry> | null = null;
+const cache: Record<string, CachedOutfitEntry> = {};
 let loadingPromise: Promise<Record<string, CachedOutfitEntry>> | null = null;
 
 export function preloadAllOutfits(caller = 'root'): Promise<Record<string, CachedOutfitEntry>> {
@@ -39,42 +39,54 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
 
   loadingPromise = (async () => {
     const renderer = createThumbnailRenderer(800, 1000);
-    const entries: [string, CachedOutfitEntry][] = [];
 
-    // sequential, not Promise.all, so each load is fully isolated,
-    // this is what actually prevents the Casual-shows-Default bug
+    // Sequential load of VRMs to keep Three.js context clean
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
       try {
         console.log('loading', id, url);
         console.log('generating thumbnail for', url);
         const vrm = await loadVRM(url);
         applyRestPose(vrm);
-        const thumbnail = await generateOutfitThumbnail(vrm, renderer); // takes the loaded vrm directly, does not reload
+        const thumbnail = await generateOutfitThumbnail(vrm, renderer);
         const heroPortrait = await generateHeroPortrait(vrm, renderer);
+
+        // Preload essential idle animation first
+        const clips: Record<string, THREE.AnimationClip> = {};
+        try {
+          const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
+          const idleClip = await loadMixamoAnimation(idleUrl, vrm);
+          if (idleClip) clips['idle'] = idleClip;
+        } catch (err) {
+          console.warn(`Failed to preload idle for outfit ${id}:`, err);
+        }
+
+        const entry: CachedOutfitEntry = { vrm, thumbnail, heroPortrait, clips };
+        cache[id] = entry;
+        cache[url] = entry;
 
         if (id === 'lyra' && typeof window !== 'undefined') {
           try {
             localStorage.setItem('lyra_hero_portrait', heroPortrait);
+            window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
           } catch {}
         }
 
-        // Preload & retarget mixamo animations for this outfit
-        const clips: Record<string, THREE.AnimationClip> = {};
-        for (const file of MIXAMO_FILES) {
-          try {
-            const animUrl = new URL(`../assets/animations/mixamo/${file}.fbx`, import.meta.url).href;
-            const clip = await loadMixamoAnimation(animUrl, vrm);
-            if (clip) {
-              clips[file] = clip;
+        // Load remaining animations in background non-blockingly
+        (async () => {
+          for (const file of MIXAMO_FILES) {
+            if (file === 'idle') continue;
+            try {
+              const animUrl = new URL(`../assets/animations/mixamo/${file}.fbx`, import.meta.url).href;
+              const clip = await loadMixamoAnimation(animUrl, vrm);
+              if (clip) {
+                entry.clips[file] = clip;
+              }
+            } catch (err) {
+              console.warn(`Failed to preload mixamo ${file} for outfit ${id}:`, err);
             }
-          } catch (err) {
-            console.warn(`Failed to preload mixamo ${file} for outfit ${id}:`, err);
           }
-        }
+        })();
 
-        const entry: CachedOutfitEntry = { vrm, thumbnail, heroPortrait, clips };
-        entries.push([id, entry]);
-        entries.push([url, entry]);
       } catch (err) {
         console.error(`Failed to preload outfit ${id} (${url}):`, err);
       }
@@ -86,7 +98,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
       // Ignore dispose errors
     }
 
-    cache = Object.fromEntries(entries);
     console.log('[outfitCache] Cache resolved keys:', Object.keys(cache));
     return cache;
   })();
@@ -95,7 +106,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
 }
 
 export function getCachedOutfit(id: string): CachedOutfitEntry | null {
-  if (!cache) return null;
   if (cache[id]) return cache[id];
 
   // Try matching by normalized key or url
@@ -108,7 +118,7 @@ export function getCachedOutfit(id: string): CachedOutfitEntry | null {
 }
 
 export function isPreloadComplete(): boolean {
-  return cache !== null && Object.keys(cache).length > 0;
+  return Object.keys(cache).length > 0;
 }
 
 export function getStoredHeroPortrait(): string | null {
