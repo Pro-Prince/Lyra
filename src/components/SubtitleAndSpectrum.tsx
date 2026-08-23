@@ -63,8 +63,8 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
               className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
                 sub.role === 'user'
-                  ? 'bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
-                  : 'bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(255,143,192,0.25)]'
+                  ? 'bg-[var(--bg-surface)] backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
+                  : 'bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(255,143,192,0.25)]'
               }`}
             >
               {sub.role === 'user' ? (
@@ -97,7 +97,7 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
         layout
         className="flex items-center justify-center h-8"
       >
-        <div className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[16px] border border-[var(--accent-primary)]/20 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--accent-primary)]/20 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
           {bars.map((bar) => {
             // Distance from center for wave effect
             const distFromCenter = Math.abs(bar.id - Math.floor(numBars / 2));

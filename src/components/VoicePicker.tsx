@@ -72,7 +72,7 @@ export function VoicePicker() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {VOICE_PRESETS.map((preset) => {
         const isSelected = selectedPreset === preset.id;
         const isThisPlaying = playingId === preset.id;
@@ -80,7 +80,7 @@ export function VoicePicker() {
           <div
             key={preset.id}
             onClick={() => handleSelectPreset(preset.id)}
-            className={`flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all ${
+            className={`flex items-center justify-between p-6 sm:p-8 rounded-2xl border cursor-pointer transition-all ${
               isSelected 
                 ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
                 : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
@@ -19,7 +19,6 @@ import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
 import CompanionStage from "../components/CompanionStage";
-import { isPreloadComplete, preloadAllOutfits, getStoredHeroPortrait, getCachedOutfit } from "../lib/outfitCache";
 
 function IconBadge({ 
   icon: Icon, 
@@ -84,11 +83,34 @@ export default function Landing() {
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
   const [canGoToChat, setCanGoToChat] = useState(false);
-  const [is3DLoaded, setIs3DLoaded] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
-  const [portraitUrl, setPortraitUrl] = useState<string>(() => {
-    return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || "";
-  });
+  const [has3DFailed, setHas3DFailed] = useState(false);
+  const [is3DLoaded, setIs3DLoaded] = useState(false);
+
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  // Safety net timeout for 3D model loading (fallback to static PNG if loading stalls)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!is3DLoaded) {
+        setHas3DFailed(true);
+      }
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [is3DLoaded]);
+
+  // Pause ambient presence glow when scrolled out of viewport
+  useEffect(() => {
+    const el = glowRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      el.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+    }, { threshold: 0 });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -107,36 +129,8 @@ export default function Landing() {
     }
     verifyReturningStatus();
 
-    // Preload outfits and hero portrait in background
-    if (isPreloadComplete()) {
-      const cached = getCachedOutfit('lyra');
-      if (cached?.heroPortrait) {
-        setPortraitUrl(cached.heroPortrait);
-      }
-    }
-
-    const onHeroReady = (e: any) => {
-      if (e.detail && !isCancelled) {
-        setPortraitUrl(e.detail);
-      }
-    };
-    window.addEventListener('lyraHeroReady', onHeroReady);
-
-    preloadAllOutfits('Landing.tsx')
-      .then((cache) => {
-        if (isCancelled) return;
-        const lyra = cache['lyra'];
-        if (lyra?.heroPortrait) {
-          setPortraitUrl(lyra.heroPortrait);
-        }
-      })
-      .catch((err) => {
-        console.warn("[Landing] Background 3D hydration notice:", err);
-      });
-
     return () => {
       isCancelled = true;
-      window.removeEventListener('lyraHeroReady', onHeroReady);
     };
   }, []);
 
@@ -180,46 +174,22 @@ export default function Landing() {
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full"
             >
-              {/* Ambient Presence Glow anchored directly behind her silhouette */}
-              <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
-                <div 
-                  className="w-[120%] h-[120%] max-w-[500px] max-h-[500px] rounded-full blur-3xl opacity-75 animate-pulse" 
-                  style={{ 
-                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.28) 0%, rgba(201,166,255,0.16) 45%, transparent 70%)',
-                    animationDuration: '6s'
-                  }} 
-                />
-              </div>
-
-              {/* Presence Container */}
-              <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[380px] sm:h-[460px] lg:h-[540px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
-                
-                {/* Reliable Static Baseline Portrait: Rendered immediately if 3D PNG is cached */}
-                {Boolean(portraitUrl) && (
-                  <motion.img
-                    src={portraitUrl}
-                    alt="Lyra portrait"
-                    className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
-                    animate={{ opacity: is3DLoaded ? 0 : 1 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                  />
+              <div className="hero-visual">
+                <div ref={glowRef} className="hero-glow" />
+                {!has3DFailed ? (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <CompanionStage 
+                      isPortraitMode={true}
+                      emotion="warm"
+                      silentError={true}
+                      transparentBg={true}
+                      onModelLoaded={() => setIs3DLoaded(true)}
+                      onError={() => setHas3DFailed(true)}
+                    />
+                  </div>
+                ) : (
+                  <img src="/images/lyra-hero.png" alt="Lyra" className="hero-portrait" />
                 )}
-
-                {/* Live Stage: Hydrated 3D CompanionStage (reveals smoothly once 3D model is posed and rendered) */}
-                <motion.div 
-                  animate={{ opacity: is3DLoaded ? 1 : 0 }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
-                  className="absolute inset-0 w-full h-full z-20"
-                >
-                  <CompanionStage 
-                    isPortraitMode={true}
-                    emotion="warm"
-                    silentError={true}
-                    transparentBg={true}
-                    onModelLoaded={() => setIs3DLoaded(true)}
-                    onError={() => setIs3DLoaded(false)}
-                  />
-                </motion.div>
               </div>
             </motion.div>
 
@@ -345,7 +315,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
-      <section className="relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
+      <section className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
         <div className="w-full max-w-3xl mx-auto px-6">
           <motion.div 
             id="faq"

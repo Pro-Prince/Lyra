@@ -66,7 +66,9 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
 
         if (id === 'lyra' && typeof window !== 'undefined') {
           try {
-            localStorage.setItem('lyra_hero_portrait', heroPortrait);
+            if (heroPortrait && !heroPortrait.startsWith('blob:')) {
+              localStorage.setItem('lyra_hero_portrait', heroPortrait);
+            }
             window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
           } catch {}
         }

@@ -387,7 +387,7 @@ export default function Onboarding() {
                     />
                   </div>
 
-                  <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex flex-col items-center gap-4 w-full">
                     <button
                       onClick={handleNext}
                       disabled={!userName.trim()}
@@ -430,7 +430,7 @@ export default function Onboarding() {
                   </div>
 
                   {/* Clean vertical list of selectable rows */}
-                  <div className="flex flex-col gap-3 mb-6">
+                  <div className="flex flex-col gap-4 mb-6">
                     {VIBE_OPTIONS.map(vibe => {
                       const Icon = vibe.icon;
                       const isSelected = selectedVibe === vibe.id;
@@ -464,7 +464,7 @@ export default function Onboarding() {
                     })}
                   </div>
 
-                  <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex flex-col items-center gap-4 w-full">
                     <button
                       onClick={handleNext}
                       disabled={!selectedVibe}
@@ -502,8 +502,8 @@ export default function Onboarding() {
                     </BodyText>
                   </div>
 
-                  {/* Wrapped row of topic chips with --space-xs (8px) gap */}
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  {/* Wrapped row of topic chips with --space-sm (16px) gap */}
+                  <div className="flex flex-wrap gap-4 mb-6">
                     {INTEREST_TAGS.map(tag => {
                       const active = selectedInterests.includes(tag);
                       return (
@@ -523,7 +523,7 @@ export default function Onboarding() {
                     })}
                   </div>
 
-                  <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex flex-col items-center gap-4 w-full">
                     <button
                       onClick={handleNext}
                       className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"

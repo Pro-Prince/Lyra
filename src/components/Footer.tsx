@@ -10,7 +10,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full bg-[var(--bg-surface)] pt-16 pb-12 font-body mt-auto relative z-10">
+    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-16 pb-12 font-body mt-auto relative z-10">
       <div className="max-w-6xl mx-auto px-6">
         {/* Three Columns Desktop / Stacked Mobile */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">

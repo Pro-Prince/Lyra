@@ -219,7 +219,7 @@ export default function Settings() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto w-full pb-12">
         
         {/* CARD 1: Voice Configuration (Span 7) */}
-        <section className="md:col-span-7 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
+        <section className="md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
@@ -302,7 +302,7 @@ export default function Settings() {
         </section>
 
         {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
-        <section className="md:col-span-5 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
+        <section className="md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
@@ -383,7 +383,7 @@ export default function Settings() {
         </section>
 
         {/* CARD 3: Wardrobe & Atmosphere / Scenery (Span 12 - Full Width Bento Tile) */}
-        <section className="md:col-span-12 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        <section className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
@@ -463,7 +463,7 @@ export default function Settings() {
         </section>
 
         {/* CARD 4: Stored Memory Graph (Span 12) */}
-        <section className="md:col-span-12 bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
+        <section className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
@@ -502,7 +502,7 @@ export default function Settings() {
         </section>
 
         {/* CARD 5: Account & Data Portability (Span 12 - De-emphasized) */}
-        <section className="md:col-span-12 bg-[var(--bg-surface)]/70 backdrop-blur-[24px] border border-[var(--accent-primary)]/10 rounded-3xl p-6 sm:p-7 shadow-xl font-body">
+        <section className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/10 rounded-3xl p-6 sm:p-7 shadow-xl font-body">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">

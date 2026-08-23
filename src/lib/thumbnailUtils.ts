@@ -13,6 +13,18 @@ export function createThumbnailRenderer(width: number = 256, height: number = 25
   return renderer;
 }
 
+export function canvasToBlobUrl(canvas: HTMLCanvasElement): Promise<string> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        resolve(canvas.toDataURL('image/png'));
+        return;
+      }
+      resolve(URL.createObjectURL(blob));
+    }, 'image/png');
+  });
+}
+
 export async function generateOutfitThumbnail(vrm: VRM, renderer: THREE.WebGLRenderer): Promise<string> {
   const scene = new THREE.Scene();
   
@@ -38,13 +50,13 @@ export async function generateOutfitThumbnail(vrm: VRM, renderer: THREE.WebGLRen
   // Render to offscreen WebGL buffer
   renderer.render(scene, camera);
 
-  // Extract base64 png
-  const dataUrl = renderer.domElement.toDataURL('image/png');
+  // Extract efficient Blob URL
+  const blobUrl = await canvasToBlobUrl(renderer.domElement);
 
   // Detach model from temporary thumbnail scene without disposing geometry
   scene.remove(vrm.scene);
 
-  return dataUrl;
+  return blobUrl;
 }
 
 export async function generateHeroPortrait(vrm: VRM, renderer?: THREE.WebGLRenderer): Promise<string> {
@@ -69,13 +81,13 @@ export async function generateHeroPortrait(vrm: VRM, renderer?: THREE.WebGLRende
 
   vrm.scene.updateMatrixWorld(true);
   r.render(scene, camera);
-  const dataUrl = r.domElement.toDataURL('image/png');
+  const blobUrl = await canvasToBlobUrl(r.domElement);
   scene.remove(vrm.scene);
 
   if (shouldDispose) {
     try { r.dispose(); } catch {}
   }
 
-  return dataUrl;
+  return blobUrl;
 }
 

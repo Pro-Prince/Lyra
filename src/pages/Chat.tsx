@@ -837,7 +837,7 @@ export default function Chat() {
              y: isInputFocused ? -300 : 0
           }}
           transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-          className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none flex flex-col items-center gap-3"
+          className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none flex flex-col items-center gap-4"
         >
           {/* Input Bar */}
           <div className="w-full max-w-lg pointer-events-auto flex items-center gap-2.5 bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-[16px] p-2 shadow-2xl relative">
@@ -992,7 +992,7 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
+            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-md border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
               <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Settings</h2>
@@ -1001,16 +1001,16 @@ export default function Chat() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
               {/* Voice Settings */}
               <div>
-                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Voice</Heading2>
+                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">Voice</Heading2>
                 <VoicePicker />
               </div>
 
               {/* Microphone Settings */}
               <div>
-                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Microphone Mode</Heading2>
+                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">Microphone Mode</Heading2>
                 <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
                   <button
                     onClick={async () => {
@@ -1059,7 +1059,7 @@ export default function Chat() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 right-0 bottom-0 w-[420px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
+            className="fixed top-0 right-0 bottom-0 w-[420px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-md border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
               <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Wardrobe</h2>
@@ -1076,7 +1076,7 @@ export default function Chat() {
                   <span className="text-xs font-body text-[var(--text-muted)] z-10">Preparing wardrobe...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   {[
                     { id: '/models/lyra.vrm', label: 'Default' },
                     { id: '/models/lyra_casual.vrm', label: 'Casual' },
@@ -1087,7 +1087,7 @@ export default function Chat() {
                       <button
                         key={item.id}
                         onClick={() => handleOutfitChange(item.id)}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-center transition-all group cursor-pointer ${
+                        className={`flex flex-col items-center gap-2 p-4 rounded-2xl border text-center transition-all group cursor-pointer ${
                           outfit === item.id 
                             ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
                             : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'

@@ -9,7 +9,7 @@ export default function Terms() {
       <AppHeader />
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-12 flex flex-col justify-center my-auto">
-        <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-8 shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
             <FileText className="w-5 h-5" />
