@@ -300,9 +300,40 @@ h3, .heading-3 {
   line-height: 1.6;
 }
 
+.interactive-surface {
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.interactive-surface:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 182, 213, 0.24);
+  box-shadow: 0 8px 24px rgba(255, 143, 192, 0.12);
+}
+
+.header-cta {
+  background: var(--accent-primary);
+  color: var(--bg-base);
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.header-cta:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
 .faq-row {
   border-bottom: 1px solid rgba(255, 182, 213, 0.06);
-  padding: var(--space-md) 0;
+  padding: var(--space-md) var(--space-xs);
+  border-radius: 12px;
+  transition: background 200ms ease;
+}
+.faq-row:hover {
+  background: rgba(255, 143, 192, 0.04);
 }
 
 /* Outfit Showcase Section */
@@ -327,12 +358,11 @@ h3, .heading-3 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .outfit-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(255, 143, 192, 0.38);
-  box-shadow: 0 12px 32px rgba(255, 143, 192, 0.12);
+  border-color: rgba(255, 182, 213, 0.24);
+  box-shadow: 0 8px 24px rgba(255, 143, 192, 0.12);
 }
 .outfit-render {
   width: 100%;
@@ -367,6 +397,90 @@ h3, .heading-3 {
 .faq-answer {
   margin-top: 12px;
   margin-left: 48px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+#features, #faq {
+  scroll-margin-top: 96px; /* 72px header + margin */
+}
+
+.content-card {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 182, 213, 0.12);
+  border-radius: 24px;
+  padding: 32px;
+  width: 100%;
+}
+.content-card h1 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.content-card .subtext {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+.email-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 143, 192, 0.06);
+  border-radius: 16px;
+  margin: 24px 0;
+}
+.email-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 143, 192, 0.15);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.email-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  display: block;
+}
+.email-value {
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--text-primary);
+}
+.email-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background: var(--accent-primary);
+  color: var(--bg-base);
+  border-radius: 12px;
+  font-weight: 600;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+.email-button:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.content-card .divider {
+  border: none;
+  border-top: 1px solid rgba(255, 182, 213, 0.10);
+  margin: 24px 0;
+}
+.support-note {
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.6;
 }

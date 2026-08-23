@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { applyRestPose } from './poseUtils';
-import { generateOutfitThumbnail, generateHeroPortrait, generateFullBodyRender, createThumbnailRenderer } from './thumbnailUtils';
+import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait } from './poseUtils';
+import { createThumbnailRenderer } from './thumbnailUtils';
 import { loadVRM } from './vrmLoader';
 import { loadMixamoAnimation } from './retargetMixamo';
 
@@ -35,12 +35,60 @@ const MIXAMO_FILES = [
 const cache: Record<string, CachedOutfitEntry> = {};
 let loadingPromise: Promise<Record<string, CachedOutfitEntry>> | null = null;
 
+export async function renderPosedOutfit(
+  vrmUrlOrInstance: string | VRM,
+  renderer?: THREE.WebGLRenderer,
+  { frame = 'full-body', size = 256 }: { frame?: 'full-body' | 'portrait'; size?: number } = {}
+): Promise<string> {
+  const vrm = typeof vrmUrlOrInstance === 'string' ? await loadVRM(vrmUrlOrInstance) : vrmUrlOrInstance;
+  
+  applyRestPose(vrm);        // always, no caller can skip this
+  applyRelaxedHandPose(vrm, 'left');
+  applyRelaxedHandPose(vrm, 'right');
+  vrm.humanoid?.update();
+
+  const scene = new THREE.Scene();
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  const key = new THREE.DirectionalLight(0xffffff, 1.2);
+  key.position.set(1, 2, 2);
+  scene.add(ambient, key, vrm.scene);
+
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 10);
+  const height = Math.round(size * (frame === 'full-body' ? 1.4 : 1));
+  camera.aspect = size / height;
+  camera.updateProjectionMatrix();
+
+  vrm.scene.updateMatrixWorld(true);
+
+  if (frame === 'full-body') {
+    frameFullBody(vrm.scene, camera, height, 0, 0);
+  } else {
+    framePortrait(vrm.scene, camera, size);
+  }
+
+  vrm.scene.updateMatrixWorld(true);
+
+  const shouldDispose = !renderer;
+  const r = renderer || createThumbnailRenderer(size, height);
+  r.setSize(size, height);
+
+  r.render(scene, camera);
+  const dataUrl = r.domElement.toDataURL('image/png');
+  scene.remove(vrm.scene);
+
+  if (shouldDispose) {
+    try { r.dispose(); } catch {}
+  }
+
+  return dataUrl;
+}
+
 export function preloadAllOutfits(caller = 'root'): Promise<Record<string, CachedOutfitEntry>> {
   console.log('preload triggered from', caller);
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    const renderer = createThumbnailRenderer(500, 625);
+    const renderer = createThumbnailRenderer(350, 490);
 
     // Sequential load of VRMs to keep Three.js context clean
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
@@ -48,10 +96,10 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         console.log('loading', id, url);
         console.log('generating thumbnail for', url);
         const vrm = await loadVRM(url);
-        applyRestPose(vrm);
-        const thumbnail = await generateOutfitThumbnail(vrm, renderer);
-        const fullBodyRender = await generateFullBodyRender(vrm, renderer);
-        const heroPortrait = await generateHeroPortrait(vrm, renderer);
+        
+        const thumbnail = await renderPosedOutfit(vrm, renderer, { frame: 'portrait', size: 256 });
+        const fullBodyRender = await renderPosedOutfit(vrm, renderer, { frame: 'full-body', size: 350 });
+        const heroPortrait = await renderPosedOutfit(vrm, renderer, { frame: 'portrait', size: 500 });
 
         // Preload essential idle animation first
         const clips: Record<string, THREE.AnimationClip> = {};

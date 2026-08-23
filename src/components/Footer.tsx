@@ -1,14 +1,27 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
-export default function Footer() {
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+function FooterAnchorLink({ to, children, className }: { to: string; children: React.ReactNode; className?: string }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname === '/') {
+      document.getElementById(to)?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/', { state: { scrollTo: to } });
     }
   };
 
+  return (
+    <a href={`/#${to}`} onClick={handleClick} className={className}>
+      {children}
+    </a>
+  );
+}
+
+export default function Footer() {
   return (
     <footer className="app-footer w-full bg-[var(--bg-surface)] pt-16 pb-12 font-body mt-auto relative z-10">
       <div className="max-w-6xl mx-auto px-6">
@@ -34,32 +47,20 @@ export default function Footer() {
           </span>
           <ul className="space-y-2.5 text-[14px]">
             <li>
-              <a
-                href="#features"
-                onClick={(e) => {
-                  if (document.getElementById("features")) {
-                    e.preventDefault();
-                    scrollToSection("features");
-                  }
-                }}
+              <FooterAnchorLink
+                to="features"
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 Features
-              </a>
+              </FooterAnchorLink>
             </li>
             <li>
-              <a
-                href="#faq"
-                onClick={(e) => {
-                  if (document.getElementById("faq")) {
-                    e.preventDefault();
-                    scrollToSection("faq");
-                  }
-                }}
+              <FooterAnchorLink
+                to="faq"
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 FAQ
-              </a>
+              </FooterAnchorLink>
             </li>
           </ul>
         </div>

@@ -439,7 +439,7 @@ export default function Onboarding() {
                           key={vibe.id}
                           type="button"
                           onClick={() => setSelectedVibe(vibe.id)}
-                          className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer text-left ${
+                          className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left ${
                             isSelected
                               ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.2)] ring-1 ring-[var(--accent-primary)]/50"
                               : "bg-[var(--bg-surface)] border-white/10 hover:border-[var(--accent-primary)]/30 hover:bg-white/[0.04]"
@@ -511,7 +511,7 @@ export default function Onboarding() {
                           key={tag}
                           type="button"
                           onClick={() => toggleInterest(tag)}
-                          className={`px-4 py-2 rounded-full text-sm font-body transition-all cursor-pointer ${
+                          className={`interactive-surface px-4 py-2 rounded-full text-sm font-body cursor-pointer ${
                             active
                               ? "bg-[var(--accent-primary)] text-[#2D0A1E] font-medium shadow-sm"
                               : "bg-transparent border border-white/20 text-white/70 hover:border-white/40 hover:text-white"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
 import { 
@@ -95,7 +95,7 @@ function OutfitShowcase() {
         {Object.entries(labels).map(([id, label]) => {
           const render = outfits[id];
           return (
-            <div key={id} className="outfit-card">
+            <div key={id} className="outfit-card interactive-surface">
               {render ? (
                 <img src={render} alt={label} className="outfit-render" />
               ) : (
@@ -114,10 +114,20 @@ function OutfitShowcase() {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
   const [, setCanGoToChat] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state?.scrollTo) {
+      const target = location.state.scrollTo;
+      setTimeout(() => {
+        document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -296,10 +306,9 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
-      <section className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
+      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
         <div className="w-full max-w-3xl mx-auto px-6">
           <motion.div 
-            id="faq"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}

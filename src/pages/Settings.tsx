@@ -410,7 +410,7 @@ export default function Settings() {
                       key={outfit.id}
                       type="button"
                       onClick={() => handleSelectOutfit(outfit.id)}
-                      className={`flex flex-col items-center p-2.5 rounded-2xl border transition-all text-center group cursor-pointer ${
+                      className={`interactive-surface flex flex-col items-center p-2.5 rounded-2xl border text-center group cursor-pointer ${
                         isSelected
                           ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_14px_rgba(255,143,192,0.25)] ring-1 ring-[var(--accent-primary)]/50'
                           : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'

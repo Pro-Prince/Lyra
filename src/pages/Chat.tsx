@@ -1087,7 +1087,7 @@ export default function Chat() {
                       <button
                         key={item.id}
                         onClick={() => handleOutfitChange(item.id)}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-2xl border text-center transition-all group cursor-pointer ${
+                        className={`interactive-surface flex flex-col items-center gap-2 p-4 rounded-2xl border text-center group cursor-pointer ${
                           outfit === item.id 
                             ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
                             : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
