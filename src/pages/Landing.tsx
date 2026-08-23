@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
-import { ArrowRight, Sparkles, UserCheck, Volume2, BookOpen, ChevronDown } from "lucide-react";
+import { 
+  ArrowRight, 
+  Sparkles, 
+  UserCheck, 
+  Volume2, 
+  BookOpen, 
+  ChevronDown, 
+  ShieldCheck, 
+  Trash2, 
+  Smartphone,
+  User
+} from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
@@ -10,16 +21,27 @@ import CompanionStage from "../components/CompanionStage";
 import { isPreloadComplete, preloadAllOutfits, getStoredHeroPortrait, getCachedOutfit } from "../lib/outfitCache";
 import { DEFAULT_HERO_PORTRAIT } from "../lib/heroAssets";
 
-function IconBadge({ icon: Icon }: { icon: React.ComponentType<{ size?: number; className?: string }> }) {
+function IconBadge({ 
+  icon: Icon, 
+  size = 48 
+}: { 
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  size?: number;
+}) {
+  const iconSize = size === 32 ? 16 : 22;
   return (
-    <div className="icon-badge mb-5 shadow-inner">
-      <Icon size={22} />
+    <div 
+      className="icon-badge"
+      style={{ width: `${size}px`, height: `${size}px` }}
+    >
+      <Icon size={iconSize} />
     </div>
   );
 }
 
 interface FAQItem {
   id: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   question: string;
   answer: string;
 }
@@ -27,26 +49,31 @@ interface FAQItem {
 const FAQ_ITEMS: FAQItem[] = [
   {
     id: "account",
+    icon: User,
     question: "Do I need to create an account?",
     answer: "No, not yet. Everything stays on your device for now."
   },
   {
     id: "privacy",
+    icon: ShieldCheck,
     question: "Is my data private?",
     answer: "Your conversations are stored locally on your device. Only the message text itself is sent to Google's Gemini API to generate her responses."
   },
   {
     id: "real-person",
+    icon: Sparkles,
     question: "Is Lyra a real person?",
     answer: "No. She's an AI companion, for adults 18 and up, and she says so herself."
   },
   {
     id: "delete",
+    icon: Trash2,
     question: "Can I delete my data?",
     answer: "Yes, anytime, from Settings, and it's immediate and irreversible."
   },
   {
     id: "mobile",
+    icon: Smartphone,
     question: "Does it work on mobile?",
     answer: "Yes, it's installable as an app on both phone and desktop."
   }
@@ -130,21 +157,21 @@ export default function Landing() {
       {/* Subtle Grain Texture Overlay for Depth */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 
-      {/* Top Header */}
-      <header className="relative z-20 w-full max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)] shadow-[0_0_15px_rgba(255,143,192,0.2)]">
-            <Sparkles className="w-4.5 h-4.5" />
+      {/* Top Nav Bar: Height 76px, bg --bg-base, 1px bottom border, px 32px, flex space-between */}
+      <header className="relative z-20 w-full h-[76px] px-8 bg-[var(--bg-base)] border-b border-[rgba(255,182,213,0.08)] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm">
+            <Sparkles className="w-5 h-5 fill-current" />
           </div>
-          <span className="font-display text-xl font-bold tracking-tight text-[var(--text-primary)]">Lyra</span>
+          <span className="font-heading font-bold text-[20px] tracking-tight text-[var(--text-primary)]">Lyra</span>
         </div>
 
-        {/* Go to Chat only renders for returning users who have completed onboarding */}
-        <div className="flex items-center gap-3">
+        {/* Go to Chat only renders for returning users who have completed onboarding; completely empty otherwise */}
+        <div>
           {canGoToChat && (
             <Link
               to="/chat"
-              className="flex items-center gap-2 bg-[var(--bg-surface)]/90 hover:bg-[var(--bg-surface)] border border-[var(--accent-primary)]/24 text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] shadow-sm"
+              className="flex items-center gap-2 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface)]/90 border border-[rgba(255,182,213,0.16)] text-[var(--text-primary)] px-4 py-2 rounded-full text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] shadow-sm"
             >
               <UserCheck className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>Go to Chat</span>
@@ -218,12 +245,12 @@ export default function Landing() {
               {t("landing_eyebrow")}
             </span>
 
-            {/* Headline with fluid clamp type in Fredoka and highlighted payoff chip */}
+            {/* Headline with fluid clamp type in Fredoka and two-chip highlighted treatment */}
             <h1 
-              className="font-heading font-bold tracking-tight text-[var(--text-primary)] leading-[1.05] text-balance mb-6"
-              style={{ fontSize: "clamp(2.5rem, 5.5vw, 5rem)" }}
+              className="hero-headline font-heading font-bold tracking-tight text-[var(--text-primary)] leading-[1.05] text-balance mb-6"
+              style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}
             >
-              the companion who <span className="highlight-chip">gets you</span>
+              the <span className="chip chip-neutral">companion</span> who gets <span className="chip chip-accent">you</span>
             </h1>
 
             {/* Subhead in Poppins */}
@@ -250,8 +277,9 @@ export default function Landing() {
 
         </div>
 
-        {/* Feature Cards Grid (Defined edges and subtle grain depth) */}
+        {/* Feature Cards Grid: Left-aligned, top-left badge */}
         <motion.div 
+          id="features"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
@@ -272,14 +300,14 @@ export default function Landing() {
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+            className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <IconBadge icon={Volume2} />
-              <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
+              <IconBadge icon={Volume2} size={48} />
+              <h3 className="text-[var(--text-primary)]">
                 {t("card1_title")}
               </h3>
-              <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
+              <p>
                 {t("card1_desc")}
               </p>
             </div>
@@ -291,14 +319,14 @@ export default function Landing() {
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+            className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <IconBadge icon={Sparkles} />
-              <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
+              <IconBadge icon={Sparkles} size={48} />
+              <h3 className="text-[var(--text-primary)]">
                 {t("card2_title")}
               </h3>
-              <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
+              <p>
                 {t("card2_desc")}
               </p>
             </div>
@@ -310,22 +338,23 @@ export default function Landing() {
               hidden: { opacity: 0, y: 16 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
             }}
-            className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+            className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <IconBadge icon={BookOpen} />
-              <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
+              <IconBadge icon={BookOpen} size={48} />
+              <h3 className="text-[var(--text-primary)]">
                 {t("card3_title")}
               </h3>
-              <p className="font-body text-sm text-[var(--text-muted)] leading-relaxed">
+              <p>
                 {t("card3_desc")}
               </p>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* FAQ Accordion Section */}
+        {/* FAQ Section: Flat divided list with topic-relevant icons */}
         <motion.section 
+          id="faq"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
@@ -342,46 +371,43 @@ export default function Landing() {
             </h2>
           </div>
 
-          <div className="space-y-3">
-            {FAQ_ITEMS.map((item) => {
-              const isOpen = openFaqId === item.id;
+          <div className="faq-list border-t border-[rgba(255,182,213,0.12)]">
+            {FAQ_ITEMS.map((faq) => {
+              const isOpen = openFaqId === faq.id;
               return (
-                <div
-                  key={item.id}
-                  className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl overflow-hidden transition-colors duration-200 hover:border-[var(--accent-primary)]/40 shadow-sm"
-                >
-                  <button
-                    onClick={() => toggleFaq(item.id)}
+                <div key={faq.id} className="faq-row">
+                  <div
+                    onClick={() => toggleFaq(faq.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleFaq(faq.id);
+                      }
+                    }}
                     aria-expanded={isOpen}
-                    aria-controls={`faq-answer-${item.id}`}
-                    id={`faq-btn-${item.id}`}
-                    className="w-full flex items-center justify-between p-5 sm:p-6 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)]"
+                    className="faq-row-header select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] rounded"
                   >
-                    <span className="font-heading font-semibold text-base sm:text-lg text-[var(--text-primary)] pr-4">
-                      {item.question}
-                    </span>
+                    <IconBadge icon={faq.icon} size={32} />
+                    <span className="faq-question">{faq.question}</span>
                     <ChevronDown
-                      className={`w-5 h-5 text-[var(--accent-primary)] flex-shrink-0 transition-transform duration-250 ${
-                        isOpen ? "rotate-180" : ""
+                      className={`w-5 h-5 text-[var(--accent-primary)] flex-shrink-0 transition-transform duration-200 ${
+                        isOpen ? "rotated" : ""
                       }`}
                     />
-                  </button>
+                  </div>
 
                   <AnimatePresence initial={false}>
                     {isOpen && (
                       <motion.div
-                        id={`faq-answer-${item.id}`}
-                        role="region"
-                        aria-labelledby={`faq-btn-${item.id}`}
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-0 font-body text-sm sm:text-base text-[var(--text-muted)] leading-relaxed border-t border-[var(--accent-primary)]/10 mt-1">
-                          <p className="pt-3">{item.answer}</p>
-                        </div>
+                        <p className="faq-answer">{faq.answer}</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
