@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
-import { ArrowRight, Sparkles, UserCheck, Volume2, BookOpen } from "lucide-react";
+import { ArrowRight, Sparkles, UserCheck, Volume2, BookOpen, ChevronDown } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
@@ -10,12 +10,55 @@ import CompanionStage from "../components/CompanionStage";
 import { isPreloadComplete, preloadAllOutfits, getStoredHeroPortrait, getCachedOutfit } from "../lib/outfitCache";
 import { DEFAULT_HERO_PORTRAIT } from "../lib/heroAssets";
 
+function IconBadge({ icon: Icon }: { icon: React.ComponentType<{ size?: number; className?: string }> }) {
+  return (
+    <div className="icon-badge mb-5 shadow-inner">
+      <Icon size={22} />
+    </div>
+  );
+}
+
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+const FAQ_ITEMS: FAQItem[] = [
+  {
+    id: "account",
+    question: "Do I need to create an account?",
+    answer: "No, not yet. Everything stays on your device for now."
+  },
+  {
+    id: "privacy",
+    question: "Is my data private?",
+    answer: "Your conversations are stored locally on your device. Only the message text itself is sent to Google's Gemini API to generate her responses."
+  },
+  {
+    id: "real-person",
+    question: "Is Lyra a real person?",
+    answer: "No. She's an AI companion, for adults 18 and up, and she says so herself."
+  },
+  {
+    id: "delete",
+    question: "Can I delete my data?",
+    answer: "Yes, anytime, from Settings, and it's immediate and irreversible."
+  },
+  {
+    id: "mobile",
+    question: "Does it work on mobile?",
+    answer: "Yes, it's installable as an app on both phone and desktop."
+  }
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
   const [canGoToChat, setCanGoToChat] = useState(false);
-  const [isLiveReady, setIsLiveReady] = useState(() => isPreloadComplete());
+  const [is3DLoaded, setIs3DLoaded] = useState(false);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
   const [portraitUrl, setPortraitUrl] = useState<string>(() => {
     return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || DEFAULT_HERO_PORTRAIT;
   });
@@ -39,21 +82,19 @@ export default function Landing() {
 
     // Preload outfits and hero portrait in background
     if (isPreloadComplete()) {
-      setIsLiveReady(true);
       const cached = getCachedOutfit('lyra');
       if (cached?.heroPortrait) {
         setPortraitUrl(cached.heroPortrait);
       }
     }
 
-    preloadAllOutfits()
+    preloadAllOutfits('Landing.tsx')
       .then((cache) => {
         if (isCancelled) return;
         const lyra = cache['lyra'];
         if (lyra?.heroPortrait) {
           setPortraitUrl(lyra.heroPortrait);
         }
-        setIsLiveReady(true);
       })
       .catch((err) => {
         console.warn("[Landing] Background 3D hydration notice:", err);
@@ -78,6 +119,10 @@ export default function Landing() {
     } else {
       navigate("/onboarding");
     }
+  };
+
+  const toggleFaq = (id: string) => {
+    setOpenFaqId(prev => (prev === id ? null : id));
   };
 
   return (
@@ -139,29 +184,25 @@ export default function Landing() {
                 src={portraitUrl}
                 alt="Lyra portrait"
                 className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
-                animate={{ opacity: isLiveReady ? 0 : 1 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
+                animate={{ opacity: is3DLoaded ? 0 : 1 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
               />
 
-              {/* Live Stage: Hydrated 3D CompanionStage (crossfades in once ready) */}
-              <AnimatePresence>
-                {isLiveReady && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                    className="absolute inset-0 w-full h-full z-20"
-                  >
-                    <CompanionStage 
-                      isPortraitMode={true}
-                      emotion="warm"
-                      silentError={true}
-                      onError={() => setIsLiveReady(false)}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Live Stage: Hydrated 3D CompanionStage (reveals smoothly once 3D model is posed and rendered) */}
+              <motion.div 
+                animate={{ opacity: is3DLoaded ? 1 : 0 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="absolute inset-0 w-full h-full z-20"
+              >
+                <CompanionStage 
+                  isPortraitMode={true}
+                  emotion="warm"
+                  silentError={true}
+                  transparentBg={true}
+                  onModelLoaded={() => setIs3DLoaded(true)}
+                  onError={() => setIs3DLoaded(false)}
+                />
+              </motion.div>
             </div>
           </motion.div>
 
@@ -177,12 +218,12 @@ export default function Landing() {
               {t("landing_eyebrow")}
             </span>
 
-            {/* Headline with fluid clamp type in Fredoka */}
+            {/* Headline with fluid clamp type in Fredoka and highlighted payoff chip */}
             <h1 
               className="font-heading font-bold tracking-tight text-[var(--text-primary)] leading-[1.05] text-balance mb-6"
               style={{ fontSize: "clamp(2.5rem, 5.5vw, 5rem)" }}
             >
-              {t("landing_title")}
+              the companion who <span className="highlight-chip">gets you</span>
             </h1>
 
             {/* Subhead in Poppins */}
@@ -234,12 +275,7 @@ export default function Landing() {
             className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <div 
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--accent-primary)] mb-5 shadow-inner"
-                style={{ background: 'radial-gradient(circle, rgba(255,143,192,0.18), transparent 70%)' }}
-              >
-                <Volume2 className="w-6 h-6" />
-              </div>
+              <IconBadge icon={Volume2} />
               <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
                 {t("card1_title")}
               </h3>
@@ -258,12 +294,7 @@ export default function Landing() {
             className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <div 
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--accent-primary)] mb-5 shadow-inner"
-                style={{ background: 'radial-gradient(circle, rgba(255,143,192,0.18), transparent 70%)' }}
-              >
-                <Sparkles className="w-6 h-6" />
-              </div>
+              <IconBadge icon={Sparkles} />
               <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
                 {t("card2_title")}
               </h3>
@@ -273,7 +304,7 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          {/* Card 3: Reflective Memory (BookOpen icon) */}
+          {/* Card 3: Reflective Memory */}
           <motion.div 
             variants={{
               hidden: { opacity: 0, y: 16 },
@@ -282,12 +313,7 @@ export default function Landing() {
             className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl p-6 sm:p-7 min-h-[220px] flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
           >
             <div>
-              <div 
-                className="w-12 h-12 rounded-2xl flex items-center justify-center text-[var(--accent-primary)] mb-5 shadow-inner"
-                style={{ background: 'radial-gradient(circle, rgba(255,143,192,0.18), transparent 70%)' }}
-              >
-                <BookOpen className="w-6 h-6" />
-              </div>
+              <IconBadge icon={BookOpen} />
               <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)] mb-2">
                 {t("card3_title")}
               </h3>
@@ -297,6 +323,73 @@ export default function Landing() {
             </div>
           </motion.div>
         </motion.div>
+
+        {/* FAQ Accordion Section */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-3xl mx-auto mt-24 sm:mt-28"
+          aria-label="Frequently Asked Questions"
+        >
+          <div className="text-center mb-8 sm:mb-10">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
+              FAQ
+            </span>
+            <h2 className="font-heading font-semibold text-2xl sm:text-3xl text-[var(--text-primary)]">
+              Common Questions
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {FAQ_ITEMS.map((item) => {
+              const isOpen = openFaqId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  className="bg-[var(--bg-surface)]/85 backdrop-blur-[24px] border border-[var(--accent-primary)]/24 rounded-2xl overflow-hidden transition-colors duration-200 hover:border-[var(--accent-primary)]/40 shadow-sm"
+                >
+                  <button
+                    onClick={() => toggleFaq(item.id)}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${item.id}`}
+                    id={`faq-btn-${item.id}`}
+                    className="w-full flex items-center justify-between p-5 sm:p-6 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)]"
+                  >
+                    <span className="font-heading font-semibold text-base sm:text-lg text-[var(--text-primary)] pr-4">
+                      {item.question}
+                    </span>
+                    <ChevronDown
+                      className={`w-5 h-5 text-[var(--accent-primary)] flex-shrink-0 transition-transform duration-250 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        id={`faq-answer-${item.id}`}
+                        role="region"
+                        aria-labelledby={`faq-btn-${item.id}`}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-0 font-body text-sm sm:text-base text-[var(--text-muted)] leading-relaxed border-t border-[var(--accent-primary)]/10 mt-1">
+                          <p className="pt-3">{item.answer}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
 
         {/* Closing CTA Section before the Footer */}
         <motion.div 
@@ -325,3 +418,4 @@ export default function Landing() {
     </div>
   );
 }
+

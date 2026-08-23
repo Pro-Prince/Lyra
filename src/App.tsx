@@ -21,7 +21,7 @@ export default function App() {
 
   useEffect(() => {
     // Preload all outfits once at startup
-    preloadAllOutfits().catch(err => console.warn('[App] Outfit preload warning:', err));
+    preloadAllOutfits('App.tsx').catch(err => console.warn('[App] Outfit preload warning:', err));
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');

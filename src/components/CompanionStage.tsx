@@ -613,6 +613,7 @@ function CompanionStageComponent({
   isPortraitMode = false,
   isProcessing = false,
   silentError = false,
+  transparentBg = false,
   onModelLoaded,
   onError
 }: {
@@ -626,6 +627,7 @@ function CompanionStageComponent({
   isPortraitMode?: boolean;
   isProcessing?: boolean;
   silentError?: boolean;
+  transparentBg?: boolean;
   onModelLoaded?: () => void;
   onError?: (err?: string) => void;
 }) {
@@ -671,9 +673,11 @@ function CompanionStageComponent({
     }
   }, [outfitUrl]);
 
+  const showOpaqueBg = !transparentBg && !isPortraitMode;
+
   return (
-    <div className="w-full h-full relative overflow-hidden flex items-center justify-center select-none bg-[var(--bg-base)]">
-      <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />
+    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[var(--bg-base)]' : 'bg-transparent'}`}>
+      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />}
       
       <AnimatePresence>
         {isProcessing && (

@@ -33,7 +33,8 @@ const MIXAMO_FILES = [
 let cache: Record<string, CachedOutfitEntry> | null = null;
 let loadingPromise: Promise<Record<string, CachedOutfitEntry>> | null = null;
 
-export function preloadAllOutfits(): Promise<Record<string, CachedOutfitEntry>> {
+export function preloadAllOutfits(caller = 'root'): Promise<Record<string, CachedOutfitEntry>> {
+  console.log('preload triggered from', caller);
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
