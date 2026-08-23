@@ -20,7 +20,6 @@ import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
 import CompanionStage from "../components/CompanionStage";
 import { isPreloadComplete, preloadAllOutfits, getStoredHeroPortrait, getCachedOutfit } from "../lib/outfitCache";
-import { DEFAULT_HERO_PORTRAIT } from "../lib/heroAssets";
 
 function IconBadge({ 
   icon: Icon, 
@@ -88,7 +87,7 @@ export default function Landing() {
   const [is3DLoaded, setIs3DLoaded] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
   const [portraitUrl, setPortraitUrl] = useState<string>(() => {
-    return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || DEFAULT_HERO_PORTRAIT;
+    return getStoredHeroPortrait() || getCachedOutfit('lyra')?.heroPortrait || "";
   });
 
   useEffect(() => {
@@ -195,14 +194,16 @@ export default function Landing() {
               {/* Presence Container */}
               <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[380px] sm:h-[460px] lg:h-[540px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
                 
-                {/* Reliable Static Baseline Portrait: Always rendered immediately at 0ms */}
-                <motion.img
-                  src={portraitUrl}
-                  alt="Lyra portrait"
-                  className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
-                  animate={{ opacity: is3DLoaded ? 0 : 1 }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
-                />
+                {/* Reliable Static Baseline Portrait: Rendered immediately if 3D PNG is cached */}
+                {Boolean(portraitUrl) && (
+                  <motion.img
+                    src={portraitUrl}
+                    alt="Lyra portrait"
+                    className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none z-10"
+                    animate={{ opacity: is3DLoaded ? 0 : 1 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                  />
+                )}
 
                 {/* Live Stage: Hydrated 3D CompanionStage (reveals smoothly once 3D model is posed and rendered) */}
                 <motion.div 
@@ -234,12 +235,12 @@ export default function Landing() {
                 {t("landing_eyebrow")}
               </span>
 
-              {/* Headline with fluid clamp type in Fraunces and two-chip highlighted treatment */}
+              {/* Headline with fluid clamp type in Fraunces and plain text with accent color */}
               <h1 
                 className="hero-headline font-heading font-medium tracking-tight text-[var(--text-primary)] leading-[1.08] text-balance mb-6"
                 style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}
               >
-                the <span className="chip chip-neutral">companion</span> who gets <span className="chip chip-accent">you</span>
+                the companion who gets <span className="emphasis">you</span>
               </h1>
 
               {/* Subhead in Poppins */}
