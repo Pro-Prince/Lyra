@@ -35,8 +35,8 @@ export function applyRestPose(vrm: VRM) {
   const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
   const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
 
-  if (leftUpperArm) leftUpperArm.rotation.z = 1.15;
-  if (rightUpperArm) rightUpperArm.rotation.z = -1.15;
+  if (leftUpperArm) leftUpperArm.rotation.z = -1.15;
+  if (rightUpperArm) rightUpperArm.rotation.z = 1.15;
   if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
   if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
 

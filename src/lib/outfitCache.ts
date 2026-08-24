@@ -16,9 +16,9 @@ export interface CachedOutfitEntry {
 }
 
 export const OUTFIT_FILES: Record<string, string> = {
-  lyra: '/models/lyra.vrm',
-  lyra_casual: '/models/lyra_casual.vrm',
-  lyra_dress: '/models/lyra_dress.vrm',
+  lyra: '/models/lyra.vrm?v=2',
+  lyra_casual: '/models/lyra_casual.vrm?v=2',
+  lyra_dress: '/models/lyra_dress.vrm?v=2',
 };
 
 const MIXAMO_FILES = [
@@ -168,7 +168,7 @@ export function getCachedOutfit(id: string): CachedOutfitEntry | null {
 
   // Try matching by normalized key or url
   const key = Object.keys(OUTFIT_FILES).find(
-    (k) => k === id || OUTFIT_FILES[k] === id || id.includes(k)
+    (k) => k === id || OUTFIT_FILES[k] === id
   );
   if (key && cache[key]) return cache[key];
 

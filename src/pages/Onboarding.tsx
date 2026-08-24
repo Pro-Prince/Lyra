@@ -198,7 +198,7 @@ export default function Onboarding() {
       rate: 0.98,
       language: "en-US",
       initialized: true,
-      outfit: "/models/lyra.vrm"
+      outfit: "/models/lyra.vrm?v=2"
     });
 
     await saveMemory({
@@ -294,7 +294,7 @@ export default function Onboarding() {
                 accentColor="#FF8FC0"
                 isCallMode={false}
                 scenery="neutral"
-                outfitUrl="/models/lyra.vrm"
+                outfitUrl="/models/lyra.vrm?v=2"
                 emotion={currentEmotion}
                 onModelLoaded={handleModelLoaded}
               />

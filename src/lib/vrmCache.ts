@@ -188,9 +188,9 @@ export async function preloadVRMModel(url: string): Promise<void> {
 export function preloadAllVRMModels(): void {
   if (typeof window === 'undefined') return;
   const models = [
-    '/models/lyra.vrm',
-    '/models/lyra_casual.vrm',
-    '/models/lyra_dress.vrm'
+    '/models/lyra.vrm?v=2',
+    '/models/lyra_casual.vrm?v=2',
+    '/models/lyra_dress.vrm?v=2'
   ];
   models.forEach((url, idx) => {
     setTimeout(() => {
