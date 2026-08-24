@@ -63,8 +63,20 @@
 .logo-badge-img {
   width: 40px;
   height: 40px;
-  border-radius: 9999px;
-  object-fit: cover;
+  border-radius: 12px; /* rounded square, not a circle, this is what stops the cropping */
+  object-fit: cover; /* safe now, badge and source share the same square aspect ratio */
+}
+
+.header-logo:focus-visible,
+.footer-brand:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.header-logo:focus:not(:focus-visible),
+.footer-brand:focus:not(:focus-visible) {
+  outline: none; /* don't show it on a mouse click, only on real keyboard focus */
 }
 
 body {

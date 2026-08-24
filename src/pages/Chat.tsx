@@ -108,7 +108,7 @@ export default function Chat() {
 
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [scenery, setScenery] = useState<string>('neutral');
-  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm?v=5');
+  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm');
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -1068,9 +1068,9 @@ export default function Chat() {
               ) : (
                 <div className="grid grid-cols-2 gap-6">
                   {[
-                    { id: '/models/lyra.vrm?v=5', label: 'Default' },
-                    { id: '/models/lyra_casual.vrm?v=5', label: 'Casual' },
-                    { id: '/models/lyra_dress.vrm?v=5', label: 'Dress' }
+                    { id: '/models/lyra.vrm', label: 'Default' },
+                    { id: '/models/lyra_casual.vrm', label: 'Casual' },
+                    { id: '/models/lyra_dress.vrm', label: 'Dress' }
                   ].map(item => (
                     <button
                       key={item.id}

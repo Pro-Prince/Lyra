@@ -28,10 +28,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
         {/* Column 1: Logo badge, wordmark, 2-line description */}
         <div className="md:col-span-6 flex flex-col items-start">
-          <div className="flex items-center gap-3 mb-3.5">
-            <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-full object-cover shadow-sm" />
-            <span className="font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
-          </div>
+          <Link 
+            to="/" 
+            className="footer-brand flex items-center gap-3 mb-3.5 group"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="Lyra Home"
+          >
+            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm" />
+            <span className="wordmark font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
+          </Link>
           <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">
             A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
           </p>

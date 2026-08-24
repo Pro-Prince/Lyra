@@ -116,9 +116,9 @@ export default function Auth() {
       <div className="relative z-10 w-full max-w-md my-8">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-4 group">
-            <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-full object-cover shadow-sm group-hover:scale-105 transition-transform" />
-            <span className="font-heading font-medium text-2xl tracking-tight text-[var(--text-primary)]">Lyra</span>
+          <Link to="/" className="inline-flex items-center gap-2 mb-4 group header-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm group-hover:scale-105 transition-transform" />
+            <span className="wordmark font-heading font-medium text-2xl tracking-tight text-[var(--text-primary)]">Lyra</span>
           </Link>
 
           <h1 className="font-heading text-2xl sm:text-3xl font-medium tracking-tight text-[var(--text-primary)] mb-2">

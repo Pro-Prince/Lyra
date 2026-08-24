@@ -81,9 +81,9 @@ const FAQ_ITEMS: FAQItem[] = [
 
 function OutfitShowcase() {
   const outfits: Array<{ id: string; url: string; label: string }> = [
-    { id: 'lyra', url: '/models/lyra.vrm?v=5', label: 'Default' },
-    { id: 'lyra_casual', url: '/models/lyra_casual.vrm?v=5', label: 'Casual' },
-    { id: 'lyra_dress', url: '/models/lyra_dress.vrm?v=5', label: 'Dress' },
+    { id: 'lyra', url: '/models/lyra.vrm', label: 'Default' },
+    { id: 'lyra_casual', url: '/models/lyra_casual.vrm', label: 'Casual' },
+    { id: 'lyra_dress', url: '/models/lyra_dress.vrm', label: 'Dress' },
   ];
 
   return (
@@ -302,7 +302,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
-      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
+      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-16 sm:py-24">
         <div className="w-full max-w-3xl mx-auto px-6">
           <motion.div 
             initial="hidden"
@@ -368,31 +368,6 @@ export default function Landing() {
                 );
               })}
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Closing CTA Section: back to --bg-base */}
-      <section className="relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
-        <div className="w-full max-w-4xl mx-auto px-6">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-40px" }}
-            variants={entranceVariants}
-            className="text-center flex flex-col items-center"
-          >
-            <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)] mb-6">
-              {t("landing_closing_title")}
-            </h2>
-            <Button
-              variant="primary"
-              size="lg"
-              icon={ArrowRight}
-              onClick={handleCTAClick}
-            >
-              {t("landing_button")}
-            </Button>
           </motion.div>
         </div>
       </section>

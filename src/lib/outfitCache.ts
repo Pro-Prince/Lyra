@@ -5,7 +5,6 @@ import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, fram
 import { createThumbnailRenderer } from './thumbnailUtils';
 import { loadVRM } from './vrmLoader';
 import { loadMixamoAnimation } from './retargetMixamo';
-import { clearAllModelBuffers } from './vrmCache';
 
 export interface CachedOutfitEntry {
   vrm: VRM;
@@ -16,9 +15,9 @@ export interface CachedOutfitEntry {
 }
 
 export const OUTFIT_FILES: Record<string, string> = {
-  lyra: '/models/lyra.vrm?v=5',
-  lyra_casual: '/models/lyra_casual.vrm?v=5',
-  lyra_dress: '/models/lyra_dress.vrm?v=5',
+  lyra: '/models/lyra.vrm',
+  lyra_casual: '/models/lyra_casual.vrm',
+  lyra_dress: '/models/lyra_dress.vrm',
 };
 
 const MIXAMO_FILES = [
@@ -33,7 +32,9 @@ const MIXAMO_FILES = [
   'turn_around',
 ];
 
-const cache: Record<string, CachedOutfitEntry> = {};
+// In-memory session-only caches (no localStorage, no IndexedDB, resets on tab close/refresh)
+const renderCache: Record<string, string> = {};
+const sessionVrmCache: Record<string, CachedOutfitEntry> = {};
 let loadingPromise: Promise<Record<string, CachedOutfitEntry>> | null = null;
 
 export async function renderPosedOutfit(
@@ -88,22 +89,51 @@ export async function renderPosedOutfit(
   return dataUrl;
 }
 
+export async function getOutfitRender(
+  outfitId: string,
+  renderer?: THREE.WebGLRenderer,
+  options?: { frame?: 'full-body' | 'portrait' | 'outfit'; size?: number }
+): Promise<string> {
+  const cacheKey = `${outfitId}_${options?.frame || 'outfit'}_${options?.size || 300}`;
+  if (renderCache[cacheKey]) return renderCache[cacheKey];
+
+  const url = OUTFIT_FILES[outfitId] || outfitId;
+  console.log('Requesting:', url);
+  try {
+    const vrm = await loadVRM(url);
+    console.log(`${url} loaded successfully`);
+    applyRestPose(vrm);
+    applyRelaxedHandPose(vrm, 'left');
+    applyRelaxedHandPose(vrm, 'right');
+    const result = await renderPosedOutfit(vrm, renderer, options);
+    renderCache[cacheKey] = result;
+    return result;
+  } catch (err) {
+    console.error(`${url} load failed:`, err);
+    throw err;
+  }
+}
+
 export function preloadAllOutfits(caller = 'root'): Promise<Record<string, CachedOutfitEntry>> {
   console.log('preload triggered from', caller);
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    // Sequential load of VRMs to keep Three.js context clean
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
       try {
-        console.log('loading', id, url);
+        console.log('Requesting:', url);
         const vrm = await loadVRM(url);
+        console.log(`${url} loaded successfully`);
         
+        applyRestPose(vrm);
+        applyRelaxedHandPose(vrm, 'left');
+        applyRelaxedHandPose(vrm, 'right');
+
         const thumbnail = await renderPosedOutfit(vrm, undefined, { frame: 'outfit', size: 320 });
         const fullBodyRender = await renderPosedOutfit(vrm, undefined, { frame: 'full-body', size: 380 });
         const heroPortrait = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 400 });
 
-        // Preload essential idle animation first
+        // Preload idle animation
         const clips: Record<string, THREE.AnimationClip> = {};
         try {
           const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
@@ -114,19 +144,14 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         }
 
         const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
-        cache[id] = entry;
-        cache[url] = entry;
+        sessionVrmCache[id] = entry;
+        sessionVrmCache[url] = entry;
 
         if (id === 'lyra' && typeof window !== 'undefined') {
-          try {
-            if (heroPortrait && !heroPortrait.startsWith('blob:')) {
-              localStorage.setItem('lyra_hero_portrait', heroPortrait);
-            }
-            window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
-          } catch {}
+          window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
         }
 
-        // Load remaining animations in background non-blockingly
+        // Load remaining animations asynchronously in background
         (async () => {
           for (const file of MIXAMO_FILES) {
             if (file === 'idle') continue;
@@ -151,60 +176,45 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
       window.dispatchEvent(new CustomEvent('lyraOutfitsReady'));
     }
 
-    console.log('[outfitCache] Cache resolved keys:', Object.keys(cache));
-    return cache;
+    console.log('[outfitCache] In-memory session cache resolved keys:', Object.keys(sessionVrmCache));
+    return sessionVrmCache;
   })();
 
   return loadingPromise;
 }
 
 export function getCachedOutfit(id: string): CachedOutfitEntry | null {
-  if (cache[id]) return cache[id];
+  if (sessionVrmCache[id]) return sessionVrmCache[id];
 
-  // Try matching by normalized key or url
   const key = Object.keys(OUTFIT_FILES).find(
     (k) => k === id || OUTFIT_FILES[k] === id
   );
-  if (key && cache[key]) return cache[key];
+  if (key && sessionVrmCache[key]) return sessionVrmCache[key];
 
   return null;
 }
 
 export function clearOutfitCache(): void {
-  for (const k of Object.keys(cache)) {
-    delete cache[k];
+  for (const k of Object.keys(sessionVrmCache)) {
+    delete sessionVrmCache[k];
+  }
+  for (const k of Object.keys(renderCache)) {
+    delete renderCache[k];
   }
   loadingPromise = null;
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('lyra_hero_portrait');
-  }
-}
-
-// Invalidate stale caches from older builds
-if (typeof window !== 'undefined') {
-  const CACHE_VERSION = 'v5_lyra_vrm_default_fresh';
-  if (localStorage.getItem('lyra_outfit_cache_version') !== CACHE_VERSION) {
-    clearOutfitCache();
-    clearAllModelBuffers().catch(() => {});
-    localStorage.setItem('lyra_outfit_cache_version', CACHE_VERSION);
-  }
 }
 
 export function isPreloadComplete(): boolean {
-  return Object.keys(cache).length > 0;
+  return Object.keys(sessionVrmCache).length > 0;
 }
 
 export function getStoredHeroPortrait(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('lyra_hero_portrait');
-  }
-  return null;
+  return sessionVrmCache['lyra']?.heroPortrait || null;
 }
 
 export function getAllCachedThumbnails(): Record<string, string> {
-  if (!cache) return {};
   const result: Record<string, string> = {};
-  for (const [k, entry] of Object.entries(cache)) {
+  for (const [k, entry] of Object.entries(sessionVrmCache)) {
     result[k] = entry.thumbnail;
   }
   return result;
@@ -282,4 +292,5 @@ export function useOutfitRenders(): Record<string, string> {
 
   return renders;
 }
+
 

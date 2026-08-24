@@ -2,7 +2,7 @@
   "version": 2,
   "headers": [
     {
-      "source": "/models/(.*)\\.vrm",
+      "source": "/models/(.*)",
       "headers": [
         {
           "key": "Content-Type",
@@ -19,22 +19,10 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/models/(.*)",
-      "dest": "/models/$1"
-    },
-    {
-      "src": "/(.*\\.(?:js|css|svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|eot|vrm|json|ico|wasm))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!models/|images/|icons/|favicon|api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
