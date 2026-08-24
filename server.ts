@@ -91,6 +91,22 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Ensure VRM models exist and are valid on startup
+  const modelsDir = path.join(process.cwd(), "public", "models");
+  if (!fs.existsSync(modelsDir)) {
+    fs.mkdirSync(modelsDir, { recursive: true });
+  }
+  const requiredModels = ["lyra.vrm", "lyra_casual.vrm", "lyra_dress.vrm"];
+  const missingModels = requiredModels.some(m => !fs.existsSync(path.join(modelsDir, m)) || fs.statSync(path.join(modelsDir, m)).size < 1000);
+  if (missingModels) {
+    console.log("[Server] VRM models missing or incomplete. Generating...");
+    try {
+      await import("./scripts/generate_vrms.mjs");
+    } catch (e) {
+      console.error("[Server] Failed to generate VRM models:", e);
+    }
+  }
+
   // Explicit static file serving for /models with binary content-type and range support
   const modelsPath = path.join(process.cwd(), "public", "models");
   app.get("/models/:filename", (req, res, next) => {
@@ -321,6 +337,19 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
+  // Explicit models route to guarantee correct binary MIME type and delivery
+  app.get("/models/:filename", (req, res) => {
+    const filePath = path.join(process.cwd(), "public/models", req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.setHeader("Content-Type", "model/gltf-binary");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send("Model not found");
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -343,9 +372,9 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
         }
       }
     }));
-    app.get("*", (req, res, next) => {
+    app.get("*all", (req, res, next) => {
       // Don't intercept static assets or API
-      if (req.path.startsWith("/api") || req.path.startsWith("/models") || req.path.match(/\.(vrm|gltf|glb|svg|png|jpg|jpeg|json|css|js|wasm|ico)$/i)) {
+      if (req.path.startsWith("/api") || req.path.match(/\.(vrm|gltf|glb|svg|png|jpg|jpeg|json|css|js|wasm|ico)$/i)) {
         return res.status(404).send("File not found");
       }
       res.sendFile(path.join(distPath, "index.html"));

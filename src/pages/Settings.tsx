@@ -194,26 +194,15 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto">
-      {/* Top Header */}
-      <header className="flex items-center justify-between mb-8 max-w-6xl mx-auto w-full pt-2">
-        <div className="flex items-center gap-4">
-          <Link 
-            to="/chat" 
-            className="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] bg-[var(--bg-surface)]/80 hover:bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 px-3.5 py-2 rounded-xl transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Chat
-          </Link>
-          <Link 
-            to="/" 
-            className="font-heading font-medium text-xl tracking-tight text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors ml-2"
-          >
-            Lyra
-          </Link>
-          <h1 className="text-2xl sm:text-3xl font-medium font-heading tracking-tight text-[var(--text-primary)] ml-2">
-            {t('settings_title')}
-          </h1>
-        </div>
-      </header>
+      {/* Top Title */}
+      <div className="mb-8 max-w-6xl mx-auto w-full pt-2">
+        <h1 className="text-2xl sm:text-3xl font-medium font-heading tracking-tight text-[var(--text-primary)]">
+          Account Settings
+        </h1>
+        <p className="text-sm text-[var(--text-muted)] mt-1">
+          Manage your profile and security preferences.
+        </p>
+      </div>
 
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto w-full pb-12">

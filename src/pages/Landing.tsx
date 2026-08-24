@@ -11,13 +11,14 @@ import {
   ShieldCheck, 
   Trash2, 
   Smartphone,
-  User
+  User,
+  MessageSquare,
+  RefreshCw
 } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import Footer from "../components/Footer";
-import AppHeader from "../components/AppHeader";
 import Button from "../components/Button";
 import { VRMPreviewCanvas } from "../components/VRMPreviewCanvas";
 
@@ -48,6 +49,18 @@ interface FAQItem {
 
 const FAQ_ITEMS: FAQItem[] = [
   {
+    id: "real-person",
+    icon: Sparkles,
+    question: "Is Lyra a real person?",
+    answer: "No. She's an AI companion, for adults 18 and up, and she says so herself."
+  },
+  {
+    id: "what-to-talk-about",
+    icon: MessageSquare,
+    question: "What can I talk to Lyra about?",
+    answer: "Whatever's on your mind. She's built to listen, remember details about your conversations, and respond thoughtfully, not to complete tasks or answer factual questions like a search engine."
+  },
+  {
     id: "account",
     icon: User,
     question: "Do I need to create an account?",
@@ -60,10 +73,10 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: "Your conversations are stored locally on your device. Only the message text itself is sent to Google's Gemini API to generate her responses."
   },
   {
-    id: "real-person",
-    icon: Sparkles,
-    question: "Is Lyra a real person?",
-    answer: "No. She's an AI companion, for adults 18 and up, and she says so herself."
+    id: "browser-data",
+    icon: RefreshCw,
+    question: "What happens if I clear my browser data or switch devices?",
+    answer: "Your conversation history and memories live only on this device, in this browser. Clearing site data, switching browsers, or moving to a new device means starting fresh, there's no account to sync from yet."
   },
   {
     id: "delete",
@@ -88,6 +101,7 @@ function OutfitShowcase() {
 
   return (
     <motion.section 
+      id="wardrobe"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-40px" }}
@@ -184,9 +198,6 @@ export default function Landing() {
     >
       {/* Subtle Grain Texture Overlay for Depth */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
-
-      {/* Shared App Header */}
-      <AppHeader />
 
       {/* Hero & Feature Cards Section: --bg-base */}
       <section className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">

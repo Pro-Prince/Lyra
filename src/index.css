@@ -21,7 +21,8 @@
 
 }
 
-:root {
+:root,
+[data-theme="dark"] {
   --bg-base: #160F17;
   --bg-surface: #241823;
   --accent-primary: #FF8FC0;
@@ -50,6 +51,22 @@
   --transition-fast: var(--duration-feedback) var(--ease-signature);
 
   color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --accent-primary: #2563eb;
+  --accent-secondary: #3b82f6;
+  --accent-glow: #93c5fd;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --text-danger: #ef4444;
+  --font-heading: 'Fraunces', serif;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Poppins', sans-serif;
+
+  color-scheme: light;
 }
 
 .btn, .interactive-surface, .faq-row, .footer-link, .presence-topbar a, .presence-topbar button {
@@ -519,7 +536,7 @@ h3, .heading-3 {
   line-height: 1.6;
 }
 
-#features, #faq {
+#features, #faq, #wardrobe {
   scroll-margin-top: 96px; /* 72px header + margin */
 }
 

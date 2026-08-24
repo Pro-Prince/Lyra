@@ -58,6 +58,14 @@ export default function Footer() {
             </li>
             <li>
               <FooterAnchorLink
+                to="wardrobe"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
+              >
+                Wardrobe
+              </FooterAnchorLink>
+            </li>
+            <li>
+              <FooterAnchorLink
                 to="faq"
                 className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >

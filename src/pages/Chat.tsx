@@ -710,7 +710,7 @@ export default function Chat() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
+      className="relative w-full h-[calc(100svh-64px)] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
       style={{ '--accent': activeAccent } as React.CSSProperties}
     >
       {/* MAIN STAGE */}

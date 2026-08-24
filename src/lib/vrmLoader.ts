@@ -1,148 +1,104 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { VRM, VRMLoaderPlugin } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 
-function createProceduralVRM(outfitId: string = 'lyra'): VRM {
-  const scene = new THREE.Group();
-  scene.name = `ProceduralVRM_${outfitId}`;
+let ktx2LoaderInstance: KTX2Loader | null = null;
 
-  const bones: Record<string, THREE.Object3D> = {};
-  const boneNames = [
-    'hips', 'spine', 'chest', 'neck', 'head',
-    'leftUpperArm', 'leftLowerArm', 'leftHand',
-    'rightUpperArm', 'rightLowerArm', 'rightHand',
-    'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'leftToeBase',
-    'rightUpperLeg', 'rightLowerLeg', 'rightFoot', 'rightToeBase',
-    'leftThumbProximal', 'leftThumbIntermediate', 'leftThumbDistal',
-    'leftIndexProximal', 'leftIndexIntermediate', 'leftIndexDistal',
-    'leftMiddleProximal', 'leftMiddleIntermediate', 'leftMiddleDistal',
-    'leftRingProximal', 'leftRingIntermediate', 'leftRingDistal',
-    'leftLittleProximal', 'leftLittleIntermediate', 'leftLittleDistal',
-    'rightThumbProximal', 'rightThumbIntermediate', 'rightThumbDistal',
-    'rightIndexProximal', 'rightIndexIntermediate', 'rightIndexDistal',
-    'rightMiddleProximal', 'rightMiddleIntermediate', 'rightMiddleDistal',
-    'rightRingProximal', 'rightRingIntermediate', 'rightRingDistal',
-    'rightLittleProximal', 'rightLittleIntermediate', 'rightLittleDistal'
-  ];
-
-  boneNames.forEach(name => {
-    const obj = new THREE.Object3D();
-    obj.name = name;
-    bones[name] = obj;
-  });
-
-  if (bones.hips && bones.spine) { bones.hips.add(bones.spine); bones.spine.position.set(0, 0.1, 0); }
-  if (bones.spine && bones.chest) { bones.spine.add(bones.chest); bones.chest.position.set(0, 0.15, 0); }
-  if (bones.chest && bones.neck) { bones.chest.add(bones.neck); bones.neck.position.set(0, 0.2, 0); }
-  if (bones.neck && bones.head) { bones.neck.add(bones.head); bones.head.position.set(0, 0.1, 0); }
-
-  if (bones.chest && bones.leftUpperArm) { bones.chest.add(bones.leftUpperArm); bones.leftUpperArm.position.set(0.15, 0.15, 0); }
-  if (bones.leftUpperArm && bones.leftLowerArm) { bones.leftUpperArm.add(bones.leftLowerArm); bones.leftLowerArm.position.set(0.25, 0, 0); }
-  if (bones.leftLowerArm && bones.leftHand) { bones.leftLowerArm.add(bones.leftHand); bones.leftHand.position.set(0.25, 0, 0); }
-
-  if (bones.chest && bones.rightUpperArm) { bones.chest.add(bones.rightUpperArm); bones.rightUpperArm.position.set(-0.15, 0.15, 0); }
-  if (bones.rightUpperArm && bones.rightLowerArm) { bones.rightUpperArm.add(bones.rightLowerArm); bones.rightLowerArm.position.set(-0.25, 0, 0); }
-  if (bones.rightLowerArm && bones.rightHand) { bones.rightLowerArm.add(bones.rightHand); bones.rightHand.position.set(-0.25, 0, 0); }
-
-  if (bones.hips && bones.leftUpperLeg) { bones.hips.add(bones.leftUpperLeg); bones.leftUpperLeg.position.set(0.1, -0.1, 0); }
-  if (bones.leftUpperLeg && bones.leftLowerLeg) { bones.leftUpperLeg.add(bones.leftLowerLeg); bones.leftLowerLeg.position.set(0, -0.4, 0); }
-  if (bones.leftLowerLeg && bones.leftFoot) { bones.leftLowerLeg.add(bones.leftFoot); bones.leftFoot.position.set(0, -0.4, 0); }
-
-  if (bones.hips && bones.rightUpperLeg) { bones.hips.add(bones.rightUpperLeg); bones.rightUpperLeg.position.set(-0.1, -0.1, 0); }
-  if (bones.rightUpperLeg && bones.rightLowerLeg) { bones.rightUpperLeg.add(bones.rightLowerLeg); bones.rightLowerLeg.position.set(0, -0.4, 0); }
-  if (bones.rightLowerLeg && bones.rightFoot) { bones.rightLowerLeg.add(bones.rightFoot); bones.rightFoot.position.set(0, -0.4, 0); }
-
-  scene.add(bones.hips);
-  bones.hips.position.set(0, 0.9, 0);
-
-  const primaryColor = outfitId.includes('casual') ? 0x6366f1 : outfitId.includes('dress') ? 0xec4899 : 0xffb6c1;
-  const hairColor = 0x2d1b4e;
-
-  const headGeo = new THREE.SphereGeometry(0.15, 32, 32);
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.6 });
-  const headMesh = new THREE.Mesh(headGeo, headMat);
-  headMesh.position.set(0, 0.1, 0);
-  if (bones.head) bones.head.add(headMesh);
-
-  const hairGeo = new THREE.SphereGeometry(0.16, 32, 32);
-  const hairMat = new THREE.MeshStandardMaterial({ color: hairColor, roughness: 0.4 });
-  const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-  hairMesh.position.set(0, 0.02, -0.02);
-  if (bones.head) bones.head.add(hairMesh);
-
-  const bodyGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.5, 32);
-  const bodyMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.5 });
-  const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-  bodyMesh.position.set(0, -0.15, 0);
-  if (bones.spine) bones.spine.add(bodyMesh);
-
-  const humanoid = {
-    getNormalizedBoneNode: (name: string) => bones[name] || null,
-    update: () => {},
-  } as any;
-
-  const expressionManager = {
-    setValue: () => {},
-    update: () => {},
-  } as any;
-
-  return {
-    scene,
-    humanoid,
-    expressionManager,
-    update: (_delta: number) => {},
-    meta: { title: outfitId },
-  } as unknown as VRM;
-}
-
-export async function loadVRM(url: string): Promise<VRM> {
-  const outfitId = url.includes('casual') ? 'lyra_casual' : url.includes('dress') ? 'lyra_dress' : 'lyra';
-  console.log('Requesting:', url);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn(`[loadVRM] HTTP error ${res.status} for ${url}, falling back to procedural model`);
-      return createProceduralVRM(outfitId);
+function getKTX2Loader(renderer?: THREE.WebGLRenderer): KTX2Loader {
+  if (!ktx2LoaderInstance) {
+    ktx2LoaderInstance = new KTX2Loader();
+    ktx2LoaderInstance.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/libs/basis/');
+    if (renderer) {
+      ktx2LoaderInstance.detectSupport(renderer);
     }
-
-    const contentType = (res.headers.get('content-type') || '').toLowerCase();
-    if (contentType.includes('text/html')) {
-      console.warn(`[loadVRM] Received HTML for ${url}, falling back to procedural model`);
-      return createProceduralVRM(outfitId);
-    }
-
-    const arrayBuffer = await res.arrayBuffer();
-    const loader = new GLTFLoader();
-    loader.register((parser) => new VRMLoaderPlugin(parser));
-    const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
-
-    return new Promise<VRM>((resolve) => {
-      loader.parse(
-        arrayBuffer,
-        resourcePath,
-        (gltf) => {
-          const vrm = gltf.userData.vrm as VRM;
-          if (!vrm || !vrm.humanoid) {
-            console.warn(`[loadVRM] No VRM humanoid found in ${url}, falling back to procedural model`);
-            resolve(createProceduralVRM(outfitId));
-            return;
-          }
-          console.log(`${url} loaded successfully. Humanoid present: true`);
-          resolve(vrm);
-        },
-        (err) => {
-          console.warn(`${url} load failed (${err}), falling back to procedural model`);
-          resolve(createProceduralVRM(outfitId));
-        }
-      );
-    });
-  } catch (err) {
-    console.warn(`[loadVRM] Exception for ${url}, falling back to procedural model:`, err);
-    return createProceduralVRM(outfitId);
   }
+  return ktx2LoaderInstance;
 }
 
+const bufferCache = new Map<string, ArrayBuffer>();
+const pendingFetches = new Map<string, Promise<ArrayBuffer>>();
 
+export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Promise<VRM> {
+  let arrayBuffer = bufferCache.get(url);
 
+  if (!arrayBuffer) {
+    if (!pendingFetches.has(url)) {
+      const fetchPromise = (async () => {
+        console.log('[loadVRM] Fetching model:', url);
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} when fetching model at ${url}`);
+        }
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        if (contentType.includes('text/html')) {
+          throw new Error(`Server returned text/html instead of binary model for ${url}`);
+        }
+        const buf = await res.arrayBuffer();
 
+        // Validate magic bytes before parsing
+        const uint8 = new Uint8Array(buf);
+        const magic = String.fromCharCode(uint8[0], uint8[1], uint8[2], uint8[3]);
+        if (magic !== 'glTF' && uint8[0] !== 0x7b) {
+          throw new Error(`Invalid model format at ${url}: expected glTF binary or JSON, got magic '${magic}'`);
+        }
 
+        bufferCache.set(url, buf);
+        pendingFetches.delete(url);
+        return buf;
+      })().catch((err) => {
+        pendingFetches.delete(url);
+        throw err;
+      });
+      pendingFetches.set(url, fetchPromise);
+    }
+    arrayBuffer = await pendingFetches.get(url)!;
+  }
+
+  console.log(`[loadVRM] Parsing cached buffer for ${url} (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB)...`);
+
+  const loader = new GLTFLoader();
+  loader.register((parser) => new VRMLoaderPlugin(parser));
+  
+  const ktx2 = getKTX2Loader(renderer);
+  loader.setKTX2Loader(ktx2);
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  const resourcePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '/models/';
+
+  return new Promise<VRM>((resolve, reject) => {
+    loader.parse(
+      arrayBuffer.slice(0),
+      resourcePath,
+      (gltf) => {
+        const vrm = gltf.userData.vrm as VRM;
+        if (!vrm) {
+          reject(new Error(`No VRM found in model at ${url} (gltf.userData.vrm is missing)`));
+          return;
+        }
+        if (!vrm.humanoid) {
+          reject(new Error(`VRM at ${url} does not contain a humanoid rig`));
+          return;
+        }
+
+        vrm.scene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.frustumCulled = true;
+            if (mesh.geometry) {
+              mesh.geometry.computeVertexNormals();
+            }
+          }
+        });
+
+        console.log(`[loadVRM] Successfully parsed and initialized ${url}`);
+        resolve(vrm);
+      },
+      (err) => {
+        console.error(`[loadVRM] GLTFLoader parse error for ${url}:`, err);
+        reject(err);
+      }
+    );
+  });
+}

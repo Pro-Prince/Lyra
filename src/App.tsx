@@ -5,6 +5,7 @@
 
 import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import AppHeader from "./components/AppHeader";
 import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import Chat from "./pages/Chat";
@@ -80,11 +81,13 @@ export default function App() {
       <ToastProvider>
         <Router>
           <ScrollToTop />
+          <AppHeader />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/account" element={<Settings />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/contact" element={<Contact />} />

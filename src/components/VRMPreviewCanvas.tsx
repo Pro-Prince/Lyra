@@ -155,9 +155,9 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
   }, [url]);
 
   return (
-    <div ref={containerRef} className={`relative overflow-hidden ${className}`}>
+    <div ref={containerRef} className={`relative overflow-hidden transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} ${className}`}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-surface)]">
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-surface)] transition-opacity duration-300">
           <div className="w-5 h-5 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin" />
         </div>
       )}
