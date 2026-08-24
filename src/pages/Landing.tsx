@@ -331,18 +331,21 @@ export default function Landing() {
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
-                  <div key={faq.id} className="faq-row">
+                  <div 
+                    key={faq.id} 
+                    className="faq-row cursor-pointer"
+                    onClick={() => toggleFaq(faq.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleFaq(faq.id);
+                      }
+                    }}
+                    aria-expanded={isOpen}
+                  >
                     <div
-                      onClick={() => toggleFaq(faq.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          toggleFaq(faq.id);
-                        }
-                      }}
-                      aria-expanded={isOpen}
                       className="faq-row-header select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] rounded"
                     >
                       <IconBadge icon={faq.icon} size={32} />

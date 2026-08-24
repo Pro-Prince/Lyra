@@ -720,16 +720,13 @@ function CompanionStageComponent({
           camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
             alpha: true, 
-            antialias: graphicsTier !== 'low', 
-            powerPreference: "high-performance",
+            antialias: false, 
+            powerPreference: "default",
             stencil: false,
-            depth: true
+            depth: true,
+            failIfMajorPerformanceCaveat: false
           }}
-          dpr={
-            graphicsTier === 'low' ? [0.5, 0.75] : 
-            graphicsTier === 'medium' ? [1, 1] : 
-            [1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2)]
-          }
+          dpr={[1, 1.5]}
         >
           <CameraRig mode={isWardrobeOpen ? 'panned-left' : (isPortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           

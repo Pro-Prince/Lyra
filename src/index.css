@@ -203,11 +203,13 @@ h3, .heading-3 {
 
 .glass-panel-interactive:hover {
   background-color: rgba(36, 24, 35, 0.98);
-  border-color: rgba(255, 143, 192, 0.38);
-  transform: translateY(-1px);
+  border-color: rgba(255, 143, 192, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px -10px rgba(0, 0, 0, 0.4), 0 0 15px -3px rgba(255, 143, 192, 0.15);
 }
 .glass-panel-interactive:active {
   transform: translateY(0) scale(0.99);
+  box-shadow: none;
 }
 
 /* Subtle Film Grain Noise Texture */
@@ -289,13 +291,14 @@ h3, .heading-3 {
   box-shadow: none;
 }
 .btn-primary:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   filter: brightness(1.05);
-  box-shadow: none;
+  box-shadow: 0 8px 24px -6px rgba(255, 143, 192, 0.4);
 }
 .btn-primary:active {
   transform: translateY(0) scale(0.98);
   filter: brightness(0.95);
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -305,13 +308,15 @@ h3, .heading-3 {
   box-shadow: none;
 }
 .btn-secondary:hover {
-  border-color: rgba(255, 182, 213, 0.24);
-  background: rgba(255, 143, 192, 0.04);
-  box-shadow: none;
+  border-color: rgba(255, 182, 213, 0.35);
+  background: rgba(255, 143, 192, 0.08);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 143, 192, 0.05);
+  transform: translateY(-1px);
 }
 .btn-secondary:active {
   transform: translateY(0) scale(0.98);
-  background: rgba(255, 143, 192, 0.08);
+  background: rgba(255, 143, 192, 0.12);
+  box-shadow: none;
 }
 
 .btn:focus-visible {
@@ -340,12 +345,15 @@ h3, .heading-3 {
   transition: background var(--transition-normal), border-color var(--transition-normal), transform var(--transition-fast);
 }
 .icon-btn:hover {
-  background: rgba(255, 143, 192, 0.04);
-  border-color: rgba(255, 182, 213, 0.24);
+  background: rgba(255, 143, 192, 0.08);
+  border-color: rgba(255, 182, 213, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.5), 0 0 10px -2px rgba(255, 143, 192, 0.2);
 }
 .icon-btn:active {
-  transform: scale(0.92);
-  background: rgba(255, 143, 192, 0.08);
+  transform: translateY(0) scale(0.92);
+  background: rgba(255, 143, 192, 0.12);
+  box-shadow: none;
 }
 
 /* Standard Card Surfaces & Interactive Hover Uplift */
@@ -363,9 +371,9 @@ h3, .heading-3 {
 .email-box:hover,
 .outfit-card:hover,
 .interactive-surface:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 182, 213, 0.24);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  border-color: rgba(255, 143, 192, 0.4);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(255, 143, 192, 0.15), 0 0 0 1px rgba(255, 143, 192, 0.05);
 }
 .card-standard:active,
 .feature-card:active,
@@ -462,7 +470,6 @@ h3, .heading-3 {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  cursor: pointer;
 }
 .faq-question {
   flex: 1;

@@ -89,8 +89,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    const renderer = createThumbnailRenderer(350, 490);
-
     // Sequential load of VRMs to keep Three.js context clean
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
       try {
@@ -98,9 +96,9 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         console.log('generating thumbnail for', url);
         const vrm = await loadVRM(url);
         
-        const thumbnail = await renderPosedOutfit(vrm, renderer, { frame: 'portrait', size: 256 });
-        const fullBodyRender = await renderPosedOutfit(vrm, renderer, { frame: 'full-body', size: 350 });
-        const heroPortrait = await renderPosedOutfit(vrm, renderer, { frame: 'portrait', size: 500 });
+        const thumbnail = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 256 });
+        const fullBodyRender = await renderPosedOutfit(vrm, undefined, { frame: 'full-body', size: 350 });
+        const heroPortrait = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 400 });
 
         // Preload essential idle animation first
         const clips: Record<string, THREE.AnimationClip> = {};
@@ -146,12 +144,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
       }
     }
 
-    try {
-      renderer.dispose();
-    } catch {
-      // Ignore dispose errors
-    }
-
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('lyraOutfitsReady'));
     }
@@ -187,7 +179,7 @@ export function clearOutfitCache(): void {
 
 // Invalidate stale caches from older builds
 if (typeof window !== 'undefined') {
-  const CACHE_VERSION = 'v4_lyra_vrm_fixed';
+  const CACHE_VERSION = 'v5_lyra_vrm_default_fresh';
   if (localStorage.getItem('lyra_outfit_cache_version') !== CACHE_VERSION) {
     clearOutfitCache();
     clearAllModelBuffers().catch(() => {});

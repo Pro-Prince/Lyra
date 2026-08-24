@@ -4,7 +4,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'models';
 
 export function isValidGLTFBuffer(buf: ArrayBuffer | null | undefined): boolean {
-  if (!buf || buf.byteLength < 20) return false;
+  if (!buf || buf.byteLength < 1000) return false;
   try {
     const view = new DataView(buf);
     const magic = view.getUint32(0, true); // 'glTF' (0x46546c67)
@@ -13,15 +13,18 @@ export function isValidGLTFBuffer(buf: ArrayBuffer | null | undefined): boolean 
     const version = view.getUint32(4, true);
     if (version !== 2) return false;
 
-    const declaredLength = view.getUint32(8, true);
-    if (buf.byteLength < declaredLength) {
-      console.warn(`[vrmCache] GLB truncated: byteLength ${buf.byteLength} < declared length ${declaredLength}`);
-      return false;
+    // Check if 'JSON' (0x4E4F534A) chunk type appears anywhere between offset 12 and 32
+    let hasJSON = false;
+    for (let i = 12; i <= Math.min(32, buf.byteLength - 4); i++) {
+      const val = view.getUint32(i, true);
+      if (val === 0x4E4F534A) {
+        hasJSON = true;
+        break;
+      }
     }
 
-    const jsonChunkType = view.getUint32(16, true); // 0x4E4F534A ('JSON')
-    if (jsonChunkType !== 0x4E4F534A) {
-      console.warn(`[vrmCache] GLB first chunk type is 0x${jsonChunkType.toString(16)}, expected JSON (0x4e4f534a)`);
+    if (!hasJSON) {
+      console.warn(`[vrmCache] GLB missing JSON chunk in header area`);
       return false;
     }
 

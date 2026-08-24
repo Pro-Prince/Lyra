@@ -8,9 +8,9 @@ import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
 import { useToast } from "../hooks/useToast";
 
 const OUTFITS = [
-  { id: '/models/lyra.vrm?v=2', label: 'Cyber Signature', tag: 'Standard' },
-  { id: '/models/lyra_casual.vrm?v=2', label: 'Urban Casual', tag: 'Hoodie' },
-  { id: '/models/lyra_dress.vrm?v=2', label: 'Midnight Silk', tag: 'Dress' }
+  { id: '/models/lyra.vrm?v=2', label: 'Default', tag: 'Standard' },
+  { id: '/models/lyra_casual.vrm?v=2', label: 'Casual', tag: 'Hoodie' },
+  { id: '/models/lyra_dress.vrm?v=2', label: 'Dress', tag: 'Dress' }
 ];
 
 const SCENERIES = [
