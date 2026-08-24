@@ -82,7 +82,7 @@ export function VoicePicker() {
             onClick={() => handleSelectPreset(preset.id)}
             className={`interactive-surface flex items-center justify-between p-6 sm:p-8 rounded-2xl border cursor-pointer ${
               isSelected 
-                ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
+                ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
                 : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
             }`}
           >
@@ -94,7 +94,7 @@ export function VoicePicker() {
             </div>
             <button
               onClick={(e) => handlePreview(preset, e)}
-              className="p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/20 transition-colors"
+              className="icon-btn"
               title="Preview Voice"
             >
               <Play className={`w-3.5 h-3.5 ${isThisPlaying ? 'animate-pulse' : ''}`} />

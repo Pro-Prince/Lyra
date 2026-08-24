@@ -49,7 +49,7 @@ export default function Footer() {
             <li>
               <FooterAnchorLink
                 to="features"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 Features
               </FooterAnchorLink>
@@ -57,7 +57,7 @@ export default function Footer() {
             <li>
               <FooterAnchorLink
                 to="faq"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 FAQ
               </FooterAnchorLink>
@@ -74,7 +74,7 @@ export default function Footer() {
             <li>
               <Link
                 to="/contact"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 Contact Us
               </Link>
@@ -82,7 +82,7 @@ export default function Footer() {
             <li>
               <Link
                 to="/privacy"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 Privacy Policy
               </Link>
@@ -90,7 +90,7 @@ export default function Footer() {
             <li>
               <Link
                 to="/terms"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
               >
                 Terms of Service
               </Link>
@@ -111,21 +111,21 @@ export default function Footer() {
         <nav aria-label="Footer legal links" className="flex items-center gap-3">
           <Link
             to="/privacy"
-            className="hover:text-[var(--text-primary)] transition-colors"
+            className="hover:text-[var(--accent-primary)] transition-colors"
           >
             Privacy
           </Link>
           <span className="opacity-40">·</span>
           <Link
             to="/terms"
-            className="hover:text-[var(--text-primary)] transition-colors"
+            className="hover:text-[var(--accent-primary)] transition-colors"
           >
             Terms
           </Link>
           <span className="opacity-40">·</span>
           <Link
             to="/contact"
-            className="hover:text-[var(--text-primary)] transition-colors"
+            className="hover:text-[var(--accent-primary)] transition-colors"
           >
             Contact
           </Link>

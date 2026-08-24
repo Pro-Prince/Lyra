@@ -147,7 +147,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       currentToast.action?.onClick();
                       dismissToast(currentToast.id);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-bold text-xs hover:brightness-105 active:scale-95 transition-all shadow-[0_0_12px_rgba(255,143,192,0.25)] cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-bold text-xs hover:brightness-105 active:scale-95 transition-all  cursor-pointer"
                   >
                     {currentToast.action.label}
                   </button>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { getLocalProfile, getCompanion } from "../lib/storage";
+import Button from "./Button";
 
 export default function AppHeader() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
@@ -40,13 +41,14 @@ export default function AppHeader() {
         </span>
       </Link>
 
-      <Link
+      <Button
+        variant="primary"
+        size="sm"
+        icon={ArrowRight}
         to={hasCompletedOnboarding ? '/chat' : '/onboarding'}
-        className="header-cta"
       >
-        <span>{hasCompletedOnboarding ? 'Go to Chat' : 'Begin Experience'}</span>
-        <ArrowRight size={16} />
-      </Link>
+        {hasCompletedOnboarding ? 'Go to Chat' : 'Begin Experience'}
+      </Button>
     </header>
   );
 }

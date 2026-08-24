@@ -48,6 +48,18 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
+export async function clearAllModelBuffers(): Promise<void> {
+  MEMORY_CACHE.clear();
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.clear();
+  } catch (err) {
+    console.warn('[vrmCache] IndexedDB clear error:', err);
+  }
+}
+
 export async function clearCachedModelBuffer(url: string): Promise<void> {
   const cleanUrl = url.split('?')[0];
   MEMORY_CACHE.delete(cleanUrl);

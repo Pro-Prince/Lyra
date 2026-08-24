@@ -5,6 +5,7 @@ import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait } fro
 import { createThumbnailRenderer } from './thumbnailUtils';
 import { loadVRM } from './vrmLoader';
 import { loadMixamoAnimation } from './retargetMixamo';
+import { clearAllModelBuffers, clearCachedModelBuffer } from './vrmCache';
 
 export interface CachedOutfitEntry {
   vrm: VRM;
@@ -172,6 +173,26 @@ export function getCachedOutfit(id: string): CachedOutfitEntry | null {
   if (key && cache[key]) return cache[key];
 
   return null;
+}
+
+export function clearOutfitCache(): void {
+  for (const k of Object.keys(cache)) {
+    delete cache[k];
+  }
+  loadingPromise = null;
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('lyra_hero_portrait');
+  }
+}
+
+// Invalidate stale caches from older builds
+if (typeof window !== 'undefined') {
+  const CACHE_VERSION = 'v4_lyra_vrm_fixed';
+  if (localStorage.getItem('lyra_outfit_cache_version') !== CACHE_VERSION) {
+    clearOutfitCache();
+    clearAllModelBuffers().catch(() => {});
+    localStorage.setItem('lyra_outfit_cache_version', CACHE_VERSION);
+  }
 }
 
 export function isPreloadComplete(): boolean {

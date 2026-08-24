@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen w-full bg-[var(--bg-base)] flex flex-col items-center justify-center text-[var(--text-primary)]">
         <div className="relative flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)] animate-pulse shadow-[0_0_25px_rgba(255,143,192,0.2)]">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)] animate-pulse ">
             <Sparkles className="w-6 h-6 animate-spin" />
           </div>
           <span className="text-xs font-mono tracking-widest uppercase text-[var(--text-muted)]">

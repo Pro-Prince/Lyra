@@ -1,6 +1,7 @@
 import { Mail, ExternalLink } from "lucide-react";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
+import Button from "../components/Button";
 
 export default function Contact() {
   return (
@@ -22,14 +23,17 @@ export default function Contact() {
             </div>
           </div>
 
-          <a
+          <Button
+            variant="primary"
+            size="lg"
+            icon={ExternalLink}
             href="https://mail.google.com/mail/?view=cm&fs=1&to=princepatel5807@gmail.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="email-button"
+            className="w-full"
           >
-            Email Lyra <ExternalLink size={16} />
-          </a>
+            Email Lyra
+          </Button>
 
           <hr className="divider" />
 

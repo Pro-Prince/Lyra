@@ -812,7 +812,7 @@ export default function Chat() {
                     localStorage.setItem('ai_disclosure_accepted', 'true');
                     setShowDisclosure(false);
                   }}
-                  className="w-full py-3.5 rounded-xl text-[#2D0A1E] bg-[var(--accent-primary)] hover:brightness-105 font-body font-bold text-sm transition-all shadow-[0_0_20px_rgba(255,143,192,0.3)] cursor-pointer"
+                  className="w-full py-3.5 rounded-xl text-[#2D0A1E] bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] active:brightness-95 font-body font-bold text-sm transition-all  cursor-pointer"
                 >
                   I Understand
                 </button>
@@ -862,7 +862,7 @@ export default function Chat() {
             <button 
               onClick={handleSend}
               disabled={(!inputText.trim() && !isListening && !isLoading && !isLyraSpeaking) || (isLoading && !isLyraSpeaking)}
-              className="p-3 text-[#2D0A1E] font-bold rounded-[12px] transition-all bg-[var(--accent-primary)] hover:brightness-105 shadow-[0_0_15px_rgba(255,143,192,0.3)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer w-12 h-12 flex items-center justify-center shrink-0"
+              className="p-3 text-[#2D0A1E] font-bold rounded-[12px] transition-all bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] active:brightness-95  disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer w-12 h-12 flex items-center justify-center shrink-0"
             >
               {(isLoading || isLyraSpeaking) ? (
                 <div className="w-4 h-4 bg-black rounded-sm" />
@@ -877,7 +877,7 @@ export default function Chat() {
             {/* Video Pill */}
             <button 
               onClick={() => setIsPortraitMode(!isPortraitMode)}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer"
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer"
               title="Toggle Camera"
             >
               {isPortraitMode ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
@@ -886,7 +886,7 @@ export default function Chat() {
             {/* Volume Pill */}
             <button 
               onClick={() => setIsMuted(!isMuted)}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer relative"
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer relative"
               title={isMuted ? "Unmute" : "Mute"}
             >
               {isMuted ? (
@@ -932,7 +932,7 @@ export default function Chat() {
             {/* Settings Pill */}
             <button 
               onClick={() => { closeDrawers(); setIsSettingsOpen(true); }}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] transition-colors shadow-lg cursor-pointer"
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer"
               title="Settings"
             >
               <Settings className="w-5 h-5" />
@@ -958,7 +958,7 @@ export default function Chat() {
             
             <div className="relative w-24 h-24 flex items-center justify-center">
               <motion.div 
-                className="absolute inset-0 rounded-full border-2 border-[var(--accent-primary)] shadow-[0_0_20px_rgba(255,143,192,0.3)]"
+                className="absolute inset-0 rounded-full border-2 border-[var(--accent-primary)] "
                 animate={{ 
                   scale: isLyraSpeaking ? speechPulse : (isListening ? 1.15 : 1), 
                   opacity: isLyraSpeaking ? 0.85 : (isListening ? 0.4 : 0.15) 
@@ -966,7 +966,7 @@ export default function Chat() {
                 transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
               />
               <motion.div 
-                className="w-12 h-12 rounded-full bg-[var(--accent-primary)] shadow-[0_0_30px_rgba(255,143,192,0.5)]"
+                className="w-12 h-12 rounded-full bg-[var(--accent-primary)] "
                 animate={{ 
                   scale: isLyraSpeaking ? 1.25 : 1, 
                   opacity: isLyraSpeaking ? 1 : 0.6 
@@ -996,7 +996,7 @@ export default function Chat() {
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
               <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Settings</h2>
-              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
+              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1063,7 +1063,7 @@ export default function Chat() {
           >
             <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
               <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Wardrobe</h2>
-              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] transition-colors">
+              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1089,7 +1089,7 @@ export default function Chat() {
                         onClick={() => handleOutfitChange(item.id)}
                         className={`interactive-surface flex flex-col items-center gap-2 p-4 rounded-2xl border text-center group cursor-pointer ${
                           outfit === item.id 
-                            ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_12px_rgba(255,143,192,0.2)]' 
+                            ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
                             : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
                         }`}
                       >

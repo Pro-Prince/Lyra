@@ -64,7 +64,7 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
               className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
                 sub.role === 'user'
                   ? 'bg-[var(--bg-surface)] backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
-                  : 'bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl shadow-[0_12px_44px_rgba(0,0,0,0.85),0_0_24px_rgba(255,143,192,0.25)]'
+                  : 'bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl '
               }`}
             >
               {sub.role === 'user' ? (

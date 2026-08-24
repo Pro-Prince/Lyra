@@ -17,6 +17,7 @@ import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
+import Button from "../components/Button";
 import { useOutfitRenders } from "../lib/outfitCache";
 
 function IconBadge({ 
@@ -208,13 +209,15 @@ export default function Landing() {
               </p>
 
               {/* Primary Call to Action Button: standard 12px 24px padding */}
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                icon={ArrowRight}
                 onClick={handleCTAClick}
-                className="inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] px-6 py-3 rounded-[12px] font-body font-medium text-base md:text-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,143,192,0.35)] active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] w-full sm:w-auto"
+                className="w-full sm:w-auto"
               >
-                <span>{t("landing_button")}</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+                {t("landing_button")}
+              </Button>
 
               {/* Disclosure line stacked below the CTA */}
               <div className="mt-4">
@@ -251,7 +254,7 @@ export default function Landing() {
                 hidden: { opacity: 0, y: 16 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+              className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
                 <IconBadge icon={Volume2} size={48} />
@@ -270,7 +273,7 @@ export default function Landing() {
                 hidden: { opacity: 0, y: 16 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+              className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
                 <IconBadge icon={Sparkles} size={48} />
@@ -289,7 +292,7 @@ export default function Landing() {
                 hidden: { opacity: 0, y: 16 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="feature-card flex flex-col justify-between transition-all duration-250 hover:-translate-y-1 hover:border-[var(--accent-primary)]/40 hover:shadow-xl shadow-sm"
+              className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
                 <IconBadge icon={BookOpen} size={48} />
@@ -385,13 +388,14 @@ export default function Landing() {
             <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)] mb-6">
               {t("landing_closing_title")}
             </h2>
-            <button
+            <Button
+              variant="primary"
+              size="lg"
+              icon={ArrowRight}
               onClick={handleCTAClick}
-              className="inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] px-6 py-3 rounded-[12px] font-body font-medium text-base md:text-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(255,143,192,0.35)] active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)]"
             >
-              <span>{t("landing_button")}</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+              {t("landing_button")}
+            </Button>
           </motion.div>
         </div>
       </section>

@@ -117,7 +117,7 @@ export default function Auth() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4 group">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)] shadow-[0_0_20px_rgba(255,143,192,0.2)] group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]  group-hover:scale-105 transition-transform">
               <Sparkles className="w-5 h-5" />
             </div>
             <span className="font-heading font-medium text-2xl tracking-tight text-[var(--text-primary)]">Lyra</span>
@@ -140,7 +140,7 @@ export default function Auth() {
               onClick={() => setMode('signup')}
               className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                 mode === 'signup'
-                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_12px_rgba(255,143,192,0.3)]'
+                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] '
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -151,7 +151,7 @@ export default function Auth() {
               onClick={() => setMode('signin')}
               className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                 mode === 'signin'
-                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-[0_0_12px_rgba(255,143,192,0.3)]'
+                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] '
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -166,7 +166,7 @@ export default function Auth() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-3 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.12] text-white py-3 px-4 rounded-xl font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.99] mb-4"
+                className="w-full flex items-center justify-center gap-3 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.12] text-white py-3 px-4 rounded-xl font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.98] mb-4"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -301,7 +301,7 @@ export default function Auth() {
             <button
               type="submit"
               disabled={isSubmitting || (mode === 'signup' && isUnderage)}
-              className="w-full group inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-sm transition-all hover:brightness-105 shadow-[0_0_20px_rgba(255,143,192,0.3)] disabled:opacity-50 disabled:cursor-not-allowed mt-2 cursor-pointer"
+              className="w-full group inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-sm transition-all hover:brightness-105 active:scale-[0.98] active:brightness-95  disabled:opacity-50 disabled:cursor-not-allowed mt-2 cursor-pointer"
             >
               <span>{mode === 'signup' ? t('auth_sign_up_button') : t('auth_sign_in_button')}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

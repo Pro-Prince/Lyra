@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Volume2, Sparkles, ArrowRight, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
 import CompanionStage from "../components/CompanionStage";
 import { Heading2, BodyText } from "../components/Typography";
+import Button from "../components/Button";
 import { getLocalProfile, saveLocalProfile, saveCompanion, saveMemory } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
@@ -251,15 +252,17 @@ export default function Onboarding() {
                 {t("landing_verify_desc")}
               </BodyText>
               <div className="flex flex-col gap-3">
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
                   onClick={confirmAdult}
-                  className="w-full bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-medium py-3 px-6 rounded-xl transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                  className="w-full"
                 >
                   I am 18 or older — Enter
-                </button>
+                </Button>
                 <button
                   onClick={() => navigate("/")}
-                  className="w-full bg-[var(--bg-base)] border border-white/10 text-[var(--text-muted)] font-body text-xs py-3 px-6 rounded-xl hover:text-white transition-colors cursor-pointer"
+                  className="w-full bg-[var(--bg-base)] border border-white/10 text-[var(--text-muted)] font-body text-xs py-3 px-6 rounded-xl hover:text-white active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Exit
                 </button>
@@ -342,13 +345,15 @@ export default function Onboarding() {
                     </BodyText>
                   </div>
 
-                  <button
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    icon={ArrowRight}
                     onClick={handleNext}
-                    className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                    className="w-full"
                   >
-                    <span>{t("onboarding_step1_cta")}</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
+                    {t("onboarding_step1_cta")}
+                  </Button>
                 </motion.div>
               )}
 
@@ -388,18 +393,16 @@ export default function Onboarding() {
                   </div>
 
                   <div className="flex flex-col items-center gap-4 w-full">
-                    <button
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      icon={ArrowRight}
                       onClick={handleNext}
                       disabled={!userName.trim()}
-                      className={`w-full inline-flex items-center justify-center gap-4 py-3 px-6 rounded-xl font-body font-medium text-base transition-all ${
-                        userName.trim()
-                          ? "bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 shadow-sm cursor-pointer"
-                          : "bg-white/10 text-white/40 cursor-not-allowed"
-                      }`}
+                      className="w-full"
                     >
-                      <span>Continue</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </button>
+                      Continue
+                    </Button>
                     <button
                       onClick={handleBack}
                       className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
@@ -441,7 +444,7 @@ export default function Onboarding() {
                           onClick={() => setSelectedVibe(vibe.id)}
                           className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left ${
                             isSelected
-                              ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.2)] ring-1 ring-[var(--accent-primary)]/50"
+                              ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]  ring-1 ring-[var(--accent-primary)]/50"
                               : "bg-[var(--bg-surface)] border-white/10 hover:border-[var(--accent-primary)]/30 hover:bg-white/[0.04]"
                           }`}
                         >
@@ -465,14 +468,16 @@ export default function Onboarding() {
                   </div>
 
                   <div className="flex flex-col items-center gap-4 w-full">
-                    <button
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      icon={ArrowRight}
                       onClick={handleNext}
                       disabled={!selectedVibe}
-                      className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                      className="w-full"
                     >
-                      <span>Continue</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </button>
+                      Continue
+                    </Button>
                     <button
                       onClick={handleBack}
                       className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
@@ -524,13 +529,15 @@ export default function Onboarding() {
                   </div>
 
                   <div className="flex flex-col items-center gap-4 w-full">
-                    <button
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      icon={ArrowRight}
                       onClick={handleNext}
-                      className="w-full inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-base transition-all hover:brightness-105 shadow-sm cursor-pointer"
+                      className="w-full"
                     >
-                      <span>Begin</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </button>
+                      Begin
+                    </Button>
                     <button
                       onClick={handleBack}
                       className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"

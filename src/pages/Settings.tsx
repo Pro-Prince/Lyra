@@ -294,7 +294,7 @@ export default function Settings() {
             <button 
               type="button"
               onClick={handleSaveVoice}
-              className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 py-2.5 px-4 rounded-xl transition-all font-bold text-xs shadow-[0_0_15px_rgba(255,143,192,0.25)] cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] hover:brightness-105 active:scale-[0.98] active:brightness-95 py-2.5 px-4 rounded-xl transition-all font-bold text-xs  cursor-pointer"
             >
               Save Voice Settings
             </button>
@@ -412,7 +412,7 @@ export default function Settings() {
                       onClick={() => handleSelectOutfit(outfit.id)}
                       className={`interactive-surface flex flex-col items-center p-2.5 rounded-2xl border text-center group cursor-pointer ${
                         isSelected
-                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_14px_rgba(255,143,192,0.25)] ring-1 ring-[var(--accent-primary)]/50'
+                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]  ring-1 ring-[var(--accent-primary)]/50'
                           : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'
                       }`}
                     >
@@ -442,9 +442,9 @@ export default function Settings() {
                       key={scene.id}
                       type="button"
                       onClick={() => handleSelectScenery(scene.id)}
-                      className={`flex flex-col items-center p-2 rounded-2xl border transition-all text-center group cursor-pointer ${
+                      className={`interactive-surface flex flex-col items-center p-2 rounded-2xl border text-center group cursor-pointer ${
                         isSelected
-                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] shadow-[0_0_14px_rgba(255,143,192,0.25)] ring-1 ring-[var(--accent-primary)]/50'
+                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]  ring-1 ring-[var(--accent-primary)]/50'
                           : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'
                       }`}
                     >
@@ -533,7 +533,7 @@ export default function Settings() {
                 <button
                   onClick={handleExportData}
                   disabled={exportConfirm !== "EXPORT"}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 active:scale-[0.98] active:brightness-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" /> Export JSON
                 </button>
@@ -563,7 +563,7 @@ export default function Settings() {
                 <button
                   onClick={handleImportData}
                   disabled={importConfirm !== "IMPORT" || !importFile}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-primary)] text-[#2D0A1E] font-bold py-2 px-4 rounded-xl text-xs hover:brightness-105 active:scale-[0.98] active:brightness-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                 >
                   <Upload className="w-3.5 h-3.5" /> Import JSON
                 </button>

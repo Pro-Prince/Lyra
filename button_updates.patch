@@ -1,0 +1,27 @@
+--- src/index.css
++++ src/index.css
+@@ -285,4 +285,9 @@
+   box-shadow: none;
+ }
++.btn-primary:active {
++  transform: translateY(0) scale(0.98);
++  filter: brightness(0.95);
++}
+ 
+ .btn-secondary {
+@@ -297,4 +302,8 @@
+   box-shadow: none;
+ }
++.btn-secondary:active {
++  transform: translateY(0) scale(0.98);
++  background: rgba(255, 143, 192, 0.08);
++}
+ 
+ .btn:focus-visible {
+@@ -327,4 +336,8 @@
+   border-color: rgba(255, 182, 213, 0.24);
+ }
++.icon-btn:active {
++  transform: scale(0.92);
++  background: rgba(255, 143, 192, 0.08);
++}
