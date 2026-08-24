@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
+import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
 import Button from "../components/Button";
@@ -80,32 +81,38 @@ const FAQ_ITEMS: FAQItem[] = [
 
 function OutfitShowcase() {
   const outfits: Array<{ id: string; url: string; label: string }> = [
-    { id: 'lyra', url: '/models/lyra.vrm?v=4', label: 'Default' },
-    { id: 'lyra_casual', url: '/models/lyra_casual.vrm?v=4', label: 'Casual' },
-    { id: 'lyra_dress', url: '/models/lyra_dress.vrm?v=4', label: 'Dress' },
+    { id: 'lyra', url: '/models/lyra.vrm?v=5', label: 'Default' },
+    { id: 'lyra_casual', url: '/models/lyra_casual.vrm?v=5', label: 'Casual' },
+    { id: 'lyra_dress', url: '/models/lyra_dress.vrm?v=5', label: 'Dress' },
   ];
 
   return (
-    <section className="outfit-showcase mt-20 sm:mt-24 w-full">
-      <div className="text-center mb-8 sm:mb-10">
+    <motion.section 
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-40px" }}
+      variants={groupVariants}
+      className="outfit-showcase mt-20 sm:mt-24 w-full"
+    >
+      <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
         <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
           Wardrobe
         </span>
         <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)]">
           Three looks, one presence
         </h2>
-      </div>
-      <div className="outfit-grid">
+      </motion.div>
+      <motion.div variants={groupVariants} className="outfit-grid">
         {outfits.map(({ id, url, label }) => (
-          <div key={id} className="outfit-card interactive-surface flex flex-col items-center">
+          <motion.div key={id} variants={entranceVariants} className="outfit-card interactive-surface flex flex-col items-center">
             <div className="w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-[var(--bg-surface)]">
               <VRMPreviewCanvas url={url} className="w-full h-full" />
             </div>
             <span className="outfit-label mt-3 font-medium text-sm text-[var(--text-primary)]">{label}</span>
-          </div>
+          </motion.div>
         ))}
-      </div>
-    </section>
+      </motion.div>
+    </motion.section>
   );
 }
 
@@ -168,7 +175,13 @@ export default function Landing() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-clip flex flex-col justify-between">
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageCrossfadeVariants}
+      className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-clip flex flex-col justify-between"
+    >
       {/* Subtle Grain Texture Overlay for Depth */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 
@@ -181,9 +194,10 @@ export default function Landing() {
           {/* Centered Hero Text Layout */}
           <div className="hero hero-single-column">
             <motion.div 
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={entranceVariants}
               className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
@@ -224,7 +238,7 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Outfit Showcase Section */}
+          {/* Wardrobe Outfit Showcase */}
           <OutfitShowcase />
 
           {/* Feature Cards Grid: Left-aligned, top-left badge */}
@@ -233,23 +247,12 @@ export default function Landing() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.1
-                }
-              }
-            }}
+            variants={groupVariants}
             className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
             {/* Card 1: Voice & Vibe */}
             <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
-              }}
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
@@ -265,10 +268,7 @@ export default function Landing() {
 
             {/* Card 2: 3D Live Companion Stage */}
             <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
-              }}
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
@@ -284,10 +284,7 @@ export default function Landing() {
 
             {/* Card 3: Reflective Memory */}
             <motion.div 
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
-              }}
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between shadow-sm"
             >
               <div>
@@ -308,27 +305,28 @@ export default function Landing() {
       <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
         <div className="w-full max-w-3xl mx-auto px-6">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            variants={groupVariants}
             aria-label="Frequently Asked Questions"
           >
-            <div className="text-center mb-8 sm:mb-10">
+            <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
                 FAQ
               </span>
               <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)]">
                 Common Questions
               </h2>
-            </div>
+            </motion.div>
 
-            <div className="faq-list border-t border-[rgba(255,182,213,0.12)]">
+            <motion.div variants={groupVariants} className="faq-list border-t border-[rgba(255,182,213,0.12)]">
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
-                  <div 
+                  <motion.div 
                     key={faq.id} 
+                    variants={entranceVariants}
                     className="faq-row cursor-pointer"
                     onClick={() => toggleFaq(faq.id)}
                     role="button"
@@ -359,17 +357,17 @@ export default function Landing() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          transition={{ duration: 0.25, ease: SIGNATURE_EASE }}
                           className="overflow-hidden"
                         >
                           <p className="faq-answer">{faq.answer}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -378,10 +376,10 @@ export default function Landing() {
       <section className="relative z-10 w-full bg-[var(--bg-base)] py-20 sm:py-24">
         <div className="w-full max-w-4xl mx-auto px-6">
           <motion.div 
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            variants={entranceVariants}
             className="text-center flex flex-col items-center"
           >
             <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)] mb-6">
@@ -401,7 +399,7 @@ export default function Landing() {
 
       {/* Global Footer: --bg-base with thin top border */}
       <Footer />
-    </div>
+    </motion.div>
   );
 }
 

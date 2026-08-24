@@ -10,9 +10,11 @@ import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
 import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
+import { PresenceTopBar } from "../components/PresenceTopBar";
 import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
 import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThumbnails } from "../lib/outfitCache";
+import { pageCrossfadeVariants } from "../lib/motion";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -106,7 +108,7 @@ export default function Chat() {
 
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [scenery, setScenery] = useState<string>('neutral');
-  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm?v=4');
+  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm?v=5');
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -703,7 +705,14 @@ export default function Chat() {
   }
 
   return (
-    <div className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageCrossfadeVariants}
+      className="relative w-[100vw] h-[100svh] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
+      style={{ '--accent': activeAccent } as React.CSSProperties}
+    >
       {/* MAIN STAGE */}
       <motion.main
         className="flex-1 relative flex flex-col h-full z-0 transform-gpu origin-center"
@@ -722,40 +731,21 @@ export default function Chat() {
           />
         )}
 
-        {/* TOP HUD */}
-        <motion.header 
+        {/* TOP HUD: Presence Screen Dedicated Top Bar */}
+        <motion.div 
           animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
-          className="absolute top-0 left-0 right-0 z-10 p-4 pt-safe flex justify-between items-center pointer-events-none w-full max-w-5xl mx-auto"
         >
-          {/* Left Block: Home */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/"
-              onClick={(e) => {
-                if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
-                  e.preventDefault();
-                  closeDrawers();
-                  setTimeout(() => navigate('/'), 300);
-                }
-              }}
-              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer flex items-center justify-center"
-              aria-label="Home"
-            >
-              <Home className="w-5 h-5 text-[var(--text-muted)]" />
-            </Link>
-          </div>
-
-          {/* Right Block: Wardrobe */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { closeDrawers(); setIsWardrobeOpen(true); }}
-              className="pointer-events-auto p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 hover:bg-[var(--bg-surface)] transition-colors shadow-lg cursor-pointer flex items-center justify-center"
-              aria-label="Wardrobe"
-            >
-              <Shirt className="w-5 h-5 text-[var(--text-muted)]" />
-            </button>
-          </div>
-        </motion.header>
+          <PresenceTopBar 
+            onOpenWardrobe={() => { closeDrawers(); setIsWardrobeOpen(true); }}
+            onHomeClick={(e) => {
+              if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
+                e.preventDefault();
+                closeDrawers();
+                setTimeout(() => navigate('/'), 300);
+              }
+            }}
+          />
+        </motion.div>
 
         {/* 3D VIEWER */}
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center pointer-events-none z-0">
@@ -1078,9 +1068,9 @@ export default function Chat() {
               ) : (
                 <div className="grid grid-cols-2 gap-6">
                   {[
-                    { id: '/models/lyra.vrm?v=4', label: 'Default' },
-                    { id: '/models/lyra_casual.vrm?v=4', label: 'Casual' },
-                    { id: '/models/lyra_dress.vrm?v=4', label: 'Dress' }
+                    { id: '/models/lyra.vrm?v=5', label: 'Default' },
+                    { id: '/models/lyra_casual.vrm?v=5', label: 'Casual' },
+                    { id: '/models/lyra_dress.vrm?v=5', label: 'Dress' }
                   ].map(item => (
                     <button
                       key={item.id}
@@ -1105,6 +1095,6 @@ export default function Chat() {
           </motion.aside>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

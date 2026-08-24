@@ -1,5 +1,4 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Sparkles } from "lucide-react";
 
 function FooterAnchorLink({ to, children, className }: { to: string; children: React.ReactNode; className?: string }) {
   const navigate = useNavigate();
@@ -30,9 +29,7 @@ export default function Footer() {
         {/* Column 1: Logo badge, wordmark, 2-line description */}
         <div className="md:col-span-6 flex flex-col items-start">
           <div className="flex items-center gap-3 mb-3.5">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm">
-              <Sparkles className="w-5 h-5 fill-current" />
-            </div>
+            <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-full object-cover shadow-sm" />
             <span className="font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
           </div>
           <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">

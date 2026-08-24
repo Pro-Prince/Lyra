@@ -42,11 +42,29 @@
   --space-xl: 48px;
   --space-2xl: 64px;
   --space-3xl: 96px;
-  --transition-curve: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --transition-normal: 200ms var(--transition-curve);
-  --transition-fast: 150ms var(--transition-curve);
+  --transition-curve: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-signature: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-entrance: 650ms;
+  --duration-feedback: 180ms;
+  --transition-normal: var(--duration-feedback) var(--ease-signature);
+  --transition-fast: var(--duration-feedback) var(--ease-signature);
 
   color-scheme: dark;
+}
+
+.btn, .interactive-surface, .faq-row, .footer-link, .presence-topbar a, .presence-topbar button {
+  transition: transform var(--duration-feedback) var(--ease-signature),
+              border-color var(--duration-feedback) var(--ease-signature),
+              background var(--duration-feedback) var(--ease-signature),
+              filter var(--duration-feedback) var(--ease-signature),
+              color var(--duration-feedback) var(--ease-signature);
+}
+
+.logo-badge-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  object-fit: cover;
 }
 
 body {
@@ -568,4 +586,44 @@ h3, .heading-3 {
   background: var(--accent-primary);
   transition: width 300ms var(--transition-curve);
 }
+
+/* ==========================================================================
+   Global prefers-reduced-motion Handling
+   - Instant or near-instant content reveals
+   - Keep color / border feedback without transform movement
+   - Freeze continuous ambient loops at static midpoint
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn, .interactive-surface, .faq-row, .footer-link, .presence-topbar a, .presence-topbar button {
+    transform: none !important;
+    transition: border-color var(--duration-feedback) linear,
+                background var(--duration-feedback) linear,
+                color var(--duration-feedback) linear !important;
+  }
+
+  .hero-visual,
+  .hero-portrait,
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .presence-glow {
+    animation: none !important;
+    opacity: 0.75 !important;
+    transform: scale(1) !important;
+  }
+}
+
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getLocalProfile, getCompanion } from "../lib/storage";
 import Button from "./Button";
 
@@ -33,9 +33,7 @@ export default function AppHeader() {
         className="header-logo flex items-center gap-2.5 m-0 p-0 group focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2 focus:ring-offset-[var(--bg-surface)] rounded-lg"
         aria-label="Lyra Home"
       >
-        <div className="logo-badge w-7 h-7 m-0 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center text-[var(--bg-base)] shadow-sm group-hover:scale-105 transition-transform">
-          <Sparkles className="w-3.5 h-3.5 fill-current" />
-        </div>
+        <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img" />
         <span className="wordmark m-0 font-heading font-medium text-[17px] tracking-tight text-[var(--text-primary)] leading-none">
           Lyra
         </span>

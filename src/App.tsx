@@ -57,8 +57,8 @@ export default function App() {
             const reg = await navigator.serviceWorker.ready;
             reg.showNotification("Lyra", {
               body: "Hey! No pressure, just thought I'd say hi whenever you have a moment. ✨",
-              icon: "/icon.svg",
-              badge: "/icon.svg",
+              icon: "/icons/icon-192.png",
+              badge: "/icons/icon-192.png",
               tag: "daily-checkin",
               requireInteraction: true
             });

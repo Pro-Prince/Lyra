@@ -607,7 +607,7 @@ function CompanionStageComponent({
   isWardrobeOpen = false,
   accentColor = "#FF8FC0",
   scenery = 'neutral',
-  outfitUrl = '/models/lyra.vrm?v=4',
+  outfitUrl = '/models/lyra.vrm?v=5',
   emotion = 'warm',
   graphicsTier = 'high',
   isPortraitMode = false,

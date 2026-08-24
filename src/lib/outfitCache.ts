@@ -16,9 +16,9 @@ export interface CachedOutfitEntry {
 }
 
 export const OUTFIT_FILES: Record<string, string> = {
-  lyra: '/models/lyra.vrm?v=4',
-  lyra_casual: '/models/lyra_casual.vrm?v=4',
-  lyra_dress: '/models/lyra_dress.vrm?v=4',
+  lyra: '/models/lyra.vrm?v=5',
+  lyra_casual: '/models/lyra_casual.vrm?v=5',
+  lyra_dress: '/models/lyra_dress.vrm?v=5',
 };
 
 const MIXAMO_FILES = [

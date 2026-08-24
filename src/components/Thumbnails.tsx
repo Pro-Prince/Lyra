@@ -6,11 +6,11 @@ export function OutfitThumbnail({ id, className = "w-full h-full" }: { id: strin
   // Normalize outfit URL if a key is passed
   let modelUrl = id;
   if (id === 'default' || id === 'lyra') {
-    modelUrl = '/models/lyra.vrm?v=4';
+    modelUrl = '/models/lyra.vrm?v=5';
   } else if (id === 'casual' || id === 'lyra_casual') {
-    modelUrl = '/models/lyra_casual.vrm?v=4';
+    modelUrl = '/models/lyra_casual.vrm?v=5';
   } else if (id === 'dress' || id === 'lyra_dress') {
-    modelUrl = '/models/lyra_dress.vrm?v=4';
+    modelUrl = '/models/lyra_dress.vrm?v=5';
   }
 
   return <VRMPreviewCanvas url={modelUrl} className={className} />;

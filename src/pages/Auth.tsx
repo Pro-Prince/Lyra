@@ -117,9 +117,7 @@ export default function Auth() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4 group">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]  group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5" />
-            </div>
+            <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-full object-cover shadow-sm group-hover:scale-105 transition-transform" />
             <span className="font-heading font-medium text-2xl tracking-tight text-[var(--text-primary)]">Lyra</span>
           </Link>
 

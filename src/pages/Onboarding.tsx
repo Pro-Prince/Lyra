@@ -8,6 +8,7 @@ import Button from "../components/Button";
 import { getLocalProfile, saveLocalProfile, saveCompanion, saveMemory } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
+import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 
 const VIBE_OPTIONS = [
   { id: "Warm & Gentle", label: "Warm & Gentle", desc: "Cozy & empathetic", icon: Heart },
@@ -198,7 +199,7 @@ export default function Onboarding() {
       rate: 0.98,
       language: "en-US",
       initialized: true,
-      outfit: "/models/lyra.vrm?v=4"
+      outfit: "/models/lyra.vrm?v=5"
     });
 
     await saveMemory({
@@ -225,7 +226,13 @@ export default function Onboarding() {
   const currentEmotion = step === 1 ? "warm" : step === 3 ? "playful" : "thoughtful";
 
   return (
-    <div className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none">
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageCrossfadeVariants}
+      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
+    >
       {/* Thin, full-width progress bar fixed at top */}
       <div className="fixed top-0 left-0 right-0 z-50 onboarding-progress">
         <div 
@@ -239,9 +246,10 @@ export default function Onboarding() {
         {adultConfirmed === false && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
               className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 rounded-3xl p-8 shadow-2xl text-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] mx-auto mb-4">
@@ -294,7 +302,7 @@ export default function Onboarding() {
                 accentColor="#FF8FC0"
                 isCallMode={false}
                 scenery="neutral"
-                outfitUrl="/models/lyra.vrm?v=4"
+                outfitUrl="/models/lyra.vrm?v=5"
                 emotion={currentEmotion}
                 onModelLoaded={handleModelLoaded}
               />
@@ -308,10 +316,10 @@ export default function Onboarding() {
               {adultConfirmed && step === 1 && (
                 <motion.div
                   key="step-1"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-6">
@@ -361,10 +369,10 @@ export default function Onboarding() {
               {adultConfirmed && step === 2 && (
                 <motion.div
                   key="step-2"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
                   <div className="mb-6">
@@ -417,10 +425,10 @@ export default function Onboarding() {
               {adultConfirmed && step === 3 && (
                 <motion.div
                   key="step-3"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
                   <div className="mb-6">
@@ -492,10 +500,10 @@ export default function Onboarding() {
               {adultConfirmed && step === 4 && (
                 <motion.div
                   key="step-4"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
                   <div className="mb-6">
@@ -552,6 +560,6 @@ export default function Onboarding() {
 
         </div>
       </main>
-    </div>
+    </motion.div>
   );
 }

@@ -1,7 +1,19 @@
 const MEMORY_CACHE = new Map<string, ArrayBuffer>();
-const DB_NAME = 'LyraVRMCacheDB_v4';
+const DB_NAME = 'LyraVRMCacheDB_v5';
 const DB_VERSION = 1;
 const STORE_NAME = 'models';
+
+// Cleanup older legacy databases on startup if they exist
+if (typeof window !== 'undefined' && window.indexedDB) {
+  try {
+    indexedDB.deleteDatabase('LyraVRMCacheDB_v1');
+    indexedDB.deleteDatabase('LyraVRMCacheDB_v2');
+    indexedDB.deleteDatabase('LyraVRMCacheDB_v3');
+    indexedDB.deleteDatabase('LyraVRMCacheDB_v4');
+  } catch (e) {
+    // Ignore legacy cleanup errors
+  }
+}
 
 export function isValidGLTFBuffer(buf: ArrayBuffer | null | undefined): boolean {
   if (!buf || buf.byteLength < 1000) return false;
@@ -191,9 +203,9 @@ export async function preloadVRMModel(url: string): Promise<void> {
 export function preloadAllVRMModels(): void {
   if (typeof window === 'undefined') return;
   const models = [
-    '/models/lyra.vrm?v=4',
-    '/models/lyra_casual.vrm?v=4',
-    '/models/lyra_dress.vrm?v=4'
+    '/models/lyra.vrm?v=5',
+    '/models/lyra_casual.vrm?v=5',
+    '/models/lyra_dress.vrm?v=5'
   ];
   models.forEach((url, idx) => {
     setTimeout(() => {
