@@ -8,9 +8,9 @@ import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
 import { useToast } from "../hooks/useToast";
 
 const OUTFITS = [
-  { id: '/models/lyra.vrm?v=2', label: 'Default', tag: 'Standard' },
-  { id: '/models/lyra_casual.vrm?v=2', label: 'Casual', tag: 'Hoodie' },
-  { id: '/models/lyra_dress.vrm?v=2', label: 'Dress', tag: 'Dress' }
+  { id: '/models/lyra.vrm?v=4', label: 'Default', tag: 'Standard' },
+  { id: '/models/lyra_casual.vrm?v=4', label: 'Casual', tag: 'Hoodie' },
+  { id: '/models/lyra_dress.vrm?v=4', label: 'Dress', tag: 'Dress' }
 ];
 
 const SCENERIES = [
@@ -32,7 +32,7 @@ export default function Settings() {
   const [rate, setRate] = useState(1);
   
   // Customization
-  const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm?v=2");
+  const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm?v=4");
   const [currentScenery, setCurrentScenery] = useState<string>("neutral");
 
   // Check-in Settings

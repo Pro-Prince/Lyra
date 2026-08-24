@@ -48,6 +48,24 @@ export function applyRestPose(vrm: VRM) {
   h.update();
 }
 
+export function frameOutfit(
+  vrmScene: THREE.Group,
+  camera: THREE.PerspectiveCamera,
+  _canvasHeightPx: number = 256
+) {
+  const box = new THREE.Box3().setFromObject(vrmScene);
+  const totalHeight = box.max.y - box.min.y;
+  const topY = box.max.y + 0.05;
+  const bottomY = box.min.y + totalHeight * 0.25; // From mid-thighs to head
+  const targetHeight = topY - bottomY;
+  const paddingFactor = 1.15;
+  const fov = camera.fov * (Math.PI / 180);
+  const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
+  const centerY = (topY + bottomY) / 2;
+  camera.position.set(0, centerY, Math.max(1.2, distance));
+  camera.lookAt(0, centerY, 0);
+}
+
 export function frameFullBody(
   vrmScene: THREE.Group,
   camera: THREE.PerspectiveCamera,
@@ -60,30 +78,30 @@ export function frameFullBody(
   box.getSize(size);
 
   const fov = camera.fov * (Math.PI / 180);
-  const paddingFactor = 1.15;
+  const paddingFactor = 1.12;
   const visibleFraction = Math.max(0.1, (canvasHeightPx - reservedBottomPx - reservedTopPx) / canvasHeightPx);
   const distance = (size.y * paddingFactor) / (2 * Math.tan(fov / 2) * visibleFraction);
 
-  const targetDist = Math.max(1.5, Math.min(4.0, distance));
+  const targetDist = Math.max(1.4, Math.min(4.0, distance));
   const posY = (box.min.y + box.max.y) / 2;
   camera.position.set(0, posY, targetDist);
-  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.3;
+  const verticalShift = (reservedBottomPx / canvasHeightPx) * size.y * 0.2;
   camera.lookAt(0, posY - verticalShift, 0);
 }
 
 export function framePortrait(
   vrmScene: THREE.Group,
   camera: THREE.PerspectiveCamera,
-  canvasHeightPx: number = 256
+  _canvasHeightPx: number = 256
 ) {
   const box = new THREE.Box3().setFromObject(vrmScene);
   const headTop = box.max.y;
-  const shoulderY = headTop - (box.max.y - box.min.y) * 0.25; // roughly shoulders to head top
+  const shoulderY = headTop - (box.max.y - box.min.y) * 0.28;
   const targetHeight = headTop - shoulderY;
-  const paddingFactor = 1.4; // real headroom above her head, this is what was missing
+  const paddingFactor = 1.35;
   const fov = camera.fov * (Math.PI / 180);
   const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
-  camera.position.set(0, (headTop + shoulderY) / 2, distance);
+  camera.position.set(0, (headTop + shoulderY) / 2, Math.max(0.6, distance));
   camera.lookAt(0, (headTop + shoulderY) / 2, 0);
 }
 

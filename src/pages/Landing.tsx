@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Footer from "../components/Footer";
 import AppHeader from "../components/AppHeader";
 import Button from "../components/Button";
-import { useOutfitRenders } from "../lib/outfitCache";
+import { VRMPreviewCanvas } from "../components/VRMPreviewCanvas";
 
 function IconBadge({ 
   icon: Icon, 
@@ -79,8 +79,11 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function OutfitShowcase() {
-  const outfits = useOutfitRenders(); // { lyra, lyra_casual, lyra_dress }
-  const labels: Record<string, string> = { lyra: 'Default', lyra_casual: 'Casual', lyra_dress: 'Dress' };
+  const outfits: Array<{ id: string; url: string; label: string }> = [
+    { id: 'lyra', url: '/models/lyra.vrm?v=4', label: 'Default' },
+    { id: 'lyra_casual', url: '/models/lyra_casual.vrm?v=4', label: 'Casual' },
+    { id: 'lyra_dress', url: '/models/lyra_dress.vrm?v=4', label: 'Dress' },
+  ];
 
   return (
     <section className="outfit-showcase mt-20 sm:mt-24 w-full">
@@ -93,21 +96,14 @@ function OutfitShowcase() {
         </h2>
       </div>
       <div className="outfit-grid">
-        {Object.entries(labels).map(([id, label]) => {
-          const render = outfits[id];
-          return (
-            <div key={id} className="outfit-card interactive-surface">
-              {render ? (
-                <img src={render} alt={label} className="outfit-render" />
-              ) : (
-                <div className="outfit-render flex items-center justify-center bg-[var(--bg-surface)] rounded-xl opacity-60">
-                  <div className="w-8 h-8 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              <span className="outfit-label">{label}</span>
+        {outfits.map(({ id, url, label }) => (
+          <div key={id} className="outfit-card interactive-surface flex flex-col items-center">
+            <div className="w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-[var(--bg-surface)]">
+              <VRMPreviewCanvas url={url} className="w-full h-full" />
             </div>
-          );
-        })}
+            <span className="outfit-label mt-3 font-medium text-sm text-[var(--text-primary)]">{label}</span>
+          </div>
+        ))}
       </div>
     </section>
   );

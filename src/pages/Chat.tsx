@@ -106,7 +106,7 @@ export default function Chat() {
 
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [scenery, setScenery] = useState<string>('neutral');
-  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm?v=2');
+  const [outfit, setOutfit] = useState<string>('/models/lyra.vrm?v=4');
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -1078,34 +1078,27 @@ export default function Chat() {
               ) : (
                 <div className="grid grid-cols-2 gap-6">
                   {[
-                    { id: '/models/lyra.vrm?v=2', label: 'Default' },
-                    { id: '/models/lyra_casual.vrm?v=2', label: 'Casual' },
-                    { id: '/models/lyra_dress.vrm?v=2', label: 'Dress' }
-                  ].map(item => {
-                    const thumb = outfitThumbnails[item.id] || getCachedOutfit(item.id)?.thumbnail;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleOutfitChange(item.id)}
-                        className={`interactive-surface flex flex-col items-center gap-2 p-4 rounded-2xl border text-center group cursor-pointer ${
-                          outfit === item.id 
-                            ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
-                            : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
-                        }`}
-                      >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
-                          {thumb ? (
-                            <img src={thumb} alt={item.label} className="w-full h-full object-cover" />
-                          ) : (
-                            <OutfitThumbnail id={item.id} />
-                          )}
-                        </div>
-                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                    { id: '/models/lyra.vrm?v=4', label: 'Default' },
+                    { id: '/models/lyra_casual.vrm?v=4', label: 'Casual' },
+                    { id: '/models/lyra_dress.vrm?v=4', label: 'Dress' }
+                  ].map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleOutfitChange(item.id)}
+                      className={`interactive-surface flex flex-col items-center gap-2 p-3 rounded-2xl border text-center group cursor-pointer ${
+                        outfit === item.id 
+                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
+                          : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
+                      }`}
+                    >
+                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
+                        <OutfitThumbnail id={item.id} />
+                      </div>
+                      <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

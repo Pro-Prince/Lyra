@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait } from './poseUtils';
+import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 import { createThumbnailRenderer } from './thumbnailUtils';
 import { loadVRM } from './vrmLoader';
 import { loadMixamoAnimation } from './retargetMixamo';
-import { clearAllModelBuffers, clearCachedModelBuffer } from './vrmCache';
+import { clearAllModelBuffers } from './vrmCache';
 
 export interface CachedOutfitEntry {
   vrm: VRM;
@@ -16,9 +16,9 @@ export interface CachedOutfitEntry {
 }
 
 export const OUTFIT_FILES: Record<string, string> = {
-  lyra: '/models/lyra.vrm?v=2',
-  lyra_casual: '/models/lyra_casual.vrm?v=2',
-  lyra_dress: '/models/lyra_dress.vrm?v=2',
+  lyra: '/models/lyra.vrm?v=4',
+  lyra_casual: '/models/lyra_casual.vrm?v=4',
+  lyra_dress: '/models/lyra_dress.vrm?v=4',
 };
 
 const MIXAMO_FILES = [
@@ -39,23 +39,25 @@ let loadingPromise: Promise<Record<string, CachedOutfitEntry>> | null = null;
 export async function renderPosedOutfit(
   vrmUrlOrInstance: string | VRM,
   renderer?: THREE.WebGLRenderer,
-  { frame = 'full-body', size = 256 }: { frame?: 'full-body' | 'portrait'; size?: number } = {}
+  { frame = 'outfit', size = 300 }: { frame?: 'full-body' | 'portrait' | 'outfit'; size?: number } = {}
 ): Promise<string> {
   const vrm = typeof vrmUrlOrInstance === 'string' ? await loadVRM(vrmUrlOrInstance) : vrmUrlOrInstance;
   
-  applyRestPose(vrm);        // always, no caller can skip this
+  applyRestPose(vrm);
   applyRelaxedHandPose(vrm, 'left');
   applyRelaxedHandPose(vrm, 'right');
   vrm.humanoid?.update();
 
   const scene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  const key = new THREE.DirectionalLight(0xffffff, 1.2);
-  key.position.set(1, 2, 2);
-  scene.add(ambient, key, vrm.scene);
+  const ambient = new THREE.AmbientLight(0xfff5f8, 1.2);
+  const key = new THREE.DirectionalLight(0xfff8f0, 1.3);
+  key.position.set(1.5, 3.0, 2.5);
+  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.8);
+  fill.position.set(-1.5, 2.0, 2.0);
+  scene.add(ambient, key, fill, vrm.scene);
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 10);
-  const height = Math.round(size * (frame === 'full-body' ? 1.4 : 1));
+  const height = Math.round(size * (frame === 'full-body' ? 1.35 : 1));
   camera.aspect = size / height;
   camera.updateProjectionMatrix();
 
@@ -63,6 +65,8 @@ export async function renderPosedOutfit(
 
   if (frame === 'full-body') {
     frameFullBody(vrm.scene, camera, height, 0, 0);
+  } else if (frame === 'outfit') {
+    frameOutfit(vrm.scene, camera, height);
   } else {
     framePortrait(vrm.scene, camera, size);
   }
@@ -93,11 +97,10 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
     for (const [id, url] of Object.entries(OUTFIT_FILES)) {
       try {
         console.log('loading', id, url);
-        console.log('generating thumbnail for', url);
         const vrm = await loadVRM(url);
         
-        const thumbnail = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 256 });
-        const fullBodyRender = await renderPosedOutfit(vrm, undefined, { frame: 'full-body', size: 350 });
+        const thumbnail = await renderPosedOutfit(vrm, undefined, { frame: 'outfit', size: 320 });
+        const fullBodyRender = await renderPosedOutfit(vrm, undefined, { frame: 'full-body', size: 380 });
         const heroPortrait = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 400 });
 
         // Preload essential idle animation first
@@ -218,6 +221,39 @@ export function getAllFullBodyRenders(): Record<string, string> {
     }
   }
   return result;
+}
+
+export function useOutfitThumbnail(id: string): string | null {
+  const [thumb, setThumb] = useState<string | null>(() => getCachedOutfit(id)?.thumbnail || null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const existing = getCachedOutfit(id)?.thumbnail;
+    if (existing) {
+      setThumb(existing);
+      return;
+    }
+
+    preloadAllOutfits('useOutfitThumbnail').then(() => {
+      if (isMounted) {
+        setThumb(getCachedOutfit(id)?.thumbnail || null);
+      }
+    });
+
+    const handleReady = () => {
+      if (isMounted) {
+        setThumb(getCachedOutfit(id)?.thumbnail || null);
+      }
+    };
+
+    window.addEventListener('lyraOutfitsReady', handleReady);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('lyraOutfitsReady', handleReady);
+    };
+  }, [id]);
+
+  return thumb;
 }
 
 export function useOutfitRenders(): Record<string, string> {

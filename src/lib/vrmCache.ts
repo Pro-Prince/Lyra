@@ -1,5 +1,5 @@
 const MEMORY_CACHE = new Map<string, ArrayBuffer>();
-const DB_NAME = 'LyraVRMCacheDB_v2';
+const DB_NAME = 'LyraVRMCacheDB_v4';
 const DB_VERSION = 1;
 const STORE_NAME = 'models';
 
@@ -191,9 +191,9 @@ export async function preloadVRMModel(url: string): Promise<void> {
 export function preloadAllVRMModels(): void {
   if (typeof window === 'undefined') return;
   const models = [
-    '/models/lyra.vrm?v=2',
-    '/models/lyra_casual.vrm?v=2',
-    '/models/lyra_dress.vrm?v=2'
+    '/models/lyra.vrm?v=4',
+    '/models/lyra_casual.vrm?v=4',
+    '/models/lyra_dress.vrm?v=4'
   ];
   models.forEach((url, idx) => {
     setTimeout(() => {
