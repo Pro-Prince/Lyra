@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import { pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
 import { Trash2, Play, Heart, AlertTriangle, ArrowLeft, Volume2, Sparkles, Moon, Bell, Download, Upload } from "lucide-react";
 import { t } from "../lib/i18n";
@@ -193,7 +195,13 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto">
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageCrossfadeVariants}
+      className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto"
+    >
       {/* Top Title */}
       <div className="mb-8 max-w-6xl mx-auto w-full pt-2">
         <h1 className="text-2xl sm:text-3xl font-medium font-heading tracking-tight text-[var(--text-primary)]">
@@ -616,6 +624,6 @@ export default function Settings() {
           Your data stays on this device. Fully private and locally stored.
         </p>
       </footer>
-    </div>
+    </motion.div>
   );
 }

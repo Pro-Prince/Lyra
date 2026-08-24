@@ -21,8 +21,11 @@
 
 }
 
-:root,
-[data-theme="dark"] {
+html {
+  scrollbar-gutter: stable;
+}
+
+:root {
   --bg-base: #160F17;
   --bg-surface: #241823;
   --accent-primary: #FF8FC0;
@@ -53,22 +56,6 @@
   color-scheme: dark;
 }
 
-[data-theme="light"] {
-  --bg-base: #f8fafc;
-  --bg-surface: #ffffff;
-  --accent-primary: #2563eb;
-  --accent-secondary: #3b82f6;
-  --accent-glow: #93c5fd;
-  --text-primary: #0f172a;
-  --text-muted: #64748b;
-  --text-danger: #ef4444;
-  --font-heading: 'Fraunces', serif;
-  --font-display: 'Fraunces', serif;
-  --font-body: 'Poppins', sans-serif;
-
-  color-scheme: light;
-}
-
 .btn, .interactive-surface, .faq-row, .footer-link, .presence-topbar a, .presence-topbar button {
   transition: transform var(--duration-feedback) var(--ease-signature),
               border-color var(--duration-feedback) var(--ease-signature),
@@ -78,10 +65,17 @@
 }
 
 .logo-badge-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px; /* rounded square, not a circle, this is what stops the cropping */
-  object-fit: cover; /* safe now, badge and source share the same square aspect ratio */
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  object-fit: cover;
+  transition: border-color 0.2s ease;
+}
+
+.logo-badge-img:hover {
+  border-color: rgba(255, 143, 192, 0.5);
 }
 
 .header-logo:focus-visible,

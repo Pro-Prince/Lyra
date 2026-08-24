@@ -27,7 +27,9 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
     if (!pendingFetches.has(url)) {
       const fetchPromise = (async () => {
         console.log('[loadVRM] Fetching model:', url);
-        const res = await fetch(url);
+        // Append version query parameter to bypass stale browser disk cache
+        const cacheBustUrl = `${url}?v=${Date.now()}`;
+        const res = await fetch(cacheBustUrl, { cache: 'no-cache' });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status} when fetching model at ${url}`);
         }
@@ -49,6 +51,7 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
         return buf;
       })().catch((err) => {
         pendingFetches.delete(url);
+        bufferCache.delete(url);
         throw err;
       });
       pendingFetches.set(url, fetchPromise);
@@ -74,10 +77,12 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
       (gltf) => {
         const vrm = gltf.userData.vrm as VRM;
         if (!vrm) {
+          bufferCache.delete(url);
           reject(new Error(`No VRM found in model at ${url} (gltf.userData.vrm is missing)`));
           return;
         }
         if (!vrm.humanoid) {
+          bufferCache.delete(url);
           reject(new Error(`VRM at ${url} does not contain a humanoid rig`));
           return;
         }
@@ -97,6 +102,7 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
       },
       (err) => {
         console.error(`[loadVRM] GLTFLoader parse error for ${url}:`, err);
+        bufferCache.delete(url);
         reject(err);
       }
     );

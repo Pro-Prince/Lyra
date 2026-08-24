@@ -701,7 +701,14 @@ export default function Chat() {
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
 
   if (isAdultVerified !== true) {
-    return <div className="w-full h-screen bg-[var(--bg-base)]" />;
+    return (
+      <div className="w-full h-[calc(100svh-56px)] bg-[var(--bg-base)] flex flex-col items-center justify-center gap-3">
+        <div className="w-9 h-9 rounded-xl border border-[var(--text-muted)]/20 overflow-hidden flex items-center justify-center animate-pulse">
+          <img src="/images/Logo.png" alt="Lyra" className="w-full h-full object-cover" />
+        </div>
+        <p className="text-xs font-body text-[var(--text-muted)] animate-pulse">Loading Lyra...</p>
+      </div>
+    );
   }
 
   return (
@@ -710,7 +717,7 @@ export default function Chat() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="relative w-full h-[calc(100svh-64px)] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
+      className="relative w-full h-[calc(100svh-56px)] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
       style={{ '--accent': activeAccent } as React.CSSProperties}
     >
       {/* MAIN STAGE */}
