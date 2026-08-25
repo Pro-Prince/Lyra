@@ -343,6 +343,7 @@ h3, .heading-3 {
 
 /* Standardized Button System */
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -351,55 +352,55 @@ h3, .heading-3 {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              background 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn svg {
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 200ms ease;
 }
-.btn:hover svg {
+.btn:hover:not(:disabled) svg {
   transform: translateX(3px);
 }
 .btn-lg { padding: 12px 28px; font-size: 15px; gap: 8px; }
 .btn-sm { padding: 8px 20px; font-size: 13.5px; gap: 6px; }
 
+/* Primary Button: Simple solid brand pink transition */
 .btn-primary {
-  background-color: var(--accent-primary);
+  background: var(--accent-primary);
   color: var(--bg-base);
-  border: 1px solid transparent;
-  box-shadow: 0 4px 14px rgba(255, 143, 192, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
+
 .btn-primary:hover:not(:disabled) {
   background-color: #ff7eb6;
-  color: var(--bg-base);
   transform: translateY(-1px);
-  box-shadow: 0 8px 25px -4px rgba(255, 143, 192, 0.45);
 }
+
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(255, 143, 192, 0.2);
+  transform: translateY(0) scale(0.96);
 }
+
 .btn-primary:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .btn-secondary {
-  background: var(--bg-surface);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 182, 213, 0.16);
-  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
-.btn-secondary:hover {
-  border-color: rgba(255, 182, 213, 0.35);
-  background: rgba(255, 143, 192, 0.08);
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 143, 192, 0.05);
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 143, 192, 0.3);
   transform: translateY(-1px);
 }
-.btn-secondary:active {
+.btn-secondary:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
-  background: rgba(255, 143, 192, 0.12);
-  box-shadow: none;
 }
 
 .btn:focus-visible {

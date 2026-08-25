@@ -1,5 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" fill="#160F17"/>
-  <circle cx="50" cy="50" r="30" fill="none" stroke="#FF8FC0" stroke-width="4"/>
-  <path d="M 50 30 C 70 30 70 70 50 70" fill="none" stroke="#C9A6FF" stroke-width="4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <clipPath id="logoClip">
+      <rect x="4" y="4" width="92" height="92" rx="24" ry="24" />
+    </clipPath>
+  </defs>
+
+  <!-- Background Base of the badge -->
+  <rect x="4" y="4" width="92" height="92" rx="24" ry="24" fill="#160F17" />
+
+  <!-- Avatar image of Lyra inside the rounded clipping path -->
+  <image href="/images/Logo.png" x="4" y="4" width="92" height="92" clip-path="url(#logoClip)" />
+
+  <!-- Elegant outline border matching the header style -->
+  <rect x="4" y="4" width="92" height="92" rx="24" ry="24" fill="none" stroke="#FF8FC0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

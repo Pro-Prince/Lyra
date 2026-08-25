@@ -101,22 +101,19 @@ function OutfitShowcase() {
       id: 'lyra',
       url: '/models/lyra.vrm',
       label: 'Default',
-      tag: 'Default',
-      desc: 'Classic signature sailor uniform with pink ribbon.',
+      desc: 'Classic school uniform with crisp sailor collar, pink ribbon & pleated skirt.',
     },
     {
       id: 'lyra_casual',
       url: '/models/lyra_casual.vrm',
       label: 'Casual',
-      tag: 'Casual',
-      desc: 'Relaxed periwinkle hoodie with denim skirt.',
+      desc: 'Relaxed pastel hoodie paired with comfortable sporty casual wear.',
     },
     {
       id: 'lyra_dress',
       url: '/models/lyra_dress.vrm',
       label: 'Dress',
-      tag: 'Dress',
-      desc: 'Elegant formal evening gown with tiara hairpin.',
+      desc: 'Sophisticated dark formal attire with structured tailoring & sleek accents.',
     },
   ];
 
@@ -152,26 +149,19 @@ function OutfitShowcase() {
       </motion.div>
 
       <motion.div variants={groupVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {outfits.map(({ id, url, label, tag, desc }) => (
+        {outfits.map(({ id, url, label, desc }) => (
           <motion.div
             key={id}
             variants={entranceVariants}
-            className="group relative bg-[var(--bg-surface)]/80 backdrop-blur-xl border border-[var(--text-muted)]/15 hover:border-[var(--accent-primary)]/40 rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+            className="group relative bg-[var(--bg-surface)]/80 backdrop-blur-xl border border-[var(--text-muted)]/15 hover:border-[var(--accent-primary)]/30 rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-lg transition-all duration-300 hover:-translate-y-1"
           >
-            {/* Tag Badge */}
-            <div className="absolute top-8 left-8 z-20">
-              <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 backdrop-blur-md">
-                {tag}
-              </span>
-            </div>
-
             {/* 3D Canvas Container */}
-            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/60 to-[var(--bg-surface)] relative border border-white/5">
+            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/40 to-[var(--bg-surface)] relative border border-white/5 z-10">
               <VRMPreviewCanvas url={url} className="w-full h-full" interactive={true} autoRotate={true} />
             </div>
 
             {/* Info & Action CTA */}
-            <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center">
+            <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center z-10">
               <div>
                 <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-1.5">
                   {label}
@@ -184,10 +174,10 @@ function OutfitShowcase() {
               <button
                 type="button"
                 onClick={() => handleSelectOutfit(url)}
-                className="w-full py-2.5 px-4 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] text-[var(--bg-base)] font-body font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 active:scale-[0.98]"
+                className="btn btn-primary btn-sm w-full"
               >
                 <span>Wear this look</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </motion.div>

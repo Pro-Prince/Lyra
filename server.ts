@@ -7,7 +7,7 @@ import "dotenv/config";
 
 let ai: GoogleGenAI | null = null;
 
-const MODELS_LIST = ["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"];
+const MODELS_LIST = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"];
 
 async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 4) {
   let modelIndex = 0;

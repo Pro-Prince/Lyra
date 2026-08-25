@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff } from "lucide-react";
+import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile } from "../lib/storage";
@@ -109,12 +109,14 @@ export default function Chat() {
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [scenery, setScenery] = useState<string>('neutral');
   const [outfit, setOutfit] = useState<string>('/models/lyra.vrm');
+  const [activeTab, setActiveTab] = useState<'chat' | 'about'>('chat');
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
 
   // Focus management references
   const leftDrawerRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -698,6 +700,12 @@ export default function Chat() {
      prevAppStateRef.current = appState;
   }, [appState, memories]);
 
+  useEffect(() => {
+     if (activeTab === 'chat') {
+         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+     }
+  }, [messages, activeTab]);
+
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
 
   if (isAdultVerified !== true) {
@@ -712,23 +720,7 @@ export default function Chat() {
   }
 
   return (
-    <motion.div 
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={pageCrossfadeVariants}
-      className="relative w-full h-[calc(100svh-56px)] bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden font-body flex" 
-      style={{ '--accent': activeAccent } as React.CSSProperties}
-    >
-      {/* MAIN STAGE */}
-      <motion.main
-        className="flex-1 relative flex flex-col h-full z-0 transform-gpu origin-center"
-        animate={{
-          scale: (isSettingsOpen || isRapportOpen || isWardrobeOpen) ? 0.95 : 1,
-          opacity: (isSettingsOpen || isRapportOpen || isWardrobeOpen) ? 0.3 : 1,
-        }}
-        transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-      >
+    <div className="w-full h-[calc(100svh-56px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
         {/* Click-away overlay when a drawer is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
@@ -738,54 +730,210 @@ export default function Chat() {
           />
         )}
 
-        {/* TOP HUD: Presence Screen Dedicated Top Bar */}
-        <motion.div 
-          animate={{ opacity: isCallMode ? 0 : 1, pointerEvents: isCallMode ? 'none' : 'auto' }}
-        >
-          <PresenceTopBar 
-            onOpenWardrobe={() => { closeDrawers(); setIsWardrobeOpen(true); }}
-            onHomeClick={(e) => {
-              if (isSettingsOpen || isRapportOpen || isWardrobeOpen) {
-                e.preventDefault();
-                closeDrawers();
-                setTimeout(() => navigate('/'), 300);
-              }
-            }}
-          />
-        </motion.div>
-
-        {/* 3D VIEWER */}
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center pointer-events-none z-0">
-          <div className="w-full h-full pointer-events-auto relative">
-            <CompanionStage 
-              accentColor={activeAccent} 
-              isCallMode={isCallMode} 
-              scenery={scenery} 
-              outfitUrl={outfit} 
-              emotion={currentEmotion}
-              isWardrobeOpen={isWardrobeOpen}
-              isPortraitMode={isPortraitMode || isInputFocused}
-              isProcessing={isLoading}
-            />
-            {/* TouchInteractionLayer */}
-            <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
-              {/* Face Zone */}
-              <div 
-                className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer"
-                onClick={() => triggerGesture('laugh', '')}
-              />
-              {/* Shoulders Zone */}
-              <div 
-                className="pointer-events-auto absolute top-[35%] h-[25%] w-[70%] cursor-pointer"
-                onClick={() => triggerGesture('nod', '')}
-              />
-              {/* Hands Zone */}
-              <div 
-                className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer"
-                onClick={() => triggerGesture('wave', '')}
-              />
+        {/* LEFT PANEL: 3D STAGE & HUD */}
+        <div className="relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
+            {/* HUD Top Left */}
+            <div className="absolute top-6 left-6 flex gap-3 z-20">
+                <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <Shirt className="w-5 h-5" />
+                </button>
+                <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <Settings className="w-5 h-5" />
+                </button>
             </div>
-          </div>
+             
+            {/* HUD Top Right */}
+            <div className="absolute top-6 right-6 z-20">
+                <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/90 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <Scan className="w-4 h-4" />
+                    <span className="text-sm font-medium">Capture</span>
+                </button>
+            </div>
+
+            {/* Companion Stage */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="w-full h-full pointer-events-auto">
+                    <CompanionStage 
+                        accentColor={activeAccent} 
+                        isCallMode={isCallMode} 
+                        scenery={scenery} 
+                        outfitUrl={outfit} 
+                        emotion={currentEmotion}
+                        isWardrobeOpen={isWardrobeOpen}
+                        isPortraitMode={isPortraitMode}
+                        isProcessing={isLoading}
+                    />
+                    {/* TouchInteractionLayer */}
+                    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
+                        <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('laugh', '')} />
+                        <div className="pointer-events-auto absolute top-[35%] h-[25%] w-[70%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
+                        <div className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer" onClick={() => triggerGesture('wave', '')} />
+                    </div>
+                </div>
+            </div>
+
+            {/* HUD Bottom Controls */}
+            <div className="absolute bottom-6 md:bottom-12 z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
+                {/* Camera */}
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
+                    <button onClick={() => setIsPortraitMode(!isPortraitMode)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isPortraitMode ? 'bg-white text-black border-white' : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:bg-black/60 hover:text-white'}`}>
+                        <Camera className="w-5 h-5" />
+                    </button>
+                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Camera</span>
+                </div>
+                {/* Mute */}
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
+                    <button onClick={() => setIsMuted(!isMuted)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isMuted ? 'bg-white text-black border-white' : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:bg-black/60 hover:text-white'}`}>
+                        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    </button>
+                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Mute</span>
+                </div>
+                {/* Talk (Big Pink) */}
+                <div className="flex flex-col items-center gap-2 -mb-2 pointer-events-auto">
+                    <button 
+                       onClick={toggleMic}
+                       className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(255,126,182,0.15)] hover:shadow-[0_0_25px_rgba(255,126,182,0.3)] hover:brightness-110 active:scale-95 cursor-pointer ${isListening ? 'bg-white text-[#ff7eb6]' : 'bg-[#ff7eb6] text-[#2D0A1E]'}`}
+                    >
+                        <Mic className="w-7 h-7" />
+                    </button>
+                    <span className="text-[10px] text-[#ff7eb6] font-semibold tracking-wide uppercase">{isListening ? 'Listening' : 'Talk'}</span>
+                </div>
+                {/* Speaker */}
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
+                    <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 flex items-center justify-center hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                        <Volume2 className="w-5 h-5" />
+                    </button>
+                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Speaker</span>
+                </div>
+                {/* Stop */}
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
+                    <button onClick={cancelSpeech} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 flex items-center justify-center hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                        <Square className="w-4 h-4" />
+                    </button>
+                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Stop</span>
+                </div>
+            </div>
+
+            {/* Listening / Subtitle Pill */}
+            <AnimatePresence>
+              {subtitles.length > 0 && (
+                <motion.div 
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -10 }}
+                   className="absolute bottom-36 z-20 pointer-events-none"
+                >
+                   <div className="px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-sm text-white flex items-center gap-3 shadow-xl max-w-[80vw] text-center">
+                       {subtitles[subtitles.length - 1].text}
+                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+        </div>
+
+        {/* RIGHT PANEL: CHAT INTERFACE */}
+        <div className="w-full md:w-[420px] lg:w-[480px] h-[55%] md:h-full bg-[#130f12] border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-30 shadow-2xl relative shrink-0">
+            {/* Tabs */}
+            <div className="flex px-6 pt-2 border-b border-white/5 shrink-0">
+               <button 
+                 onClick={() => setActiveTab('chat')}
+                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'chat' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+               >
+                 Chat
+               </button>
+               <button 
+                 onClick={() => setActiveTab('about')}
+                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'about' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+               >
+                 About
+               </button>
+            </div>
+
+            {activeTab === 'chat' ? (
+                <>
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
+                        {messages.map((msg) => (
+                            msg.role === 'user' ? (
+                               <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
+                                   <div className="bg-[#592f44] text-white/95 rounded-2xl rounded-tr-sm p-3.5 px-4 shadow-sm border border-white/5">
+                                       <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                   </div>
+                                   <span className="text-[10px] text-white/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                               </div>
+                            ) : (
+                               <div key={msg.id} className="self-start max-w-[95%] flex gap-3">
+                                   <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm" />
+                                   <div className="flex flex-col items-start">
+                                       <div className="bg-[#1e191d] text-white/90 rounded-2xl rounded-tl-sm p-3.5 px-4 shadow-sm border border-white/5">
+                                           <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                       </div>
+                                       <span className="text-[10px] text-white/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                   </div>
+                               </div>
+                            )
+                        ))}
+                        {isLoading && (
+                             <div className="self-start max-w-[90%] flex gap-3">
+                                 <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm" />
+                                 <div className="bg-[#1e191d] rounded-2xl rounded-tl-sm p-4 border border-white/5 flex gap-1.5 items-center h-12">
+                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                 </div>
+                             </div>
+                        )}
+                        <div ref={chatEndRef} className="h-2" />
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0">
+                       {/* Suggestions */}
+                       <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                          {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
+                             <button 
+                                key={text}
+                                onClick={() => setInputText(text)}
+                                className="whitespace-nowrap px-4 py-2 rounded-full bg-[#1c181d] border border-white/5 text-[13px] text-white/60 hover:text-white/90 hover:bg-[#2a272c] transition-colors cursor-pointer"
+                             >
+                                {text}
+                             </button>
+                          ))}
+                       </div>
+
+                       {/* Input Field */}
+                       <div className="relative bg-[#1e191d] rounded-full flex items-center p-1.5 border border-white/10 shadow-inner">
+                          <input 
+                             type="text" 
+                             value={inputText}
+                             onChange={(e) => setInputText(e.target.value)}
+                             onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  if (!isLoading && inputText.trim()) handleSend();
+                                }
+                             }}
+                             className="flex-1 bg-transparent border-none text-white/90 text-[15px] focus:outline-none placeholder:text-white/30 px-4 h-10 w-full" 
+                             placeholder={isListening ? "Listening..." : "Ask Anything..."}
+                             disabled={isListening || isLoading}
+                          />
+                          <button 
+                             onClick={handleSend}
+                             disabled={!inputText.trim() || isLoading}
+                             className="w-10 h-10 rounded-full bg-[#ff7eb6] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
+                          >
+                              <Send className="w-4 h-4 text-[#2D0A1E] ml-0.5" />
+                          </button>
+                       </div>
+                    </div>
+                </>
+            ) : (
+                <div className="flex-1 overflow-y-auto p-8 text-white/60 text-sm">
+                   <h3 className="text-white font-medium mb-4 text-lg">About Lyra</h3>
+                   <p className="mb-4 leading-relaxed">Lyra is your interactive AI companion, designed to provide engaging conversation and a welcoming presence.</p>
+                   <p className="leading-relaxed">This application uses the Web Speech API for voice interactions and Three.js for real-time 3D rendering. All visuals and styles are crafted for a premium, clean SaaS aesthetic.</p>
+                </div>
+            )}
         </div>
 
         {/* DISCLOSURE MODAL */}
@@ -818,290 +966,127 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* SUBTITLE AND SPECTRUM */}
-        <SubtitleAndSpectrum 
-          subtitles={subtitles} 
-          appState={appState} 
-          speechPulse={speechPulse} 
-        />
-
-        {/* BOTTOM INPUT DOCK */}
-        <motion.div 
-          initial={false}
-          animate={{ 
-             opacity: isCallMode ? 0 : 1, 
-             pointerEvents: isCallMode ? 'none' : 'auto',
-             y: isInputFocused ? -300 : 0
-          }}
-          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-          className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-10 pointer-events-none flex flex-col items-center gap-4"
-        >
-          {/* Input Bar */}
-          <div className="w-full max-w-lg pointer-events-auto flex items-center gap-2.5 bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-[16px] p-2 shadow-2xl relative">
-            <textarea
-              value={inputText}
-              disabled={isListening || isLoading}
-              onFocus={() => setIsInputFocused(true)}
-              onBlur={() => setIsInputFocused(false)}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!isLoading && inputText.trim()) {
-                    handleSend();
-                  }
-                }
-              }}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 resize-none py-3 px-3 max-h-32 min-h-[48px] font-body text-sm sm:text-base outline-none"
-              placeholder={isInputFocused ? "" : (isListening ? "Listening..." : "Ask Anything")}
-              rows={1}
-            />
-            <button 
-              onClick={handleSend}
-              disabled={(!inputText.trim() && !isListening && !isLoading && !isLyraSpeaking) || (isLoading && !isLyraSpeaking)}
-              className="p-3 text-[#2D0A1E] font-bold rounded-[12px] transition-all bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] active:brightness-95  disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer w-12 h-12 flex items-center justify-center shrink-0"
+        {/* SETTINGS DRAWER */}
+        <AnimatePresence>
+          {isSettingsOpen && (
+            <motion.aside
+              tabIndex={-1}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+              className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-[110] bg-[#1c181d] border-r border-white/10 flex flex-col focus:outline-none shadow-2xl"
             >
-              {(isLoading || isLyraSpeaking) ? (
-                <div className="w-4 h-4 bg-black rounded-sm" />
-              ) : (
-                <Send className="w-5 h-5 ml-0.5" />
-              )}
-            </button>
-          </div>
-
-          {/* Control Pills */}
-          <div className="flex items-center gap-4 pointer-events-auto">
-            {/* Video Pill */}
-            <button 
-              onClick={() => setIsPortraitMode(!isPortraitMode)}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer"
-              title="Toggle Camera"
-            >
-              {isPortraitMode ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-            </button>
-            
-            {/* Volume Pill */}
-            <button 
-              onClick={() => setIsMuted(!isMuted)}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer relative"
-              title={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted ? (
-                <>
-                  <Volume2 className="w-5 h-5 opacity-50" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                     <div className="w-6 h-[2px] bg-[var(--text-danger)] rotate-45" />
-                  </div>
-                </>
-              ) : (
-                <Volume2 className="w-5 h-5 text-[var(--text-primary)]" />
-              )}
-            </button>
-
-            {/* Mic Pill */}
-            <button 
-              onClick={toggleMic}
-              onPointerDown={(e) => {
-                if (micMode === 'ptt' && !isListening) toggleMic();
-              }}
-              onPointerUp={(e) => {
-                // Let onend stop it naturally or stop it here if we want strict push-to-hold
-              }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all shadow-lg cursor-pointer relative ${
-                isListening 
-                  ? 'bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border-[var(--accent-primary)]/15 text-[var(--text-primary)]' 
-                  : 'bg-red-600/90 border-red-500/50 text-white'
-              }`}
-              title="Toggle Mic"
-            >
-              {isListening ? (
-                 <Mic className="w-5 h-5" />
-              ) : (
-                 <>
-                   <Mic className="w-5 h-5" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-6 h-[2px] bg-white rotate-45" />
-                   </div>
-                 </>
-              )}
-            </button>
-
-            {/* Settings Pill */}
-            <button 
-              onClick={() => { closeDrawers(); setIsSettingsOpen(true); }}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 text-[var(--text-muted)] hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors shadow-lg cursor-pointer"
-              title="Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
-        </motion.div>
-
-        </motion.main>
-
-      {/* CALL MODE OVERLAY */}
-      <AnimatePresence>
-        {isCallMode && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-20 pointer-events-auto bg-[var(--bg-base)]/60 backdrop-blur-sm"
-            onClick={() => setIsCallMode(false)}
-          >
-            <div className="absolute top-12 text-[var(--text-muted)] text-xs tracking-widest uppercase font-body bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
-              Tap anywhere to exit call
-            </div>
-            
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              <motion.div 
-                className="absolute inset-0 rounded-full border-2 border-[var(--accent-primary)] "
-                animate={{ 
-                  scale: isLyraSpeaking ? speechPulse : (isListening ? 1.15 : 1), 
-                  opacity: isLyraSpeaking ? 0.85 : (isListening ? 0.4 : 0.15) 
-                }}
-                transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
-              />
-              <motion.div 
-                className="w-12 h-12 rounded-full bg-[var(--accent-primary)] "
-                animate={{ 
-                  scale: isLyraSpeaking ? 1.25 : 1, 
-                  opacity: isLyraSpeaking ? 1 : 0.6 
-                }}
-              />
-              {!isLyraSpeaking && isListening && (
-                <div className="absolute -bottom-8 text-xs font-body text-[var(--text-muted)]">Listening...</div>
-              )}
-              {!isLyraSpeaking && !isListening && isLoading && (
-                <div className="absolute -bottom-8 text-xs font-body text-[var(--text-muted)]">Thinking...</div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* SETTINGS DRAWER */}
-      <AnimatePresence>
-        {isSettingsOpen && (
-          <motion.aside
-            tabIndex={-1}
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-md border-r border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[10px_0_40px_rgba(0,0,0,0.7)]"
-          >
-            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Settings</h2>
-              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* Voice Settings */}
-              <div>
-                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">Voice</Heading2>
-                <VoicePicker />
+              <div className="p-6 flex items-center justify-between border-b border-white/5">
+                <h2 className="font-heading font-medium text-2xl text-white/90">Settings</h2>
+                <button onClick={closeDrawers} className="p-2 text-white/50 hover:text-white/90 rounded-full hover:bg-white/5 active:scale-95 transition-all cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Microphone Settings */}
-              <div>
-                <Heading2 className="text-xs font-heading font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2">Microphone Mode</Heading2>
-                <div className="flex bg-[var(--bg-base)]/50 rounded-xl p-1 border border-[var(--accent-primary)]/10">
-                  <button
-                    onClick={async () => {
-                      setMicMode('ptt');
-                      const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
-                      await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'ptt' }));
-                    }}
-                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                      micMode === 'ptt' 
-                        ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    Push-to-Talk
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setMicMode('hands-free');
-                      const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
-                      await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'hands-free' }));
-                    }}
-                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
-                      micMode === 'hands-free' 
-                        ? 'bg-[var(--accent-primary)] text-[#2D0A1E] shadow-sm' 
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    Hands-Free
-                  </button>
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Voice Settings */}
+                <div>
+                  <Heading2 className="text-xs font-heading font-medium text-white/40 uppercase tracking-wider mb-3">Voice</Heading2>
+                  <VoicePicker />
                 </div>
-                <p className="text-[10px] text-[var(--text-muted)] mt-2 font-body leading-relaxed">
-                  {micMode === 'ptt' ? 'Hold down the mic button to speak. Releasing automatically sends your message.' : 'Microphone stays on and listens continuously during conversations.'}
-                </p>
-              </div>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
 
-      {/* WARDROBE DRAWER */}
-      <AnimatePresence>
-        {isWardrobeOpen && (
-          <motion.aside
-            tabIndex={-1}
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-            className="fixed top-0 right-0 bottom-0 w-[420px] max-w-[88vw] z-50 bg-[var(--bg-surface)]/95 backdrop-blur-md border-l border-[var(--accent-primary)]/15 flex flex-col focus:outline-none shadow-[-10px_0_40px_rgba(0,0,0,0.7)]"
-          >
-            <div className="p-6 flex items-center justify-between border-b border-[var(--accent-primary)]/10">
-              <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Wardrobe</h2>
-              <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-white/[0.06] active:bg-white/[0.1] active:scale-[0.92] transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              {!isOutfitsReady ? (
-                <div className="relative w-full h-72 flex flex-col items-center justify-center rounded-2xl border border-[var(--accent-primary)]/10 overflow-hidden bg-[var(--bg-base)]/40">
-                  <div className="presence-glow" />
-                  <div className="w-10 h-10 rounded-full border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] animate-spin mb-3 z-10" />
-                  <span className="text-xs font-body text-[var(--text-muted)] z-10">Preparing wardrobe...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-6">
-                  {[
-                    { id: '/models/lyra.vrm', label: 'Default' },
-                    { id: '/models/lyra_casual.vrm', label: 'Casual' },
-                    { id: '/models/lyra_dress.vrm', label: 'Dress' }
-                  ].map(item => (
+                {/* Microphone Settings */}
+                <div>
+                  <Heading2 className="text-xs font-heading font-medium text-white/40 uppercase tracking-wider mb-3">Microphone Mode</Heading2>
+                  <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
                     <button
-                      key={item.id}
-                      onClick={() => handleOutfitChange(item.id)}
-                      className={`interactive-surface flex flex-col items-center gap-2 p-3 rounded-2xl border text-center group cursor-pointer ${
-                        outfit === item.id 
-                          ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
-                          : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
+                      onClick={async () => {
+                        setMicMode('ptt');
+                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
+                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'ptt' }));
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        micMode === 'ptt' 
+                          ? 'bg-white/10 text-white shadow-sm' 
+                          : 'text-white/40 hover:text-white/80'
                       }`}
                     >
-                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/[0.06] group-hover:scale-105 transition-transform">
-                        <OutfitThumbnail id={item.id} />
-                      </div>
-                      <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
-                        {item.label}
-                      </span>
+                      Push-to-Talk
                     </button>
-                  ))}
+                    <button
+                      onClick={async () => {
+                        setMicMode('hands-free');
+                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
+                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'hands-free' }));
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                        micMode === 'hands-free' 
+                          ? 'bg-white/10 text-white shadow-sm' 
+                          : 'text-white/40 hover:text-white/80'
+                      }`}
+                    >
+                      Hands-Free
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-white/40 mt-3 font-body leading-relaxed">
+                    {micMode === 'ptt' ? 'Hold down the mic button to speak. Releasing automatically sends your message.' : 'Microphone stays on and listens continuously during conversations.'}
+                  </p>
                 </div>
-              )}
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-    </motion.div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* WARDROBE DRAWER */}
+        <AnimatePresence>
+          {isWardrobeOpen && (
+            <motion.aside
+              tabIndex={-1}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+              className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-[110] bg-[#1c181d] border-r border-white/10 flex flex-col focus:outline-none shadow-2xl"
+            >
+              <div className="p-6 flex items-center justify-between border-b border-white/5">
+                <h2 className="font-heading font-medium text-2xl text-white/90">Wardrobe</h2>
+                <button onClick={closeDrawers} className="p-2 text-white/50 hover:text-white/90 rounded-full hover:bg-white/5 active:scale-95 transition-all cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {!isOutfitsReady ? (
+                  <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-white/5 overflow-hidden bg-black/20">
+                    <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/50 animate-spin mb-3 z-10" />
+                    <span className="text-xs font-body text-white/40 z-10">Preparing wardrobe...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { id: '/models/lyra.vrm', label: 'Default' },
+                      { id: '/models/lyra_casual.vrm', label: 'Casual' },
+                      { id: '/models/lyra_dress.vrm', label: 'Dress' }
+                    ].map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleOutfitChange(item.id)}
+                        className={`flex flex-col items-center gap-3 p-3 rounded-2xl border text-center group cursor-pointer transition-all ${
+                          outfit === item.id 
+                            ? 'bg-white/10 border-white/20 shadow-inner' 
+                            : 'bg-black/20 border-white/5 hover:border-white/20 hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/5 group-hover:scale-[1.02] transition-transform">
+                          <OutfitThumbnail id={item.id} />
+                        </div>
+                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-white/90' : 'text-white/50'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+    </div>
   );
 }

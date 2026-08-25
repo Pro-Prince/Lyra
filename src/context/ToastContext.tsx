@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Sparkles, AlertCircle, Info } from 'lucide-react';
 
 export type ToastType = 'info' | 'error' | 'success';
 
@@ -113,27 +113,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 24, opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="pointer-events-auto w-full sm:w-auto min-w-[320px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border-y border-r border-white/10 border-l-[3px] border-l-[var(--accent-primary)] rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3.5"
+              className={`pointer-events-auto w-full sm:w-auto min-w-[320px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3.5 overflow-hidden relative group`}
             >
+              {/* Animated Accent Line */}
+              <div className={`absolute top-0 left-0 bottom-0 w-[3px] ${
+                currentToast.type === 'error' ? 'bg-[var(--accent-secondary)]' : 'bg-[var(--accent-primary)]'
+              }`} />
               {/* Icon & Message Container */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0">
                   {currentToast.type === 'error' ? (
-                    <div className="w-7 h-7 rounded-xl bg-red-950/60 border border-red-800/40 flex items-center justify-center text-[var(--text-danger)]">
-                      <AlertCircle className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-secondary)]/10 border border-[var(--accent-secondary)]/20 flex items-center justify-center text-[var(--accent-secondary)] shadow-[0_0_15px_rgba(201,166,255,0.1)]">
+                      <Info className="w-4 h-4" />
                     </div>
                   ) : (
-                    <div className="w-7 h-7 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 flex items-center justify-center text-[var(--accent-primary)]">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shadow-[0_0_15px_rgba(255,143,192,0.1)]">
                       <Sparkles className="w-4 h-4" />
                     </div>
                   )}
                 </div>
 
-                <p 
-                  className={`text-xs sm:text-sm font-body font-medium leading-snug break-words ${
-                    currentToast.type === 'error' ? 'text-[var(--text-danger)]' : 'text-[var(--text-primary)]'
-                  }`}
-                >
+                <p className="text-xs sm:text-[13px] font-body font-medium leading-relaxed text-[var(--text-primary)] min-w-0">
                   {currentToast.message}
                 </p>
               </div>
