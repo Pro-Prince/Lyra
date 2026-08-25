@@ -1,5 +1,6 @@
 import React from "react";
 import { VRMPreviewCanvas } from "./VRMPreviewCanvas";
+import { useOutfitThumbnail } from "../lib/outfitCache";
 
 // Outfit thumbnail component using actual 3D VRM model rendering
 export function OutfitThumbnail({ id, className = "w-full h-full" }: { id: string; className?: string }) {
@@ -11,6 +12,19 @@ export function OutfitThumbnail({ id, className = "w-full h-full" }: { id: strin
     modelUrl = '/models/lyra_casual.vrm';
   } else if (id === 'dress' || id === 'lyra_dress') {
     modelUrl = '/models/lyra_dress.vrm';
+  }
+
+  const snapshot = useOutfitThumbnail(modelUrl);
+
+  if (snapshot) {
+    return (
+      <img 
+        src={snapshot} 
+        alt="Outfit Snapshot" 
+        className={`${className} object-cover w-full h-full`}
+        referrerPolicy="no-referrer"
+      />
+    );
   }
 
   return <VRMPreviewCanvas url={modelUrl} className={className} />;

@@ -120,6 +120,18 @@ export function VRMPreviewCanvas({
           setLoading(false);
         }
 
+        let isHoveredRef = false;
+        const onMouseEnter = () => {
+          isHoveredRef = true;
+          setIsHovered(true);
+        };
+        const onMouseLeave = () => {
+          isHoveredRef = false;
+          setIsHovered(false);
+        };
+        container.addEventListener('mouseenter', onMouseEnter);
+        container.addEventListener('mouseleave', onMouseLeave);
+
         // Mouse / Touch Drag interaction
         const onMouseDown = (e: MouseEvent) => {
           if (!interactive) return;
@@ -161,15 +173,23 @@ export function VRMPreviewCanvas({
         window.addEventListener('touchend', onMouseUp);
 
         const clock = new THREE.Clock();
+        let loadSettleTimer = 3.0; // Settle / animate for 3 seconds initially, then sleep
 
         const animate = () => {
           if (isCancelled) return;
           animFrameId = requestAnimationFrame(animate);
 
-          const delta = clock.getDelta();
+          const delta = Math.min(clock.getDelta(), 0.03);
           const elapsed = clock.getElapsedTime();
 
-          if (vrmInstance) {
+          if (loadSettleTimer > 0) {
+            loadSettleTimer -= delta;
+          }
+
+          // Performance optimization: Sleep rendering when not loading, hovered, or being dragged
+          const shouldRender = loadSettleTimer > 0 || isHoveredRef || isDragging;
+
+          if (vrmInstance && shouldRender) {
             // Smooth idle turntable auto-rotate when not actively dragging
             if (autoRotate && !isDragging) {
               targetRotationY += delta * 0.45;
@@ -188,7 +208,7 @@ export function VRMPreviewCanvas({
             vrmInstance.update(delta);
           }
 
-          if (renderer) {
+          if (renderer && shouldRender) {
             renderer.render(scene, camera);
           }
         };
@@ -203,6 +223,9 @@ export function VRMPreviewCanvas({
           camera.aspect = newW / newH;
           camera.updateProjectionMatrix();
           renderer.setSize(newW, newH);
+          // Force one extra render after resize
+          if (vrmInstance) vrmInstance.update(0);
+          renderer.render(scene, camera);
         };
 
         const resizeObserver = new ResizeObserver(handleResize);
@@ -210,6 +233,8 @@ export function VRMPreviewCanvas({
 
         return () => {
           resizeObserver.disconnect();
+          container.removeEventListener('mouseenter', onMouseEnter);
+          container.removeEventListener('mouseleave', onMouseLeave);
           domElem.removeEventListener('mousedown', onMouseDown);
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
@@ -231,6 +256,38 @@ export function VRMPreviewCanvas({
     return () => {
       isCancelled = true;
       cancelAnimationFrame(animFrameId);
+
+      // Deep clean of VRM geometries, materials, and textures from the GPU memory
+      if (vrmInstance) {
+        vrmInstance.scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (mesh.isMesh) {
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) {
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach((m) => {
+                  m.dispose();
+                  for (const key in m) {
+                    if (m[key] && typeof m[key].dispose === 'function') {
+                      m[key].dispose();
+                    }
+                  }
+                });
+              } else {
+                mesh.material.dispose();
+                for (const key in mesh.material) {
+                  // @ts-ignore
+                  if (mesh.material[key] && typeof mesh.material[key].dispose === 'function') {
+                    // @ts-ignore
+                    mesh.material[key].dispose();
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
       if (renderer) {
         renderer.dispose();
       }
