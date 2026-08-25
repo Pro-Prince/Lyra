@@ -19,6 +19,8 @@ interface AuthContextType {
   isLoading: boolean;
   isConfigured: boolean;
   isGuestMode: boolean;
+  isMockAuthed: boolean;
+  setMockAuthed: (authed: boolean) => void;
   signIn: (email?: string, password?: string) => Promise<{ error?: string }>;
   signUp: (email?: string, password?: string, birthdate?: string, aiDisclosure?: boolean) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
@@ -32,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: false,
   isConfigured: false,
   isGuestMode: true,
+  isMockAuthed: false,
+  setMockAuthed: () => {},
   signIn: async () => ({ error: 'Not available in this phase' }),
   signUp: async () => ({ error: 'Not available in this phase' }),
   signInWithGoogle: async () => ({ error: 'Not available in this phase' }),
@@ -42,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(true);
+  const [isMockAuthed, setIsMockAuthedState] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isConfigured] = useState<boolean>(false);
 
@@ -61,33 +66,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
+  const setMockAuthed = (authed: boolean) => {
+    setIsMockAuthedState(authed);
+    if (authed) {
+      saveLocalProfile({ adultConfirmed: true });
+    }
+  };
+
   const continueAsGuest = async (birthdate?: string) => {
     setIsGuestMode(true);
     await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
   };
 
   const signIn = async () => {
-    setIsGuestMode(true);
-    await saveLocalProfile({ adultConfirmed: true });
+    setMockAuthed(true);
     return {};
   };
 
   const signUp = async (_email?: string, _password?: string, birthdate?: string) => {
-    setIsGuestMode(true);
+    setMockAuthed(true);
     await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
     return {};
   };
 
   const signInWithGoogle = async () => {
-    setIsGuestMode(true);
-    await saveLocalProfile({ adultConfirmed: true });
+    setMockAuthed(true);
     return {};
   };
 
   const signOut = async () => {
+    setIsMockAuthedState(false);
     setIsGuestMode(false);
     setUser(null);
-    await saveLocalProfile({ adultConfirmed: false });
   };
 
   return (
@@ -98,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isConfigured,
         isGuestMode,
+        isMockAuthed,
+        setMockAuthed,
         signIn,
         signUp,
         signInWithGoogle,
@@ -111,3 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+export function useMockAuthState() {
+  const { isMockAuthed, setMockAuthed } = useContext(AuthContext);
+  return { isMockAuthed, setMockAuthed };
+}

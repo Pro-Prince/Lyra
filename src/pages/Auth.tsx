@@ -299,10 +299,10 @@ export default function Auth() {
             <button
               type="submit"
               disabled={isSubmitting || (mode === 'signup' && isUnderage)}
-              className="w-full group inline-flex items-center justify-center gap-4 bg-[var(--accent-primary)] text-[#2D0A1E] py-3 px-6 rounded-xl font-body font-medium text-sm transition-all hover:brightness-105 active:scale-[0.98] active:brightness-95  disabled:opacity-50 disabled:cursor-not-allowed mt-2 cursor-pointer"
+              className="btn btn-primary btn-lg w-full mt-2 cursor-pointer"
             >
               <span>{mode === 'signup' ? t('auth_sign_up_button') : t('auth_sign_in_button')}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 

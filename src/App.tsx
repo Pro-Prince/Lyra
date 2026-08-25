@@ -14,6 +14,8 @@ import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
+import LoginPage from "./pages/Login";
+import SignUpPage from "./pages/SignUp";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
@@ -33,6 +35,9 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/auth" element={<LoginPage />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/settings" element={<Settings />} />

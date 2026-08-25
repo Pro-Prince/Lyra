@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getCompanion, getLocalProfile } from "../lib/storage";
+import { getCompanion, saveCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
 import { 
   ArrowRight, 
@@ -93,11 +93,42 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function OutfitShowcase() {
-  const outfits: Array<{ id: string; url: string; label: string }> = [
-    { id: 'lyra', url: '/models/lyra.vrm', label: 'Default' },
-    { id: 'lyra_casual', url: '/models/lyra_casual.vrm', label: 'Casual' },
-    { id: 'lyra_dress', url: '/models/lyra_dress.vrm', label: 'Dress' },
+  const navigate = useNavigate();
+  const { user, isGuestMode, continueAsGuest } = useAuth();
+
+  const outfits = [
+    {
+      id: 'lyra',
+      url: '/models/lyra.vrm',
+      label: 'Default',
+      tag: 'Default',
+      desc: 'Classic signature sailor uniform with pink ribbon.',
+    },
+    {
+      id: 'lyra_casual',
+      url: '/models/lyra_casual.vrm',
+      label: 'Casual',
+      tag: 'Casual',
+      desc: 'Relaxed periwinkle hoodie with denim skirt.',
+    },
+    {
+      id: 'lyra_dress',
+      url: '/models/lyra_dress.vrm',
+      label: 'Dress',
+      tag: 'Dress',
+      desc: 'Elegant formal evening gown with tiara hairpin.',
+    },
   ];
+
+  const handleSelectOutfit = async (url: string) => {
+    const isAuthenticated = user || isGuestMode;
+    if (!isAuthenticated) {
+      await continueAsGuest();
+    }
+    const companion = await getCompanion();
+    await saveCompanion({ ...companion, outfit: url, initialized: true });
+    navigate('/chat');
+  };
 
   return (
     <motion.section 
@@ -106,23 +137,59 @@ function OutfitShowcase() {
       whileInView="visible"
       viewport={{ once: true, margin: "-40px" }}
       variants={groupVariants}
-      className="outfit-showcase mt-20 sm:mt-24 w-full"
+      className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
       <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2 inline-block">
           Wardrobe
         </span>
-        <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)]">
+        <h2 className="font-heading font-medium text-2xl sm:text-4xl text-[var(--text-primary)] mb-2 sm:mb-3">
           Three looks, one presence
         </h2>
+        <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+          Explore Lyra's outfits in 3D and select a look to start chatting.
+        </p>
       </motion.div>
-      <motion.div variants={groupVariants} className="outfit-grid">
-        {outfits.map(({ id, url, label }) => (
-          <motion.div key={id} variants={entranceVariants} className="outfit-card interactive-surface flex flex-col items-center">
-            <div className="w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-[var(--bg-surface)]">
-              <VRMPreviewCanvas url={url} className="w-full h-full" />
+
+      <motion.div variants={groupVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        {outfits.map(({ id, url, label, tag, desc }) => (
+          <motion.div
+            key={id}
+            variants={entranceVariants}
+            className="group relative bg-[var(--bg-surface)]/80 backdrop-blur-xl border border-[var(--text-muted)]/15 hover:border-[var(--accent-primary)]/40 rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+          >
+            {/* Tag Badge */}
+            <div className="absolute top-8 left-8 z-20">
+              <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 backdrop-blur-md">
+                {tag}
+              </span>
             </div>
-            <span className="outfit-label mt-3 font-medium text-sm text-[var(--text-primary)]">{label}</span>
+
+            {/* 3D Canvas Container */}
+            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/60 to-[var(--bg-surface)] relative border border-white/5">
+              <VRMPreviewCanvas url={url} className="w-full h-full" interactive={true} autoRotate={true} />
+            </div>
+
+            {/* Info & Action CTA */}
+            <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center">
+              <div>
+                <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-1.5">
+                  {label}
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mb-5 px-1 leading-relaxed min-h-[2.5rem] flex items-center justify-center">
+                  {desc}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleSelectOutfit(url)}
+                className="w-full py-2.5 px-4 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] text-[var(--bg-base)] font-body font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 active:scale-[0.98]"
+              >
+                <span>Wear this look</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
           </motion.div>
         ))}
       </motion.div>

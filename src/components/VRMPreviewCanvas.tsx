@@ -7,18 +7,30 @@ import { applyRestPose, applyRelaxedHandPose } from '../lib/poseUtils';
 interface VRMPreviewCanvasProps {
   url: string;
   className?: string;
+  interactive?: boolean;
+  autoRotate?: boolean;
 }
 
-export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPreviewCanvasProps) {
+export function VRMPreviewCanvas({
+  url,
+  className = 'w-full h-full',
+  interactive = true,
+  autoRotate = true,
+}: VRMPreviewCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
     let animFrameId: number;
     let renderer: THREE.WebGLRenderer | null = null;
     let vrmInstance: VRM | null = null;
+    let isDragging = false;
+    let previousMouseX = 0;
+    let targetRotationY = 0;
+    let currentRotationY = 0;
 
     const init = async () => {
       const container = containerRef.current;
@@ -28,32 +40,53 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
         setLoading(true);
         setError(null);
 
-        const width = container.clientWidth || 160;
-        const height = container.clientHeight || 160;
+        const width = container.clientWidth || 240;
+        const height = container.clientHeight || 280;
 
         const scene = new THREE.Scene();
-
         const camera = new THREE.PerspectiveCamera(24, width / height, 0.1, 15);
-        
-        // Balanced studio lighting
-        const ambient = new THREE.AmbientLight(0xfff5f8, 1.2);
-        const key = new THREE.DirectionalLight(0xfff8f0, 1.3);
-        key.position.set(1.5, 3.0, 2.5);
-        const fill = new THREE.DirectionalLight(0xf0e6ff, 0.8);
-        fill.position.set(-1.5, 2.0, 2.0);
-        scene.add(ambient, key, fill);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // Warm studio lighting setup
+        const ambient = new THREE.AmbientLight(0xfff5f8, 1.4);
+        const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.4);
+        keyLight.position.set(1.5, 3.2, 2.5);
+
+        const fillLight = new THREE.DirectionalLight(0xf0e6ff, 0.9);
+        fillLight.position.set(-1.8, 2.0, 2.0);
+
+        const rimLight = new THREE.DirectionalLight(0xff8fc0, 0.8);
+        rimLight.position.set(0, 3.0, -2.5);
+
+        scene.add(ambient, keyLight, fillLight, rimLight);
+
+        // Pedestal floor disk shadow
+        const shadowGeo = new THREE.RingGeometry(0.01, 0.38, 32);
+        const shadowMat = new THREE.MeshBasicMaterial({
+          color: 0x241426,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.35,
+        });
+        const shadowDisk = new THREE.Mesh(shadowGeo, shadowMat);
+        shadowDisk.rotation.x = Math.PI / 2;
+        shadowDisk.position.set(0, 0.01, 0);
+        scene.add(shadowDisk);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(width, height);
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
+        renderer.toneMappingExposure = 1.05;
 
+        // Clear existing canvas children
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
         container.appendChild(renderer.domElement);
 
-        // Load the actual VRM file
-        const vrm = await loadVRM(url);
+        // Load actual VRM model file
+        const vrm = await loadVRM(url, renderer);
         if (isCancelled) {
           vrm.scene.traverse((o) => {
             if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose();
@@ -62,7 +95,7 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
         }
         vrmInstance = vrm;
 
-        // Apply clean standard natural pose
+        // Pose VRM
         applyRestPose(vrm);
         applyRelaxedHandPose(vrm, 'left');
         applyRelaxedHandPose(vrm, 'right');
@@ -70,22 +103,62 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
 
         scene.add(vrm.scene);
 
-        // Frame camera on the upper body & outfit
+        // Auto-frame camera on full torso & outfit
         const box = new THREE.Box3().setFromObject(vrm.scene);
-        const totalHeight = box.max.y - box.min.y;
-        const topY = box.max.y + 0.04;
-        const bottomY = box.min.y + totalHeight * 0.28;
+        const totalHeight = Math.max(1.2, box.max.y - box.min.y);
+        const topY = box.max.y + 0.05;
+        const bottomY = Math.max(0, box.min.y + totalHeight * 0.15);
         const targetHeight = topY - bottomY;
         const fov = camera.fov * (Math.PI / 180);
         const distance = (targetHeight * 1.18) / (2 * Math.tan(fov / 2));
         const centerY = (topY + bottomY) / 2;
 
-        camera.position.set(0, centerY, Math.max(1.1, distance));
+        camera.position.set(0, centerY, Math.max(1.35, distance));
         camera.lookAt(0, centerY, 0);
 
         if (!isCancelled) {
           setLoading(false);
         }
+
+        // Mouse / Touch Drag interaction
+        const onMouseDown = (e: MouseEvent) => {
+          if (!interactive) return;
+          isDragging = true;
+          previousMouseX = e.clientX;
+        };
+
+        const onMouseMove = (e: MouseEvent) => {
+          if (!isDragging || !interactive) return;
+          const deltaX = e.clientX - previousMouseX;
+          targetRotationY += deltaX * 0.012;
+          previousMouseX = e.clientX;
+        };
+
+        const onMouseUp = () => {
+          isDragging = false;
+        };
+
+        const onTouchStart = (e: TouchEvent) => {
+          if (!interactive || e.touches.length === 0) return;
+          isDragging = true;
+          previousMouseX = e.touches[0].clientX;
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+          if (!isDragging || !interactive || e.touches.length === 0) return;
+          const deltaX = e.touches[0].clientX - previousMouseX;
+          targetRotationY += deltaX * 0.012;
+          previousMouseX = e.touches[0].clientX;
+        };
+
+        const domElem = renderer.domElement;
+        domElem.style.cursor = interactive ? 'grab' : 'default';
+        domElem.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        domElem.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onMouseUp);
 
         const clock = new THREE.Clock();
 
@@ -97,11 +170,21 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
           const elapsed = clock.getElapsedTime();
 
           if (vrmInstance) {
-            // Subtle breathing motion
+            // Smooth idle turntable auto-rotate when not actively dragging
+            if (autoRotate && !isDragging) {
+              targetRotationY += delta * 0.45;
+            }
+
+            // Smooth interpolation (lerp)
+            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+            vrmInstance.scene.rotation.y = currentRotationY;
+
+            // Subtle natural breathing motion on spine
             const spine = vrmInstance.humanoid?.getNormalizedBoneNode('spine');
             if (spine) {
-              spine.rotation.x = Math.sin(elapsed * 1.8) * 0.015;
+              spine.rotation.x = Math.sin(elapsed * 1.8) * 0.018;
             }
+
             vrmInstance.update(delta);
           }
 
@@ -127,6 +210,12 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
 
         return () => {
           resizeObserver.disconnect();
+          domElem.removeEventListener('mousedown', onMouseDown);
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+          domElem.removeEventListener('touchstart', onTouchStart);
+          window.removeEventListener('touchmove', onTouchMove);
+          window.removeEventListener('touchend', onMouseUp);
         };
       } catch (err: any) {
         console.error('Failed to render VRM preview:', err);
@@ -144,26 +233,45 @@ export function VRMPreviewCanvas({ url, className = 'w-full h-full' }: VRMPrevie
       cancelAnimationFrame(animFrameId);
       if (renderer) {
         renderer.dispose();
-        if (renderer.domElement && renderer.domElement.parentNode) {
-          renderer.domElement.parentNode.removeChild(renderer.domElement);
-        }
       }
       cleanupPromise.then((cleanup) => {
         if (typeof cleanup === 'function') cleanup();
       });
     };
-  }, [url]);
+  }, [url, interactive, autoRotate]);
 
   return (
-    <div ref={containerRef} className={`relative overflow-hidden transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} ${className}`}>
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`relative w-full h-full overflow-hidden select-none ${className}`}
+    >
+      <div ref={containerRef} className="w-full h-full" />
+
+      {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-surface)] transition-opacity duration-300">
-          <div className="w-5 h-5 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-sm transition-opacity duration-300 z-10">
+          <div className="w-7 h-7 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin mb-2" />
+          <span className="text-[11px] font-body text-[var(--text-muted)] font-medium">Loading 3D Model…</span>
         </div>
       )}
+
+      {/* Interactive 3D Rotation Badge */}
+      {!loading && !error && interactive && (
+        <div
+          className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-body text-white/80 pointer-events-none transition-opacity duration-300 ${
+            isHovered ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          Drag to rotate 3D
+        </div>
+      )}
+
+      {/* Error Fallback */}
       {error && !loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-surface)] text-xs text-[var(--text-muted)] text-center p-2">
-          Model Preview
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] text-xs text-[var(--text-muted)] text-center p-4 z-10">
+          <span className="font-semibold text-[var(--text-primary)] mb-1">3D Model</span>
+          <span>{error}</span>
         </div>
       )}
     </div>

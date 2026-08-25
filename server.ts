@@ -91,22 +91,6 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Ensure VRM models exist and are valid on startup
-  const modelsDir = path.join(process.cwd(), "public", "models");
-  if (!fs.existsSync(modelsDir)) {
-    fs.mkdirSync(modelsDir, { recursive: true });
-  }
-  const requiredModels = ["lyra.vrm", "lyra_casual.vrm", "lyra_dress.vrm"];
-  const missingModels = requiredModels.some(m => !fs.existsSync(path.join(modelsDir, m)) || fs.statSync(path.join(modelsDir, m)).size < 1000);
-  if (missingModels) {
-    console.log("[Server] VRM models missing or incomplete. Generating...");
-    try {
-      await import("./scripts/generate_vrms.mjs");
-    } catch (e) {
-      console.error("[Server] Failed to generate VRM models:", e);
-    }
-  }
-
   // Explicit static file serving for /models with binary content-type and range support
   const modelsPath = path.join(process.cwd(), "public", "models");
   app.get("/models/:filename", (req, res, next) => {
