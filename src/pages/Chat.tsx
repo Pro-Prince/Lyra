@@ -780,7 +780,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-page-container w-full h-[calc(100svh-56px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <div className="chat-page-container w-full h-[calc(100dvh-72px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
         {/* Click-away overlay when a drawer is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
@@ -791,7 +791,7 @@ export default function Chat() {
         )}
 
         {/* LEFT PANEL: 3D STAGE & HUD */}
-        <div className="companion-viewport-container relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
+        <div className="companion-viewport-container relative flex-[1_1_auto] min-h-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
             {/* HUD Top Left */}
             <div className="absolute top-6 left-6 flex gap-3 z-20">
                 <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">

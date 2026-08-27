@@ -257,7 +257,13 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     const paddingFactor = 1.4; // real headroom above her head so ears/head are never cropped
     const perspCam = camera as THREE.PerspectiveCamera;
     const fov = perspCam.fov * (Math.PI / 180);
-    const distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
+    let distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
+    
+    // If screen is narrow (mobile), we need to pull back to not crop horizontally
+    if (perspCam.aspect < 1.0) {
+       distance = distance / perspCam.aspect;
+    }
+    
     const midY = (headTop + shoulderY) / 2;
     portraitFraming.current = { midY, distance };
   };

@@ -164,7 +164,7 @@ export default function Settings() {
         {/* CARD 1: Voice Configuration (Span 7) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
+          className="md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -205,7 +205,7 @@ export default function Settings() {
         {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
+          className="md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -287,7 +287,7 @@ export default function Settings() {
         {/* CARD 3: Wardrobe (Span 12 - Full Width Bento Tile) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Sparkles} size={48} />
@@ -327,7 +327,7 @@ export default function Settings() {
         {/* CARD 4: Remembered Context (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -371,7 +371,7 @@ export default function Settings() {
         {/* CARD 5: Account & Data Portability (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl font-body"
+          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl font-body"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Download} size={48} />
@@ -452,15 +452,15 @@ export default function Settings() {
             <span className="text-sm text-[var(--text-muted)] font-medium">Destructive reset controls:</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
             {/* Soft Reset */}
-            <div className="flex items-center gap-2.5 flex-1 sm:flex-initial">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 sm:flex-initial">
               <input 
                 type="text" 
                 value={resetConfirm}
                 onChange={(e) => setResetConfirm(e.target.value)}
                 placeholder="Type RESET"
-                className="w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="w-full sm:w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
               />
               <Button
                 variant="destructive"
@@ -468,19 +468,20 @@ export default function Settings() {
                 type="button"
                 onClick={handleResetCompanion}
                 disabled={resetConfirm !== "RESET"}
+                className="w-full sm:w-auto"
               >
                 Reset Chat & Memory
               </Button>
             </div>
 
             {/* Full Wipe */}
-            <div className="flex items-center gap-2.5 flex-1 sm:flex-initial">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 sm:flex-initial">
               <input 
                 type="text" 
                 value={clearConfirm}
                 onChange={(e) => setClearConfirm(e.target.value)}
                 placeholder="Type CLEAR"
-                className="w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="w-full sm:w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
               />
               <Button
                 variant="destructive"
@@ -488,6 +489,7 @@ export default function Settings() {
                 type="button"
                 onClick={handleClear}
                 disabled={clearConfirm !== "CLEAR"}
+                className="w-full sm:w-auto"
               >
                 Wipe All App Data
               </Button>
