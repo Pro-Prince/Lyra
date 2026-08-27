@@ -50,10 +50,10 @@ export async function renderPosedOutfit(
   vrm.humanoid?.update();
 
   const scene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xfff5f8, 1.2);
-  const key = new THREE.DirectionalLight(0xfff8f0, 1.3);
+  const ambient = new THREE.AmbientLight(0xfff5f8, 2.5);
+  const key = new THREE.DirectionalLight(0xfff8f0, 1.5);
   key.position.set(1.5, 3.0, 2.5);
-  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.8);
+  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.9);
   fill.position.set(-1.5, 2.0, 2.0);
   scene.add(ambient, key, fill, vrm.scene);
 

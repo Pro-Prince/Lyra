@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-// 1. Configure Three.js internal console handler to drop Clock deprecation warnings
+// 1. Configure Three.js internal console handler to drop Clock deprecation warnings & texture load fallbacks
 if (typeof (THREE as any).setConsoleFunction === 'function') {
   (THREE as any).setConsoleFunction((type: string, message: string, ...params: any[]) => {
     if (
@@ -8,7 +8,9 @@ if (typeof (THREE as any).setConsoleFunction === 'function') {
       (message.includes('Clock:') ||
        message.includes('THREE.Clock') ||
        message.includes('removeUnnecessaryJoints') ||
-       message.includes('combineSkeletons'))
+       message.includes('combineSkeletons') ||
+       message.includes("Couldn't load texture") ||
+       message.includes('Failed to load texture'))
     ) {
       return;
     }
@@ -27,7 +29,9 @@ console.warn = function (...args: any[]) {
      msg.includes('Clock:') ||
      msg.includes('THREE.Timer') ||
      msg.includes('removeUnnecessaryJoints') ||
-     msg.includes('combineSkeletons'))
+     msg.includes('combineSkeletons') ||
+     msg.includes("Couldn't load texture") ||
+     msg.includes('Failed to load texture'))
   ) {
     return;
   }
@@ -36,7 +40,9 @@ console.warn = function (...args: any[]) {
     if (
       argStr.includes('THREE.Clock') ||
       argStr.includes('THREE.Timer') ||
-      argStr.includes('removeUnnecessaryJoints')
+      argStr.includes('removeUnnecessaryJoints') ||
+      argStr.includes("Couldn't load texture") ||
+      argStr.includes('Failed to load texture')
     ) {
       return;
     }
@@ -53,7 +59,9 @@ console.error = function (...args: any[]) {
       argStr.includes('[vite] failed to connect to websocket') ||
       argStr.includes('WebSocket closed without opened') ||
       argStr.includes('WebSocket connection to') ||
-      (argStr.includes('failed to connect') && argStr.includes('websocket'))
+      (argStr.includes('failed to connect') && argStr.includes('websocket')) ||
+      argStr.includes("Couldn't load texture") ||
+      argStr.includes('Failed to load texture')
     ) {
       return;
     }

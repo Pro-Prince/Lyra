@@ -321,19 +321,6 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
-  // Explicit models route to guarantee correct binary MIME type and delivery
-  app.get("/models/:filename", (req, res) => {
-    const filePath = path.join(process.cwd(), "public/models", req.params.filename);
-    if (fs.existsSync(filePath)) {
-      res.setHeader("Content-Type", "model/gltf-binary");
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.sendFile(filePath);
-    } else {
-      res.status(404).send("Model not found");
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

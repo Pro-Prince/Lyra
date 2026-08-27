@@ -48,8 +48,8 @@ export function VRMPreviewCanvas({
         const camera = new THREE.PerspectiveCamera(24, width / height, 0.1, 15);
 
         // Warm studio lighting setup
-        const ambient = new THREE.AmbientLight(0xfff5f8, 1.4);
-        const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.4);
+        const ambient = new THREE.AmbientLight(0xfff5f8, 2.5);
+        const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.5);
         keyLight.position.set(1.5, 3.2, 2.5);
 
         const fillLight = new THREE.DirectionalLight(0xf0e6ff, 0.9);

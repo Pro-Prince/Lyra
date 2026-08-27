@@ -5,12 +5,15 @@ export function createThumbnailRenderer(width: number = 256, height: number = 25
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
     preserveDrawingBuffer: true,
-    antialias: false,
+    antialias: true,
     powerPreference: 'default',
     failIfMajorPerformanceCaveat: false,
   });
   renderer.setSize(width, height);
   renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
   return renderer;
 }
 

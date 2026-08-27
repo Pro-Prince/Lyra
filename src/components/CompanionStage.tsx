@@ -9,6 +9,7 @@ import { RoomEnvironment } from './RoomEnvironment';
 import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
+import { InteractionManager } from './InteractionManager';
 
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
@@ -328,6 +329,7 @@ interface VRMModelProps {
 }
 
 function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onLoaded, onError, retryKey = 0 }: VRMModelProps) {
+  const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
 
   const lookTarget = useRef(new THREE.Object3D());
@@ -524,6 +526,29 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
       window.removeEventListener('touchmove', handleTouchMove);
     };
   }, []);
+
+  useEffect(() => {
+    if (!vrm || !gl.domElement || !camera) return;
+
+    const interactionMgr = new InteractionManager({
+      camera,
+      domElement: gl.domElement,
+      targetObject: vrm.scene,
+      vrm,
+      onInteract: (_gesture, hitPoint) => {
+        if (hitPoint) {
+          targetLookAt.current.set(hitPoint.x * 1.1, Math.max(1.1, hitPoint.y), 2.5);
+          setTimeout(() => {
+            targetLookAt.current.set(0, 1.35, 3);
+          }, 1600);
+        }
+      },
+    });
+
+    return () => {
+      interactionMgr.dispose();
+    };
+  }, [vrm, camera, gl.domElement]);
 
   const movement = useCompanionMovement(vrm?.scene || null);
   const elapsedTimeRef = useRef(0);
@@ -804,11 +829,16 @@ function CompanionStageComponent({
           camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
             alpha: true, 
-            antialias: false, 
-            powerPreference: "default",
+            antialias: true, 
+            powerPreference: "high-performance",
             stencil: false,
             depth: true,
             failIfMajorPerformanceCaveat: false
+          }}
+          onCreated={({ gl }) => {
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.05;
           }}
           dpr={[1, 1.5]}
         >
