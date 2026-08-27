@@ -272,6 +272,9 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
         }
 
         vrm.scene.traverse((child) => {
+          if (!child.parent) {
+            child.parent = null;
+          }
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.frustumCulled = true;
@@ -280,6 +283,7 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
             }
           }
         });
+        vrm.scene.updateMatrixWorld(true);
 
         console.log(`[loadVRM] Successfully parsed and initialized ${url}`);
         resolve(vrm);

@@ -53,6 +53,8 @@ export function frameOutfit(
   camera: THREE.PerspectiveCamera,
   _canvasHeightPx: number = 256
 ) {
+  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
+  vrmScene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const totalHeight = box.max.y - box.min.y;
   const topY = box.max.y + 0.05;
@@ -73,6 +75,8 @@ export function frameFullBody(
   reservedBottomPx: number = 0,
   reservedTopPx: number = 0
 ) {
+  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
+  vrmScene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const size = new THREE.Vector3();
   box.getSize(size);
@@ -94,6 +98,8 @@ export function framePortrait(
   camera: THREE.PerspectiveCamera,
   _canvasHeightPx: number = 256
 ) {
+  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
+  vrmScene.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const headTop = box.max.y;
   const shoulderY = headTop - (box.max.y - box.min.y) * 0.28;

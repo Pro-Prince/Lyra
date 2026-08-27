@@ -214,6 +214,8 @@ export class InteractionManager {
 
     if (hitPoint && this.targetObject) {
       // Determine vertical region of the model
+      this.targetObject.traverse((child) => { if (!child.parent) child.parent = null; });
+      this.targetObject.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(this.targetObject);
       const height = box.max.y - box.min.y;
       const relativeY = (hitPoint.y - box.min.y) / (height || 1);

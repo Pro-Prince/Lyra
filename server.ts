@@ -343,7 +343,7 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
         }
       }
     }));
-    app.get("*all", (req, res, next) => {
+    app.get("*", (req, res, next) => {
       // Don't intercept static assets or API
       if (req.path.startsWith("/api") || req.path.match(/\.(vrm|gltf|glb|svg|png|jpg|jpeg|json|css|js|wasm|ico)$/i)) {
         return res.status(404).send("File not found");

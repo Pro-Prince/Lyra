@@ -248,6 +248,8 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
   // Compute portrait camera framing ONCE per VRM load and on resize - NEVER inside useFrame!
   const updateFraming = () => {
     if (!vrmScene) return;
+    vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
+    vrmScene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(vrmScene);
     const headTop = box.max.y;
     const shoulderY = headTop - (box.max.y - box.min.y) * 0.25;
@@ -362,6 +364,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         applyRestPose(vrmInstance);
 
         // Center & floor VRM
+        vrmInstance.scene.traverse((child) => { if (!child.parent) child.parent = null; });
+        vrmInstance.scene.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(vrmInstance.scene);
         const center = new THREE.Vector3();
         box.getCenter(center);

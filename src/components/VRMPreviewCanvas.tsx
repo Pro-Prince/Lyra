@@ -104,6 +104,9 @@ export function VRMPreviewCanvas({
 
         scene.add(vrm.scene);
 
+        vrm.scene.traverse((child) => { if (!child.parent) child.parent = null; });
+        vrm.scene.updateMatrixWorld(true);
+
         // Auto-frame camera on full torso & outfit
         const box = new THREE.Box3().setFromObject(vrm.scene);
         const totalHeight = Math.max(1.2, box.max.y - box.min.y);
