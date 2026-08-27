@@ -7,19 +7,20 @@ export default function Terms() {
   return (
     <LegalPageWrapper>
       <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-12 flex flex-col justify-center my-auto">
-          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <Heading1>Terms of Service</Heading1>
-              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-0.5">
-                <Clock className="w-3.5 h-3.5" /> Last updated: August 23, 2026
+        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center my-auto">
+          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            <div className="flex items-start sm:items-center gap-3.5 mb-6 border-b border-[var(--accent-primary)]/10 pb-6">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-0.5 sm:mt-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col justify-center">
+                <Heading1 className="tracking-tight text-left">Terms of Service</Heading1>
+                <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-1">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>Last updated: August 23, 2026</span>
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="space-y-6 text-[var(--text-primary)]/90 text-sm leading-relaxed">
             <section className="space-y-2">
