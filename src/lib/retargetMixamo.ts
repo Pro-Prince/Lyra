@@ -85,7 +85,11 @@ export async function loadMixamoAnimation(url: string, vrm: VRM): Promise<THREE.
       const propertyName = trackSplitted[1];
 
       mixamoRigNode.getWorldQuaternion(restRotationInverse).invert();
-      mixamoRigNode.parent?.getWorldQuaternion(parentRestWorldRotation);
+      if (mixamoRigNode.parent) {
+        mixamoRigNode.parent.getWorldQuaternion(parentRestWorldRotation);
+      } else {
+        parentRestWorldRotation.identity();
+      }
 
       if (track instanceof THREE.QuaternionKeyframeTrack) {
         for (let i = 0; i < track.values.length; i += 4) {

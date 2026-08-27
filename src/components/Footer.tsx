@@ -112,13 +112,13 @@ export default function Footer() {
       {/* Full-width 1px divider */}
       <div className="w-full h-px bg-[rgba(255,182,213,0.06)] mb-8" />
 
-      {/* Bottom bar: space-between copyright & repeated inline links */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--text-muted)]">
-        <div>
+      {/* Bottom bar: space-between copyright & repeated inline links, centered on mobile */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--text-muted)] text-center sm:text-left">
+        <div className="text-center sm:text-left">
           © 2026 Lyra. All rights reserved.
         </div>
 
-        <nav aria-label="Footer legal links" className="flex items-center gap-3">
+        <nav aria-label="Footer legal links" className="flex items-center justify-center gap-3">
           <Link
             to="/privacy"
             className="hover:text-[var(--text-primary)] transition-colors"

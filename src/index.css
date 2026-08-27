@@ -289,18 +289,46 @@ h3, .heading-3 {
 }
 
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
-  height: 54px;
-  padding: 0 32px;
+  height: 72px;
+  padding: 0 var(--space-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(36, 24, 35, 0.92);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  will-change: backdrop-filter;
+  background: rgba(36, 24, 35, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 182, 213, 0.12);
+}
+
+.nav-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 182, 213, 0.16);
+  border-radius: 16px;
+  padding: var(--space-xs);
+  min-width: 200px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+.nav-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 182, 213, 0.12);
+  margin: var(--space-xs) 0;
+}
+.nav-item-danger {
+  color: var(--text-danger);
 }
 
 /* Skip layout/paint work for offscreen long sections */

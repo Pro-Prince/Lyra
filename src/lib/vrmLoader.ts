@@ -57,19 +57,15 @@ export function isAiStudioSandbox(): boolean {
 }
 
 /**
- * Resolves a model path to either the raw GitHub URL or the local path based on environment.
+ * Resolves a model path to the local path.
  */
 export function resolveModelUrl(inputUrl: string): string {
-  // Normalize lookup key
   const matchedKey = Object.keys(VRM_MODEL_MAP).find(
     (key) => inputUrl === key || inputUrl.endsWith(key) || inputUrl.includes(key)
   );
 
   if (matchedKey) {
     const config = VRM_MODEL_MAP[matchedKey];
-    if (isAiStudioSandbox()) {
-      return config.fallback;
-    }
     return config.local;
   }
 
@@ -86,9 +82,6 @@ function getCandidateUrls(inputUrl: string): string[] {
 
   if (matchedKey) {
     const config = VRM_MODEL_MAP[matchedKey];
-    if (isAiStudioSandbox()) {
-      return [config.fallback, config.local];
-    }
     return [config.local, config.fallback];
   }
 
