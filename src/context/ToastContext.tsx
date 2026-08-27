@@ -26,7 +26,7 @@ export interface ToastData {
 interface ToastContextType {
   showToast: (message: string, options?: ToastOptions) => string;
   showError: (message: string, action?: ToastAction) => string;
-  showInfo: (message: string) => string;
+  showInfo: (message: string, action?: ToastAction) => string;
   dismissToast: (id?: string) => void;
 }
 
@@ -89,10 +89,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     });
   }, [showToast]);
 
-  const showInfo = useCallback((message: string) => {
+  const showInfo = useCallback((message: string, action?: ToastAction) => {
     return showToast(message, {
       type: 'info',
-      duration: 4000
+      action,
+      duration: action ? undefined : 4000
     });
   }, [showToast]);
 

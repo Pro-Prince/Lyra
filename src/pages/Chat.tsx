@@ -6,7 +6,7 @@ import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
-import { OutfitThumbnail, SceneryThumbnail } from "../components/Thumbnails";
+import { OutfitThumbnail } from "../components/Thumbnails";
 import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
@@ -110,6 +110,7 @@ export default function Chat() {
   const [scenery, setScenery] = useState<string>('neutral');
   const [outfit, setOutfit] = useState<string>('/models/lyra.vrm');
   const [activeTab, setActiveTab] = useState<'chat' | 'about'>('chat');
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -306,6 +307,25 @@ export default function Chat() {
     };
     window.addEventListener('lyraSpeak', handleSpeakEvent);
     return () => window.removeEventListener('lyraSpeak', handleSpeakEvent);
+  }, []);
+
+  useEffect(() => {
+    const handleViewportResize = () => {
+      const inputBar = document.querySelector('.input-bar-container');
+      if (inputBar && window.visualViewport) {
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        if (keyboardHeight > 30) {
+          (inputBar as HTMLElement).style.transform = `translateY(-${keyboardHeight}px)`;
+        } else {
+          (inputBar as HTMLElement).style.transform = 'none';
+        }
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', handleViewportResize);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -647,7 +667,9 @@ export default function Chat() {
     }
   };
 
-    const handleSend = () => {
+    const handleSend = (overrideText?: string) => {
+    const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
+    
     if (isLoading || isLyraSpeaking) {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -657,8 +679,46 @@ export default function Chat() {
       window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
       return;
     }
-    executeSend(inputText);
+    executeSend(textToSend);
     setInputText("");
+  };
+
+  const handleCapture = () => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(canvas, 0, 0);
+
+    const watermark = new Image();
+    watermark.src = '/images/Logo.png';
+    watermark.crossOrigin = 'anonymous';
+    watermark.onload = () => {
+      const size = Math.max(32, Math.floor(tempCanvas.width * 0.05));
+      const padding = size / 2;
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(watermark, tempCanvas.width - size - padding, tempCanvas.height - size - padding, size, size);
+      ctx.globalAlpha = 1.0;
+      
+      const dataUrl = tempCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Lyra_Capture_${new Date().getTime()}.png`;
+      link.href = dataUrl;
+      link.click();
+    };
+    
+    watermark.onerror = () => {
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Lyra_Capture_${new Date().getTime()}.png`;
+      link.href = dataUrl;
+      link.click();
+    };
   };
 
   // Process Memory extraction upon returning to IDLE from SPEAKING
@@ -720,7 +780,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="w-full h-[calc(100svh-56px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <div className="chat-page-container w-full h-[calc(100svh-56px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
         {/* Click-away overlay when a drawer is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
@@ -731,7 +791,7 @@ export default function Chat() {
         )}
 
         {/* LEFT PANEL: 3D STAGE & HUD */}
-        <div className="relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
+        <div className="companion-viewport-container relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
             {/* HUD Top Left */}
             <div className="absolute top-6 left-6 flex gap-3 z-20">
                 <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
@@ -744,8 +804,8 @@ export default function Chat() {
              
             {/* HUD Top Right */}
             <div className="absolute top-6 right-6 z-20">
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/90 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
-                    <Scan className="w-4 h-4" />
+                <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/90 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <Camera className="w-4 h-4" />
                     <span className="text-sm font-medium">Capture</span>
                 </button>
             </div>
@@ -762,6 +822,7 @@ export default function Chat() {
                         isWardrobeOpen={isWardrobeOpen}
                         isPortraitMode={isPortraitMode}
                         isProcessing={isLoading}
+                        transparentBg={true}
                     />
                     {/* TouchInteractionLayer */}
                     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
@@ -774,12 +835,12 @@ export default function Chat() {
 
             {/* HUD Bottom Controls */}
             <div className="absolute bottom-6 md:bottom-12 z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
-                {/* Camera */}
+                {/* View */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
                     <button onClick={() => setIsPortraitMode(!isPortraitMode)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isPortraitMode ? 'bg-white text-black border-white' : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:bg-black/60 hover:text-white'}`}>
-                        <Camera className="w-5 h-5" />
+                        <Scan className="w-5 h-5" />
                     </button>
-                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Camera</span>
+                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">View</span>
                 </div>
                 {/* Mute */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
@@ -832,17 +893,25 @@ export default function Chat() {
         </div>
 
         {/* RIGHT PANEL: CHAT INTERFACE */}
-        <div className="w-full md:w-[420px] lg:w-[480px] h-[55%] md:h-full bg-[#130f12] border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-30 shadow-2xl relative shrink-0">
+        <div className={`chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[#130f12] border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-30 shadow-2xl relative shrink-0 transition-all duration-300 ${isChatDrawerOpen ? 'h-[70%] md:h-full' : 'h-[56px] md:h-full overflow-hidden'}`}>
+            {/* Mobile Drawer Handle bar */}
+            <div 
+              className="md:hidden flex items-center justify-center py-3 border-b border-white/5 cursor-pointer select-none h-[44px] shrink-0"
+              onClick={() => setIsChatDrawerOpen(!isChatDrawerOpen)}
+            >
+              <div className="w-12 h-1 bg-white/20 rounded-full" />
+            </div>
+
             {/* Tabs */}
             <div className="flex px-6 pt-2 border-b border-white/5 shrink-0">
                <button 
-                 onClick={() => setActiveTab('chat')}
+                 onClick={() => { setActiveTab('chat'); setIsChatDrawerOpen(true); }}
                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'chat' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
                >
                  Chat
                </button>
                <button 
-                 onClick={() => setActiveTab('about')}
+                 onClick={() => { setActiveTab('about'); setIsChatDrawerOpen(true); }}
                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'about' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
                >
                  About
@@ -874,32 +943,71 @@ export default function Chat() {
                             )
                         ))}
                         {isLoading && (
-                             <div className="self-start max-w-[90%] flex gap-3">
-                                 <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm" />
-                                 <div className="bg-[#1e191d] rounded-2xl rounded-tl-sm p-4 border border-white/5 flex gap-1.5 items-center h-12">
-                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                     <div className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                 </div>
-                             </div>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                            className="self-start max-w-[90%] flex gap-3 items-start"
+                          >
+                            <motion.img 
+                              src="/images/Logo.png" 
+                              alt="Lyra" 
+                              className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm"
+                              animate={{ scale: [1, 1.05, 1] }}
+                              transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                            />
+                            <div className="flex flex-col items-start gap-1">
+                              <div className="bg-[#1e191d] rounded-2xl rounded-tl-sm p-4 border border-white/5 flex gap-2 items-center h-11 shadow-inner relative overflow-hidden">
+                                <motion.div 
+                                  className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff7eb6]/5 to-transparent"
+                                  animate={{ x: ['-100%', '100%'] }}
+                                  transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
+                                />
+                                <motion.div 
+                                  className="w-2 h-2 bg-[#ff7eb6] rounded-full"
+                                  animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
+                                  transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0 }}
+                                />
+                                <motion.div 
+                                  className="w-2 h-2 bg-[#ff7eb6]/80 rounded-full"
+                                  animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
+                                  transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.18 }}
+                                />
+                                <motion.div 
+                                  className="w-2 h-2 bg-[#ff7eb6]/60 rounded-full"
+                                  animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
+                                  transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.36 }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-white/30 px-1 font-medium italic animate-pulse">Lyra is thinking...</span>
+                            </div>
+                          </motion.div>
                         )}
                         <div ref={chatEndRef} className="h-2" />
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0">
+                    <div className="input-bar-container p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0 transition-transform duration-150 ease-out">
                        {/* Suggestions */}
-                       <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                          {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
-                             <button 
-                                key={text}
-                                onClick={() => setInputText(text)}
-                                className="whitespace-nowrap px-4 py-2 rounded-full bg-[#1c181d] border border-white/5 text-[13px] text-white/60 hover:text-white/90 hover:bg-[#2a272c] transition-colors cursor-pointer"
-                             >
-                                {text}
-                             </button>
-                          ))}
-                       </div>
+                       {messages.length <= 1 && (
+                         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
+                               <button 
+                                  key={text}
+                                  onClick={(e) => {
+                                     e.preventDefault();
+                                     setInputText(text);
+                                     handleSend(text);
+                                     setIsChatDrawerOpen(true);
+                                  }}
+                                  className="whitespace-nowrap px-4 py-2 rounded-full bg-[#1c181d] border border-white/5 text-[13px] text-white/60 hover:text-white/90 hover:bg-[#2a272c] transition-colors cursor-pointer"
+                               >
+                                  {text}
+                               </button>
+                            ))}
+                         </div>
+                       )}
 
                        {/* Input Field */}
                        <div className="relative bg-[#1e191d] rounded-full flex items-center p-1.5 border border-white/10 shadow-inner">
@@ -907,6 +1015,11 @@ export default function Chat() {
                              type="text" 
                              value={inputText}
                              onChange={(e) => setInputText(e.target.value)}
+                             onFocus={() => {
+                                setIsInputFocused(true);
+                                setIsChatDrawerOpen(true);
+                             }}
+                             onBlur={() => setIsInputFocused(false)}
                              onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                   e.preventDefault();
@@ -918,7 +1031,10 @@ export default function Chat() {
                              disabled={isListening || isLoading}
                           />
                           <button 
-                             onClick={handleSend}
+                             onClick={(e) => {
+                               e.preventDefault();
+                               handleSend();
+                             }}
                              disabled={!inputText.trim() || isLoading}
                              className="w-10 h-10 rounded-full bg-[#ff7eb6] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
                           >
@@ -930,8 +1046,13 @@ export default function Chat() {
             ) : (
                 <div className="flex-1 overflow-y-auto p-8 text-white/60 text-sm">
                    <h3 className="text-white font-medium mb-4 text-lg">About Lyra</h3>
-                   <p className="mb-4 leading-relaxed">Lyra is your interactive AI companion, designed to provide engaging conversation and a welcoming presence.</p>
-                   <p className="leading-relaxed">This application uses the Web Speech API for voice interactions and Three.js for real-time 3D rendering. All visuals and styles are crafted for a premium, clean SaaS aesthetic.</p>
+                   <p className="mb-4 leading-relaxed">Lyra is a warm, intellectually curious, and deeply empathetic companion. She loves exploring abstract concepts, finding beauty in the little things, and making you feel seen and heard.</p>
+                   <h4 className="text-white font-medium mb-3 mt-6">Try asking her:</h4>
+                   <ul className="list-disc pl-5 space-y-2 mb-6">
+                     <li>"What's something that made you curious today?"</li>
+                     <li>"Tell me about your day."</li>
+                     <li>"What do you think about the meaning of art?"</li>
+                   </ul>
                 </div>
             )}
         </div>
@@ -975,7 +1096,7 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-[110] bg-[#1c181d] border-r border-white/10 flex flex-col focus:outline-none shadow-2xl"
+              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[#1c181d] md:border-r border-white/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
             >
               <div className="p-6 flex items-center justify-between border-b border-white/5">
                 <h2 className="font-heading font-medium text-2xl text-white/90">Settings</h2>
@@ -1042,7 +1163,7 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed top-0 left-0 bottom-0 w-[340px] max-w-[88vw] z-[110] bg-[#1c181d] border-r border-white/10 flex flex-col focus:outline-none shadow-2xl"
+              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[#1c181d] md:border-r border-white/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
             >
               <div className="p-6 flex items-center justify-between border-b border-white/5">
                 <h2 className="font-heading font-medium text-2xl text-white/90">Wardrobe</h2>

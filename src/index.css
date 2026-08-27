@@ -403,6 +403,20 @@ h3, .heading-3 {
   transform: translateY(0) scale(0.98);
 }
 
+.btn-destructive {
+  background: transparent;
+  color: var(--text-danger);
+  border: 1px solid rgba(242, 168, 184, 0.3);
+}
+.btn-destructive:hover:not(:disabled) {
+  background: rgba(242, 168, 184, 0.08);
+  border-color: rgba(242, 168, 184, 0.5);
+  transform: translateY(-1px);
+}
+.btn-destructive:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
 .btn:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
@@ -691,5 +705,170 @@ h3, .heading-3 {
     transform: scale(1) !important;
   }
 }
+
+/* ==========================================================================
+   PWA Install Banner Styles
+   ========================================================================== */
+.install-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 182, 213, 0.16);
+  border-radius: 16px;
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+.install-banner-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.install-banner-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.install-banner-text strong {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.install-banner-text span {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.install-banner-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s, color 0.2s;
+}
+.install-banner-close:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+
+/* ==========================================================================
+   MOBILE-FIRST RESPONSIVE OPTIMIZATION OVERRIDES
+   ========================================================================== */
+
+/* 1. Global Touch Targets (Minimum 44x44px for every interactive element) */
+@media (max-width: 768px) {
+  button, 
+  a, 
+  .btn, 
+  .btn-sm, 
+  .icon-btn, 
+  [role="button"],
+  .install-banner-close,
+  .faq-row,
+  .faq-row-header {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
+/* 2. Prevent iOS Input Auto-Zoom (Inputs/Textareas >= 16px font on mobile) */
+@media (max-width: 480px) {
+  input, 
+  textarea, 
+  select,
+  .input-bar-container input {
+    font-size: 16px !important;
+  }
+}
+
+/* 3. Safe Area Insets (Respecting notches & home indicators on fixed components) */
+.control-bar,
+.presence-bottombar {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+}
+
+.app-header {
+  padding-top: env(safe-area-inset-top) !important;
+}
+
+.fixed.top-0 {
+  padding-top: env(safe-area-inset-top) !important;
+}
+
+/* 4. Onboarding split height boundary below 900px */
+@media (max-width: 900px) {
+  /* Restrict companion height to max 35vh of viewport to avoid vertical content cutoff */
+  .order-1.lg\:order-2 {
+    max-height: 35svh !important;
+    height: 35svh !important;
+  }
+  .order-1.lg\:order-2 > div {
+    max-height: 35svh !important;
+    height: 35svh !important;
+    width: 100% !important;
+  }
+}
+
+/* 5. Wardrobe Grid Column Handling */
+@media (max-width: 400px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+}
+
+/* 6. Mobile Chat Slider Drawer Patterns */
+@media (max-width: 768px) {
+  /* Full screen canvas viewport layout */
+  .chat-page-container {
+    height: calc(100svh - 54px) !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+  
+  /* Companion viewport takes full bleed space */
+  .companion-viewport-container {
+    height: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    z-index: 10 !important;
+  }
+
+  /* Right panel (chat interface drawer) absolute positioned at bottom */
+  .chat-drawer-panel {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 30 !important;
+    border-top-left-radius: 24px !important;
+    border-top-right-radius: 24px !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+    background-color: rgba(19, 15, 18, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+}
+
 
 

@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import AppHeader from "./components/AppHeader";
+import InstallBanner from "./components/InstallBanner";
 import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import Chat from "./pages/Chat";
@@ -107,6 +108,7 @@ export default function App() {
           <ScrollToTop />
           <AppHeader />
           <AnimatedRoutes />
+          <InstallBanner />
         </Router>
       </ToastProvider>
     </AuthProvider>

@@ -8,6 +8,7 @@ import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
 import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
+import { vrmAudioSync } from '../lib/vrmAudioSync';
 
 const SCRATCH_COLOR_A = new THREE.Color();
 const SCRATCH_COLOR_B = new THREE.Color();
@@ -491,8 +492,10 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   });
 
   const currentViseme = useRef<string>('neutral');
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
   useEffect(() => {
+    analyserRef.current = vrmAudioSync.getAnalyser();
     const handleSpeak = (e: any) => { currentViseme.current = e.detail; };
     window.addEventListener('lyraSpeak', handleSpeak);
     return () => window.removeEventListener('lyraSpeak', handleSpeak);
@@ -579,12 +582,78 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
             vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
         }
 
+        // Real-time Web Audio API frequency analysis
+        const analyser = analyserRef.current;
+        let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+        let hasAudio = false;
+
+        if (analyser) {
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyser.getByteFrequencyData(dataArray);
+
+          // Calculate average amplitude across the entire spectrum
+          let totalAmp = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            totalAmp += dataArray[i];
+          }
+          const averageAmp = totalAmp / bufferLength;
+          // Normalize the amplitude based on expected maximum levels (usually peaks around 120-140)
+          const normalizedAmp = Math.min(1.0, averageAmp / 110);
+
+          if (normalizedAmp > 0.01) {
+            hasAudio = true;
+            let lowSum = 0;
+            let midSum = 0;
+            let highSum = 0;
+
+            const lowEnd = Math.floor(bufferLength * 0.15);
+            const midEnd = Math.floor(bufferLength * 0.45);
+
+            for (let i = 0; i < bufferLength; i++) {
+              if (i < lowEnd) {
+                lowSum += dataArray[i];
+              } else if (i < midEnd) {
+                midSum += dataArray[i];
+              } else {
+                highSum += dataArray[i];
+              }
+            }
+
+            const lowAvg = lowSum / lowEnd || 0;
+            const midAvg = midSum / (midEnd - lowEnd) || 0;
+            const highAvg = highSum / (bufferLength - midEnd) || 0;
+
+            const totalAvg = lowAvg + midAvg + highAvg || 1;
+
+            // Classify FFT spectrum content to map to human-like vowels
+            visemeWeights.aa = Math.max(0, (lowAvg * 1.5) / totalAvg);
+            visemeWeights.oh = Math.max(0, (midAvg * 1.2) / totalAvg);
+            visemeWeights.ee = Math.max(0, (highAvg * 1.6) / totalAvg);
+            visemeWeights.ih = Math.max(0, (midAvg * 0.8 + highAvg * 0.8) / totalAvg);
+            visemeWeights.ou = Math.max(0, (lowAvg * 0.8 + midAvg * 0.4) / totalAvg);
+
+            // Scale all weights relative to the measured audio volume envelope
+            const sumWeights = visemeWeights.aa + visemeWeights.ih + visemeWeights.ou + visemeWeights.ee + visemeWeights.oh || 1;
+            visemeWeights.aa = (visemeWeights.aa / sumWeights) * normalizedAmp;
+            visemeWeights.ih = (visemeWeights.ih / sumWeights) * normalizedAmp;
+            visemeWeights.ou = (visemeWeights.ou / sumWeights) * normalizedAmp;
+            visemeWeights.ee = (visemeWeights.ee / sumWeights) * normalizedAmp;
+            visemeWeights.oh = (visemeWeights.oh / sumWeights) * normalizedAmp;
+          }
+        }
+
+        // Apply weights smoothly to VRM expression blendshapes
         for (let i = 0; i < VISEMES.length; i++) {
           const v = VISEMES[i];
           const currentWeight = vrm.expressionManager.getValue(v) || 0;
-          const targetWeight = currentViseme.current === v ? 1 : 0;
+          // Fall back gracefully to standard timed visemes if user has not interacted with page to resume audio ctx yet
+          const targetWeight = hasAudio 
+            ? (visemeWeights[v] || 0) 
+            : (currentViseme.current === v ? 1.0 : 0.0);
+
           if (Math.abs(currentWeight - targetWeight) > 0.01) {
-            vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 16));
+            vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
           }
         }
       }
@@ -631,10 +700,11 @@ function CompanionStageComponent({
   onModelLoaded?: () => void;
   onError?: (err?: string) => void;
 }) {
-  const { showError } = useToast();
+  const { showInfo } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
   const [vrmSceneRef, setVrmSceneRef] = useState<THREE.Group | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const retryCount = useRef(0);
   const [isTabVisible, setIsTabVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
 
   useEffect(() => {
@@ -655,13 +725,27 @@ function CompanionStageComponent({
 
   const handleError = (err?: string) => {
     setIsLoaded(false);
+    if (retryCount.current === 0) {
+      retryCount.current++;
+      console.warn('Companion load failed, retrying once:', err);
+      // Wait a moment then retry quietly
+      setTimeout(() => {
+        handleRetry();
+      }, 1000);
+      return;
+    }
+    
+    console.error('Companion load failed again after retry:', err);
     if (onError) {
       onError(err);
     }
     if (!silentError) {
-      showError("Having trouble loading her right now, refreshing usually fixes it", {
+      showInfo("One moment, she's settling back in.", {
         label: "Retry",
-        onClick: () => handleRetry()
+        onClick: () => {
+          retryCount.current = 0;
+          handleRetry();
+        }
       });
     }
   };

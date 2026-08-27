@@ -20,6 +20,7 @@ export function VRMPreviewCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
@@ -295,7 +296,14 @@ export function VRMPreviewCanvas({
         if (typeof cleanup === 'function') cleanup();
       });
     };
-  }, [url, interactive, autoRotate]);
+  }, [url, interactive, autoRotate, retryKey]);
+
+  const retryRender = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setError(null);
+    setLoading(true);
+    setRetryKey((k) => k + 1);
+  };
 
   return (
     <div
@@ -324,11 +332,17 @@ export function VRMPreviewCanvas({
         </div>
       )}
 
-      {/* Error Fallback */}
+      {/* Quiet Error Fallback (never exposes raw JavaScript errors) */}
       {error && !loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] text-xs text-[var(--text-muted)] text-center p-4 z-10">
-          <span className="font-semibold text-[var(--text-primary)] mb-1">3D Model</span>
-          <span>{error}</span>
+        <div className="outfit-card-fallback absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-sm text-center p-3 z-10 gap-2 font-body">
+          <span className="text-[11px] font-body text-[var(--text-muted)]">Preview unavailable</span>
+          <button
+            type="button"
+            onClick={retryRender}
+            className="text-[10px] font-body font-semibold text-[var(--accent-primary)] hover:underline bg-[var(--accent-primary)]/10 hover:bg-[var(--accent-primary)]/20 border border-[var(--accent-primary)]/20 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

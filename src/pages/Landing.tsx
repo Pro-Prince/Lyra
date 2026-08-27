@@ -20,25 +20,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
+import IconBadge from "../components/IconBadge";
 import { VRMPreviewCanvas } from "../components/VRMPreviewCanvas";
-
-function IconBadge({ 
-  icon: Icon, 
-  size = 48 
-}: { 
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  size?: number;
-}) {
-  const iconSize = size === 32 ? 16 : 22;
-  return (
-    <div 
-      className="icon-badge"
-      style={{ width: `${size}px`, height: `${size}px` }}
-    >
-      <Icon size={iconSize} />
-    </div>
-  );
-}
 
 interface FAQItem {
   id: string;

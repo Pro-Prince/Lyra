@@ -3,13 +3,26 @@ import { getCompanion, saveCompanion } from "../lib/storage";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
 import { Play } from "lucide-react";
 
-const VOICE_PRESETS = [
+export interface VoicePreset {
+  id: string;
+  label: string;
+  desc: string;
+  pitch: number;
+  rate: number;
+}
+
+export const VOICE_PRESETS: VoicePreset[] = [
   { id: 'soft-calm', label: 'Soft & Calm', desc: 'Gentle, soothing cadence', pitch: 1.05, rate: 0.95 },
   { id: 'warm-playful', label: 'Warm & Playful', desc: 'Bright, friendly tone', pitch: 1.15, rate: 1.05 },
   { id: 'bright-cheerful', label: 'Bright & Cheerful', desc: 'Enthusiastic and upbeat', pitch: 1.2, rate: 1.0 },
 ];
 
-export function VoicePicker() {
+interface VoicePickerProps {
+  className?: string;
+  onSelect?: (presetId: string) => void;
+}
+
+export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('soft-calm');
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -51,9 +64,12 @@ export function VoicePicker() {
       rate: preset.rate,
       language: 'en-US'
     });
+    if (onSelect) {
+      onSelect(presetId);
+    }
   };
 
-  const handlePreview = (preset: typeof VOICE_PRESETS[0], e: React.MouseEvent) => {
+  const handlePreview = (preset: VoicePreset, e: React.MouseEvent) => {
     e.stopPropagation();
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -72,7 +88,7 @@ export function VoicePicker() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={className}>
       {VOICE_PRESETS.map((preset) => {
         const isSelected = selectedPreset === preset.id;
         const isThisPlaying = playingId === preset.id;
@@ -80,24 +96,38 @@ export function VoicePicker() {
           <div
             key={preset.id}
             onClick={() => handleSelectPreset(preset.id)}
-            className={`interactive-surface flex items-center justify-between p-6 sm:p-8 rounded-2xl border cursor-pointer ${
+            className={`interactive-surface flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
               isSelected 
-                ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ' 
-                : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30'
+                ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]/40' 
+                : 'bg-[var(--bg-base)]/60 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/80'
             }`}
           >
-            <div>
-              <div className={`text-xs font-semibold ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
-                {preset.label}
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full border-2 transition-all flex items-center justify-center ${
+                isSelected 
+                  ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]' 
+                  : 'border-white/20 bg-transparent'
+              }`}>
+                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#2D0A1E]" />}
               </div>
-              <div className="text-[10px] text-[var(--text-muted)]/70 mt-0.5">{preset.desc}</div>
+              <div>
+                <div className={`text-sm font-heading font-medium ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+                  {preset.label}
+                </div>
+                <div className="text-xs font-body text-[var(--text-muted)]/80 mt-0.5">{preset.desc}</div>
+              </div>
             </div>
             <button
+              type="button"
               onClick={(e) => handlePreview(preset, e)}
-              className="icon-btn"
-              title="Preview Voice"
+              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                isThisPlaying 
+                  ? 'bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] animate-pulse' 
+                  : 'bg-[var(--bg-surface)] border-white/10 text-[var(--text-muted)] hover:text-white hover:border-white/30'
+              }`}
+              title="Preview Voice Preset"
             >
-              <Play className={`w-3.5 h-3.5 ${isThisPlaying ? 'animate-pulse' : ''}`} />
+              <Play className={`w-4 h-4 ${isThisPlaying ? 'fill-current' : 'fill-current opacity-70'}`} />
             </button>
           </div>
         );
