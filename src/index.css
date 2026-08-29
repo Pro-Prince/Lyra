@@ -782,21 +782,21 @@ h3, .heading-3 {
   width: auto;
   min-width: 320px;
   max-width: 390px;
-  background: var(--bg-surface);
-  border: 1px solid rgba(255, 182, 213, 0.18);
-  border-radius: 22px;
+  background: rgba(18, 21, 31, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
   padding: 10px 14px 10px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   z-index: 1000;
 }
 
 :root.light .install-banner {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 18px 38px -4px rgba(0, 0, 0, 0.12), 0 6px 16px -2px rgba(0, 0, 0, 0.06);
 }
@@ -813,12 +813,16 @@ h3, .heading-3 {
 }
 
 .install-banner-logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  border: 1.5px solid rgba(255, 143, 192, 0.7);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   object-fit: cover;
   flex-shrink: 0;
+}
+
+:root.light .install-banner-logo {
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .install-banner-text {
@@ -856,16 +860,15 @@ h3, .heading-3 {
 }
 
 .install-banner-btn {
-  background: #ff8fc0;
-  color: #14121c;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 13px;
-  padding: 6px 18px;
-  border-radius: 9999px;
-  border: none;
+  padding: 7px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(255, 143, 192, 0.35);
   transition: all 0.15s ease-in-out;
   display: inline-flex;
   align-items: center;
@@ -874,18 +877,24 @@ h3, .heading-3 {
 }
 
 :root.light .install-banner-btn {
-  background: #ff7eb6;
-  color: #ffffff;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .install-banner-btn:hover {
-  background: #ffa3ce;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(255, 143, 192, 0.45);
+}
+
+:root.light .install-banner-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .install-banner-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .install-banner-close {
@@ -893,11 +902,11 @@ h3, .heading-3 {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 5px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 8px;
   transition: background-color 0.2s, color 0.2s, transform 0.15s;
 }
 

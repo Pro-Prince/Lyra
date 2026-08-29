@@ -1075,9 +1075,9 @@ export default function Chat() {
                   <button 
                     onClick={toggleMute}
                     title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
-                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
+                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer ${
                       isMuted 
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
                         : 'bg-[var(--bg-elevated)]/80 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
                     }`}
                   >
@@ -1360,9 +1360,9 @@ export default function Chat() {
                 <button 
                   onClick={toggleMute} 
                   title={isMuted ? "Unmute Microphone" : "Mute Microphone (Pause listening)"}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
+                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95 ${
                     isMuted 
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
                       : 'bg-[var(--bg-elevated)]/40 backdrop-blur-md border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -1378,7 +1378,7 @@ export default function Chat() {
                 <button 
                    onClick={toggleMic}
                    title={isListening ? "Listening... Click to stop" : "Tap to Speak to Lyra"}
-                   className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(255,126,182,0.15)] hover:shadow-[0_0_25px_rgba(255,126,182,0.3)] hover:brightness-110 active:scale-95 cursor-pointer ${
+                   className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg hover:brightness-105 active:scale-95 cursor-pointer ${
                      isListening ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] ring-2 ring-[var(--accent-primary)] animate-pulse' : 'bg-[var(--accent-primary)] text-[var(--bg-base)]'
                    }`}
                 >

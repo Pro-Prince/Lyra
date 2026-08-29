@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, AlertCircle, Info } from 'lucide-react';
+import { X, Sparkles, AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 
-export type ToastType = 'info' | 'error' | 'success';
+export type ToastType = 'info' | 'error' | 'warning' | 'success';
 
 export interface ToastAction {
   label: string;
@@ -26,6 +26,8 @@ export interface ToastData {
 interface ToastContextType {
   showToast: (message: string, options?: ToastOptions) => string;
   showError: (message: string, action?: ToastAction) => string;
+  showWarning: (message: string, action?: ToastAction) => string;
+  showSuccess: (message: string, action?: ToastAction) => string;
   showInfo: (message: string, action?: ToastAction) => string;
   dismissToast: (id?: string) => void;
 }
@@ -57,9 +59,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const type = options.type || 'info';
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     
-    // Auto-dismiss after 4 seconds for informational toasts (without action).
-    // Stays until manually dismissed for toasts with an action, unless an explicit duration is given.
-    const defaultDuration = options.action ? 0 : 4000;
+    // Auto-dismiss after 3.8s for informational toasts without actions
+    const defaultDuration = options.action ? 0 : 3800;
     const duration = options.duration !== undefined ? options.duration : defaultDuration;
 
     const newToast: ToastData = {
@@ -85,7 +86,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return showToast(message, {
       type: 'error',
       action,
-      duration: action ? 0 : 4000
+      duration: action ? 0 : 4500
+    });
+  }, [showToast]);
+
+  const showWarning = useCallback((message: string, action?: ToastAction) => {
+    return showToast(message, {
+      type: 'warning',
+      action,
+      duration: action ? 0 : 4200
+    });
+  }, [showToast]);
+
+  const showSuccess = useCallback((message: string, action?: ToastAction) => {
+    return showToast(message, {
+      type: 'success',
+      action,
+      duration: action ? undefined : 3500
     });
   }, [showToast]);
 
@@ -93,48 +110,52 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return showToast(message, {
       type: 'info',
       action,
-      duration: action ? undefined : 4000
+      duration: action ? undefined : 3800
     });
   }, [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, showError, showInfo, dismissToast }}>
+    <ToastContext.Provider value={{ showToast, showError, showWarning, showSuccess, showInfo, dismissToast }}>
       {children}
       
-      {/* Toast Visual Viewport: Slides in from bottom center */}
+      {/* Toast Visual Viewport: Elegantly floats at top center */}
       <div 
         id="toast-viewport"
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100%-2rem)] sm:w-auto pointer-events-none flex flex-col items-center justify-end"
+        className="fixed top-5 sm:top-6 left-1/2 -translate-x-1/2 z-[1001] max-w-lg w-[calc(100%-2rem)] sm:w-auto pointer-events-none flex flex-col items-center"
       >
         <AnimatePresence mode="wait">
           {currentToast && (
             <motion.div
               key={currentToast.id}
-              initial={{ y: 40, opacity: 0, scale: 0.96 }}
+              initial={{ y: -24, opacity: 0, scale: 0.96 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 24, opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className={`pointer-events-auto w-full sm:w-auto min-w-[320px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3.5 overflow-hidden relative group`}
+              exit={{ y: -16, opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="pointer-events-auto w-full sm:w-auto min-w-[300px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/12 rounded-2xl p-3.5 sm:px-4 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-between gap-3 overflow-hidden relative group"
             >
-              {/* Animated Accent Line */}
-              <div className={`absolute top-0 left-0 bottom-0 w-[3px] ${
-                currentToast.type === 'error' ? 'bg-[var(--accent-secondary)]' : 'bg-[var(--accent-primary)]'
-              }`} />
               {/* Icon & Message Container */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0">
                   {currentToast.type === 'error' ? (
-                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-secondary)]/10 border border-[var(--accent-secondary)]/20 flex items-center justify-center text-[var(--accent-secondary)] shadow-[0_0_15px_rgba(201,166,255,0.1)]">
-                      <Info className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                    </div>
+                  ) : currentToast.type === 'warning' ? (
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-300">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                  ) : currentToast.type === 'success' ? (
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="w-4 h-4" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shadow-[0_0_15px_rgba(255,143,192,0.1)]">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
                       <Sparkles className="w-4 h-4" />
                     </div>
                   )}
                 </div>
 
-                <p className="text-xs sm:text-[13px] font-body font-medium leading-relaxed text-[var(--text-primary)] min-w-0">
+                <p className="text-xs sm:text-[13px] font-body font-medium leading-snug text-[var(--text-primary)] min-w-0">
                   {currentToast.message}
                 </p>
               </div>
@@ -148,7 +169,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       currentToast.action?.onClick();
                       dismissToast(currentToast.id);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--accent-primary)] text-[#2D0A1E] font-body font-bold text-xs hover:brightness-105 active:scale-95 transition-all  cursor-pointer"
+                    className="px-3 py-1.5 rounded-full bg-[var(--accent-primary)] text-[#1a121c] font-body font-semibold text-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-sm"
                   >
                     {currentToast.action.label}
                   </button>
@@ -157,8 +178,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => dismissToast(currentToast.id)}
-                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 active:scale-95 transition-all"
-                  aria-label="Dismiss toast"
+                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10 active:scale-90 transition-all cursor-pointer"
+                  aria-label="Dismiss notification"
                 >
                   <X className="w-4 h-4" />
                 </button>

@@ -117,7 +117,7 @@ export function InstallBanner() {
         
         <div className="install-banner-text">
           <strong>Install Lyra</strong>
-          <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Keep her one tap away'}</span>
+          <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Add to home screen'}</span>
         </div>
         
         <div className="install-banner-actions">
