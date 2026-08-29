@@ -2,17 +2,16 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X, Share } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getLocalProfile } from '../lib/storage';
+import { useToast } from '../hooks/useToast';
 
 export function InstallBanner() {
   const location = useLocation();
+  const { showInfo } = useToast();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [visits, setVisits] = useState(0);
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
   // 1. Check user agent & display mode on mount
   useEffect(() => {
@@ -21,24 +20,15 @@ export function InstallBanner() {
     setIsIOSDevice(ios);
 
     // Check if standalone display mode
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    const standalone = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (navigator as any).standalone === true ||
+      window.matchMedia('(display-mode: fullscreen)').matches;
     setIsStandalone(standalone);
 
-    // Check dismissed state
-    const dismissed = localStorage.getItem('installBannerDismissed') === 'true';
+    // Check if dismissed in this session
+    const dismissed = sessionStorage.getItem('installBannerDismissed') === 'true';
     setIsDismissed(dismissed);
-
-    // Increment and track visits (once per session/tab lifecycle)
-    if (typeof window !== 'undefined') {
-      const counted = sessionStorage.getItem('lyra_visit_counted');
-      let currentVisits = parseInt(localStorage.getItem('lyra_visits') || '0', 10);
-      if (!counted) {
-        currentVisits += 1;
-        localStorage.setItem('lyra_visits', currentVisits.toString());
-        sessionStorage.setItem('lyra_visit_counted', 'true');
-      }
-      setVisits(currentVisits);
-    }
 
     // Capture beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -52,99 +42,96 @@ export function InstallBanner() {
     };
   }, []);
 
-  // 2. Fetch profile onboarding state on load and on route transitions
-  useEffect(() => {
-    async function checkProfile() {
-      try {
-        const profile = await getLocalProfile();
-        const completed = !!(profile && profile.adultConfirmed);
-        setOnboardingCompleted(completed);
-      } catch (err) {
-        console.warn('[InstallBanner] error checking profile:', err);
-      }
-    }
-    checkProfile();
-  }, [location.pathname]);
-
-  // 3. Determine show/hide visibility status
+  // 2. Determine show/hide visibility status
   useEffect(() => {
     if (isStandalone || isDismissed) {
       setShowBanner(false);
       return;
     }
 
-    // Show if completed onboarding OR on 2nd+ visit (real engagement)
-    const hasEngagement = onboardingCompleted || visits >= 2;
+    // Always show banner after a slight delay to allow smooth entry
+    const timer = setTimeout(() => {
+      setShowBanner(true);
+    }, 400);
 
-    if (isIOSDevice) {
-      setShowBanner(hasEngagement);
-    } else {
-      // For desktop/Android, show only if PWA installation prompt event is actually ready
-      setShowBanner(hasEngagement && !!deferredPrompt);
-    }
-  }, [isStandalone, isDismissed, onboardingCompleted, visits, isIOSDevice, deferredPrompt]);
+    return () => clearTimeout(timer);
+  }, [isStandalone, isDismissed, location.pathname]);
 
   const triggerInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    if (outcome === 'accepted') {
-      dismissInstallBanner(true);
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        setDeferredPrompt(null);
+        if (outcome === 'accepted') {
+          dismissInstallBanner(true);
+        }
+      } catch {
+        showInfo("Click the install icon (⊕) in your browser address bar to install Lyra.");
+      }
+    } else if (isIOSDevice) {
+      showInfo("Tap the Share button at the bottom of Safari, then select 'Add to Home Screen'.");
+    } else {
+      showInfo("Click the install icon (⊕) in your browser address bar to install Lyra on your device.");
     }
   };
 
-  const dismissInstallBanner = (permanently = true) => {
-    if (permanently) {
-      localStorage.setItem('installBannerDismissed', 'true');
-      setIsDismissed(true);
-    }
+  const dismissInstallBanner = (permanently = false) => {
+    sessionStorage.setItem('installBannerDismissed', 'true');
+    setIsDismissed(true);
     setShowBanner(false);
   };
 
-  if (!showBanner) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="install-banner"
-      >
-        <img src="/images/Logo.png" alt="Lyra" className="install-banner-logo" />
-        
-        <div className="install-banner-text">
-          <strong>Install Lyra</strong>
-          <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Add to home screen'}</span>
-        </div>
-        
-        <div className="install-banner-actions">
-          {isIOSDevice ? (
-            <div className="flex items-center text-[var(--accent-primary)] gap-1 px-2 flex-shrink-0 animate-pulse">
-              <Share size={18} />
-            </div>
-          ) : (
+      {showBanner && !isStandalone && (
+        <motion.div
+          key="lyra-install-banner"
+          initial={{ opacity: 0, y: 24, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          className="install-banner"
+        >
+          <img src="/images/Logo.png" alt="Lyra" className="install-banner-logo" />
+          
+          <div className="install-banner-text">
+            <strong>Install Lyra</strong>
+            <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Add to home screen'}</span>
+          </div>
+          
+          <div className="install-banner-actions">
+            {isIOSDevice ? (
+              <button
+                type="button"
+                onClick={triggerInstall}
+                className="install-banner-btn flex items-center gap-1.5"
+                aria-label="How to install on iOS"
+              >
+                <Share size={15} />
+                <span>Install</span>
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={triggerInstall} 
+                className="install-banner-btn"
+              >
+                Install
+              </button>
+            )}
+
             <button 
               type="button"
-              onClick={triggerInstall} 
-              className="install-banner-btn"
+              className="install-banner-close" 
+              onClick={() => dismissInstallBanner(true)} 
+              aria-label="Close install banner"
             >
-              Install
+              <X size={18} />
             </button>
-          )}
-
-          <button 
-            type="button"
-            className="install-banner-close" 
-            onClick={() => dismissInstallBanner(true)} 
-            aria-label="Close install banner"
-          >
-            <X size={17} />
-          </button>
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }
