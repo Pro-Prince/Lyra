@@ -75,8 +75,9 @@ export default function Chat() {
     async function verifyAdultAccess() {
       try {
         const profile = await getLocalProfile();
+        const companion = await import('../lib/storage').then(m => m.getCompanion());
         if (!isMounted) return;
-        if (!profile || !profile.adultConfirmed) {
+        if (!profile || !profile.adultConfirmed || !profile.initialized || !companion || !companion.initialized) {
           navigate("/onboarding", { replace: true });
         } else {
           setIsAdultVerified(true);

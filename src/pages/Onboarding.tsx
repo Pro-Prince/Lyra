@@ -183,13 +183,17 @@ export default function Onboarding() {
   const handleFinish = async () => {
     const finalName = userName.trim() || "Friend";
     
-    await saveLocalProfile({
+    const existingProfile = await import('../lib/storage').then(m => m.getLocalProfile());
+    await import('../lib/storage').then(m => m.saveLocalProfile({
+      ...existingProfile,
       name: finalName,
       initialized: true,
       adultConfirmed: true
-    });
+    }));
 
-    await saveCompanion({
+    const existingCompanion = await import('../lib/storage').then(m => m.getCompanion());
+    await import('../lib/storage').then(m => m.saveCompanion({
+      ...existingCompanion,
       name: "Lyra",
       userName: finalName,
       vibe: selectedVibe,
@@ -199,8 +203,8 @@ export default function Onboarding() {
       rate: 0.98,
       language: "en-US",
       initialized: true,
-      outfit: "/models/lyra.vrm"
-    });
+      outfit: existingCompanion?.outfit || "/models/lyra.vrm"
+    }));
 
     await saveMemory({
       id: `mem-intro-${Date.now()}-1`,
@@ -233,12 +237,49 @@ export default function Onboarding() {
       variants={pageCrossfadeVariants}
       className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
     >
-      {/* Thin, full-width progress bar fixed at top */}
-      <div className="fixed top-0 left-0 right-0 z-50 onboarding-progress">
-        <div 
-          className="onboarding-progress-fill" 
-          style={{ width: `${(step / 4) * 100}%` }}
-        />
+      {/* Top Segmented Progress Bar Section (matching reference image) */}
+      <div className="absolute top-0 left-0 right-0 w-full max-w-6xl mx-auto px-6 pt-8 pb-4 flex items-center justify-center z-50">
+        <div className="flex items-center gap-3 flex-1 max-w-lg mx-auto">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={idx}
+              className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                idx < step
+                  ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]"
+                  : "bg-[var(--text-primary)]/15"
+              }`}
+            />
+          ))}
+        </div>
+        <button
+          onClick={() => navigate("/")}
+          className="absolute right-6 top-6 p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10 transition-all cursor-pointer"
+          title="Skip to home"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Back Button (Fixed below progress bar) */}
+      <div className="absolute top-24 left-0 right-0 w-full max-w-6xl mx-auto px-6 z-40 pointer-events-none">
+        <AnimatePresence>
+          {step > 1 && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleBack}
+              className="pointer-events-auto inline-flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Adult Confirmation Modal (fires once before step 1 if not confirmed) */}
@@ -284,8 +325,12 @@ export default function Onboarding() {
       <main className="relative z-10 w-full max-w-6xl mx-auto px-6 py-8 sm:py-12 flex-1 flex flex-col justify-center my-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center w-full">
           
-          {/* Her Presence: Right Column on Desktop (5/12 = ~45%), Top on Mobile */}
-          <div className="order-1 lg:order-2 lg:col-span-5 flex items-center justify-center relative w-full">
+          {/* Her Presence: Alternates Left/Right depending on step */}
+          <motion.div 
+            layout
+            transition={{ duration: 0.6, ease: SIGNATURE_EASE }}
+            className={`order-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} lg:col-span-5 flex items-center justify-center relative w-full`}
+          >
             {/* Ambient Presence Glow anchored directly behind her silhouette */}
             <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
               <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
@@ -298,27 +343,33 @@ export default function Onboarding() {
                 />
               </div>
 
-              <CompanionStage
-                accentColor="#FF8FC0"
-                isCallMode={false}
-                scenery="neutral"
-                outfitUrl="/models/lyra.vrm"
-                emotion={currentEmotion}
-                onModelLoaded={handleModelLoaded}
-              />
+              {adultConfirmed && (
+                <CompanionStage
+                  accentColor="#FF8FC0"
+                  isCallMode={false}
+                  scenery="neutral"
+                  outfitUrl="/models/lyra.vrm"
+                  emotion={currentEmotion}
+                  onModelLoaded={handleModelLoaded}
+                />
+              )}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Left Column (Content): 7/12 (~55%), Swaps steps smoothly inside same card frame */}
-          <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col justify-center w-full">
+          {/* Left Column (Content): Swaps steps smoothly inside same card frame */}
+          <motion.div 
+            layout
+            transition={{ duration: 0.6, ease: SIGNATURE_EASE }}
+            className={`order-2 ${step % 2 === 0 ? 'lg:order-2' : 'lg:order-1'} lg:col-span-7 flex flex-col justify-center w-full`}
+          >
             <AnimatePresence mode="wait">
               {/* Step 1: Greeting */}
               {adultConfirmed && step === 1 && (
                 <motion.div
                   key="step-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
@@ -369,9 +420,9 @@ export default function Onboarding() {
               {adultConfirmed && step === 2 && (
                 <motion.div
                   key="step-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
@@ -411,12 +462,6 @@ export default function Onboarding() {
                     >
                       Continue
                     </Button>
-                    <button
-                      onClick={handleBack}
-                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
-                    >
-                      Back
-                    </button>
                   </div>
                 </motion.div>
               )}
@@ -425,9 +470,9 @@ export default function Onboarding() {
               {adultConfirmed && step === 3 && (
                 <motion.div
                   key="step-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
@@ -486,12 +531,6 @@ export default function Onboarding() {
                     >
                       Continue
                     </Button>
-                    <button
-                      onClick={handleBack}
-                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
-                    >
-                      Back
-                    </button>
                   </div>
                 </motion.div>
               )}
@@ -500,9 +539,9 @@ export default function Onboarding() {
               {adultConfirmed && step === 4 && (
                 <motion.div
                   key="step-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
                   className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
                 >
@@ -546,18 +585,11 @@ export default function Onboarding() {
                     >
                       Begin
                     </Button>
-                    <button
-                      onClick={handleBack}
-                      className="text-sm font-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-1"
-                    >
-                      Back
-                    </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-
+          </motion.div>
         </div>
       </main>
     </motion.div>

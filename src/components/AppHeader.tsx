@@ -357,6 +357,10 @@ export default function AppHeader() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const location = useLocation();
 
+  if (location.pathname === "/onboarding") {
+    return null;
+  }
+
   // On mobile /chat route, the chat page renders its own dedicated mock-accurate top bar
   if (isMobile && location.pathname === "/chat") {
     return null;

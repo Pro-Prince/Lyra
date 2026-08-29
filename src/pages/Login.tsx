@@ -23,7 +23,15 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 800));
     setMockAuthed(true); // session-only, in-memory, resets on refresh
     setStatus('success');
-    setTimeout(() => navigate('/chat'), 600);
+    setTimeout(async () => {
+      const profile = await import('../lib/storage').then(m => m.getLocalProfile());
+      const companion = await import('../lib/storage').then(m => m.getCompanion());
+      if (profile?.initialized && companion?.initialized) {
+        navigate('/chat');
+      } else {
+        navigate('/onboarding');
+      }
+    }, 600);
   };
 
   return (

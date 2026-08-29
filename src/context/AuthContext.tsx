@@ -69,13 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setMockAuthed = (authed: boolean) => {
     setIsMockAuthedState(authed);
     if (authed) {
-      saveLocalProfile({ adultConfirmed: true });
+      getLocalProfile().then(existing => {
+        saveLocalProfile({ ...existing, adultConfirmed: true });
+      });
     }
   };
 
   const continueAsGuest = async (birthdate?: string) => {
     setIsGuestMode(true);
-    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
+    const existing = await getLocalProfile();
+    await saveLocalProfile({ ...existing, birthdate: birthdate || null, adultConfirmed: true });
   };
 
   const signIn = async () => {
@@ -85,7 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (_email?: string, _password?: string, birthdate?: string) => {
     setMockAuthed(true);
-    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true });
+    const existing = await getLocalProfile();
+    await saveLocalProfile({ ...existing, birthdate: birthdate || null, adultConfirmed: true });
     return {};
   };
 
