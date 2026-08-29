@@ -37,7 +37,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md my-8">
         <div className="flex flex-col items-center text-center mb-6">
           <Link to="/" className="inline-flex items-center gap-2.5 mb-3 group header-logo">
-            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm group-hover:scale-105 transition-transform" />
+            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img group-hover:scale-105 transition-transform" />
             <span className="wordmark font-heading font-semibold text-2xl tracking-tight text-[var(--text-primary)]">Lyra</span>
           </Link>
           <h1 className="font-heading text-2xl sm:text-3xl font-medium tracking-tight text-[var(--text-primary)] mb-1">

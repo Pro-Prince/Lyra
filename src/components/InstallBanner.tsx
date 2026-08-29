@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X, Share } from 'lucide-react';
-import { Button } from './Button';
+import { motion, AnimatePresence } from 'motion/react';
 import { getLocalProfile } from '../lib/storage';
 
 export function InstallBanner() {
@@ -105,27 +105,47 @@ export function InstallBanner() {
   if (!showBanner) return null;
 
   return (
-    <div className="install-banner">
-      <img src="/images/Logo.png" alt="" className="install-banner-logo" />
-      <div className="install-banner-text">
-        <strong>Install Lyra</strong>
-        <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Keep her one tap away'}</span>
-      </div>
-      
-      {isIOSDevice ? (
-        <div className="flex items-center text-accent-primary gap-1 px-2 flex-shrink-0 animate-pulse">
-          <Share size={18} />
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="install-banner"
+      >
+        <img src="/images/Logo.png" alt="Lyra" className="install-banner-logo" />
+        
+        <div className="install-banner-text">
+          <strong>Install Lyra</strong>
+          <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Keep her one tap away'}</span>
         </div>
-      ) : (
-        <Button variant="primary" size="sm" onClick={triggerInstall} className="flex-shrink-0">
-          Install
-        </Button>
-      )}
+        
+        <div className="install-banner-actions">
+          {isIOSDevice ? (
+            <div className="flex items-center text-[var(--accent-primary)] gap-1 px-2 flex-shrink-0 animate-pulse">
+              <Share size={18} />
+            </div>
+          ) : (
+            <button 
+              type="button"
+              onClick={triggerInstall} 
+              className="install-banner-btn"
+            >
+              Install
+            </button>
+          )}
 
-      <button className="install-banner-close" onClick={() => dismissInstallBanner(true)} aria-label="Close install banner">
-        <X size={16} />
-      </button>
-    </div>
+          <button 
+            type="button"
+            className="install-banner-close" 
+            onClick={() => dismissInstallBanner(true)} 
+            aria-label="Close install banner"
+          >
+            <X size={17} />
+          </button>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

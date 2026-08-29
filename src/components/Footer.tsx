@@ -34,7 +34,7 @@ export default function Footer() {
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="Lyra Home"
           >
-            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm" />
+            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img" />
             <span className="wordmark font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
           </Link>
           <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">

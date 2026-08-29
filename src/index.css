@@ -108,7 +108,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollb
   height: 36px;
   border-radius: 10px;
   border: 1.5px solid rgba(255, 143, 192, 0.6);
-  box-shadow: 0 0 10px rgba(255, 143, 192, 0.25);
   overflow: hidden;
   object-fit: cover;
   transition: all 0.2s ease;
@@ -116,7 +115,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollb
 
 .logo-badge-img:hover {
   border-color: rgba(255, 143, 192, 0.9);
-  box-shadow: 0 0 14px rgba(255, 143, 192, 0.45);
 }
 
 .preview-tag {
@@ -338,28 +336,32 @@ h3, .heading-3 {
 .nav-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: var(--space-md);
+  right: 16px;
   background: var(--bg-surface);
   border: 1px solid rgba(255, 182, 213, 0.16);
-  border-radius: 16px;
-  padding: var(--space-xs);
-  min-width: 200px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border-radius: 18px;
+  padding: 6px;
+  width: 180px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
   z-index: 50;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-@media (max-width: 768px) {
-  .nav-dropdown {
-    right: 16px;
-    left: 16px;
-    width: auto;
-    min-width: 0;
-  }
+:root.light .nav-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 40px -6px rgba(0, 0, 0, 0.12), 0 6px 16px -2px rgba(0, 0, 0, 0.06);
 }
+
 .nav-dropdown-divider {
   height: 1px;
   background: rgba(255, 182, 213, 0.12);
-  margin: var(--space-xs) 0;
+  margin: 4px 6px;
+}
+
+:root.light .nav-dropdown-divider {
+  background: rgba(0, 0, 0, 0.06);
 }
 .nav-item-danger {
   color: var(--text-danger);
@@ -769,69 +771,143 @@ h3, .heading-3 {
 }
 
 /* ==========================================================================
-   PWA Install Banner Styles
+   PWA Install Banner Styles (Brand Vibes & Precise Mobile/Desktop Geometry)
    ========================================================================== */
 .install-banner {
   position: fixed;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
-  max-width: 420px;
-  margin: 0 auto;
+  bottom: 24px;
+  right: 24px;
+  left: auto;
+  margin: 0;
+  width: auto;
+  min-width: 320px;
+  max-width: 390px;
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 182, 213, 0.16);
-  border-radius: 16px;
-  padding: var(--space-sm) var(--space-md);
+  border: 1px solid rgba(255, 182, 213, 0.18);
+  border-radius: 22px;
+  padding: 10px 14px 10px 14px;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  gap: 12px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 1000;
 }
+
+:root.light .install-banner {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 38px -4px rgba(0, 0, 0, 0.12), 0 6px 16px -2px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 767px) {
+  .install-banner {
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: 410px;
+    margin: 0 auto;
+    min-width: 0;
+  }
+}
+
 .install-banner-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  border: 1.5px solid rgba(255, 143, 192, 0.6);
-  box-shadow: 0 0 8px rgba(255, 143, 192, 0.25);
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(255, 143, 192, 0.7);
   object-fit: cover;
   flex-shrink: 0;
 }
+
 .install-banner-text {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
 }
+
 .install-banner-text strong {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
+
 .install-banner-text span {
   font-family: var(--font-body);
   font-size: 12px;
   color: var(--text-muted);
+  line-height: 1.2;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.install-banner-btn {
+  background: #ff8fc0;
+  color: #14121c;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(255, 143, 192, 0.35);
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+:root.light .install-banner-btn {
+  background: #ff7eb6;
+  color: #ffffff;
+}
+
+.install-banner-btn:hover {
+  background: #ffa3ce;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(255, 143, 192, 0.45);
+}
+
+.install-banner-btn:active {
+  transform: scale(0.96);
+}
+
 .install-banner-close {
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 0.15s;
 }
+
 .install-banner-close:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
+}
+
+.install-banner-close:active {
+  transform: scale(0.9);
 }
 
 

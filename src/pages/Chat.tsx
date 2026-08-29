@@ -243,6 +243,8 @@ export default function Chat() {
       }
       
       const comp = await getCompanion();
+      const rap = await getRapport();
+      setRapportData(rap);
       const local = await import('../lib/storage').then(m => m.getLocalProfile());
       if (local) {
         if (local.micMode) setMicMode(local.micMode);
@@ -995,18 +997,18 @@ export default function Chat() {
         )}
 
         {/* ========================================================= */}
-        {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile.png EXACTLY  */}
+        {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
         {/* ========================================================= */}
-        <div className="md:hidden flex flex-col w-full h-full relative overflow-hidden">
+        <div className="md:hidden flex flex-col w-full h-full relative overflow-hidden bg-[var(--bg-base)]">
           {/* Top Half: 3D Companion Stage & Floating HUD (~52% height) */}
-          <div className="h-[52vh] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#181119] via-[#0d0b13] to-[#0a080f]">
+          <div className="h-[52vh] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[var(--bg-surface)] via-[var(--bg-base)]/90 to-[var(--bg-base)]">
             {/* Top Navigation Bar */}
             <div className="w-full px-4 pt-3 flex items-center justify-between z-30 pointer-events-auto shrink-0">
               {/* Left: Hamburger Menu + Lyra Avatar + Name */}
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
-                  className="p-1 -ml-1 text-white/90 hover:text-white active:scale-95 transition-all cursor-pointer"
+                  className="p-1 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -1014,9 +1016,9 @@ export default function Chat() {
                 <img 
                   src="/images/Logo.png" 
                   alt="Lyra" 
-                  className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[#ff8fc0]/70 shadow-[0_0_6px_rgba(255,143,192,0.3)]" 
+                  className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70" 
                 />
-                <span className="font-heading font-medium text-base text-white tracking-wide">
+                <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">
                   Lyra
                 </span>
               </div>
@@ -1024,9 +1026,9 @@ export default function Chat() {
               {/* Right: Capture Pill Button */}
               <button 
                 onClick={handleCapture} 
-                className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-white/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all"
+                className="px-3.5 py-1.5 rounded-full bg-[var(--bg-elevated)]/60 hover:bg-[var(--bg-elevated)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
               >
-                <Scan className="w-3.5 h-3.5 text-white/80" />
+                <Scan className="w-3.5 h-3.5 text-[var(--text-primary)]/80" />
                 <span>Capture</span>
               </button>
             </div>
@@ -1061,11 +1063,11 @@ export default function Chat() {
                   <button 
                     onClick={handleCapture}
                     title="Capture Screen / Portrait"
-                    className="w-12 h-12 rounded-full bg-[#1e1c28]/80 backdrop-blur-md border border-white/10 text-white/90 hover:bg-[#2a2838] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/80 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <Camera className="w-5 h-5 text-white/90" />
+                    <Camera className="w-5 h-5 text-[var(--text-primary)]/90" />
                   </button>
-                  <span className="text-[11px] text-white/70 font-normal">Camera</span>
+                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Camera</span>
                 </div>
 
                 {/* 2. Mute */}
@@ -1076,12 +1078,12 @@ export default function Chat() {
                     className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
                       isMuted 
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]' 
-                        : 'bg-[#1e1c28]/80 backdrop-blur-md border-white/10 text-white/90 hover:bg-[#2a2838]'
+                        : 'bg-[var(--bg-elevated)]/80 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
                     }`}
                   >
-                    <MicOff className={`w-5 h-5 ${isMuted ? 'text-rose-400' : 'text-white/90'}`} />
+                    <MicOff className={`w-5 h-5 ${isMuted ? 'text-rose-400' : 'text-[var(--text-primary)]/90'}`} />
                   </button>
-                  <span className={`text-[11px] font-normal ${isMuted ? 'text-rose-400' : 'text-white/70'}`}>
+                  <span className={`text-[11px] font-normal ${isMuted ? 'text-rose-400' : 'text-[var(--text-muted)]'}`}>
                     Mute
                   </span>
                 </div>
@@ -1091,13 +1093,19 @@ export default function Chat() {
                   <button 
                     onClick={toggleMic}
                     title={isListening ? "Listening... Tap to stop" : "Tap to Speak"}
-                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#ff3377] hover:bg-[#ff1a66] flex items-center justify-center text-white shadow-[0_0_20px_rgba(255,51,119,0.35)] active:scale-95 transition-all cursor-pointer ${
-                      isListening ? 'ring-4 ring-pink-500/40 animate-pulse' : ''
+                    style={{ 
+                      backgroundColor: activeAccent,
+                      boxShadow: isListening 
+                        ? `0 0 25px ${activeAccent}88` 
+                        : `0 0 16px ${activeAccent}44`
+                    }}
+                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer ${
+                      isListening ? 'ring-4 ring-[var(--accent-primary)]/40 animate-pulse' : 'hover:brightness-110'
                     }`}
                   >
                     <Mic className="w-6 h-6 text-white" />
                   </button>
-                  <span className="text-[11px] text-white/80 font-normal">Talk</span>
+                  <span className="text-[11px] text-[var(--text-primary)]/80 font-normal">Talk</span>
                 </div>
 
                 {/* 4. Speaker */}
@@ -1107,13 +1115,13 @@ export default function Chat() {
                     title={isSpeakerOn ? "Speakerphone (Loud)" : "Private Earpiece"}
                     className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
                       isSpeakerOn 
-                        ? 'bg-[#1e1c28]/80 backdrop-blur-md border-white/10 text-white/90 hover:bg-[#2a2838]' 
-                        : 'bg-white/10 border-white/20 text-white/60'
+                        ? 'bg-[var(--bg-elevated)]/80 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
+                        : 'bg-[var(--bg-base)]/40 border-[var(--text-primary)]/10 text-[var(--text-muted)]'
                     }`}
                   >
-                    <Volume2 className="w-5 h-5 text-white/90" />
+                    <Volume2 className="w-5 h-5 text-[var(--text-primary)]/90" />
                   </button>
-                  <span className="text-[11px] text-white/70 font-normal">Speaker</span>
+                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Speaker</span>
                 </div>
 
                 {/* 5. Stop */}
@@ -1121,54 +1129,54 @@ export default function Chat() {
                   <button 
                     onClick={handleStopSession}
                     title="End Session & Save Progress"
-                    className="w-12 h-12 rounded-full bg-[#1e1c28]/80 backdrop-blur-md border border-white/10 text-white/90 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/80 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <Square className="w-4 h-4 fill-white text-white" />
+                    <Square className="w-4 h-4 fill-[var(--text-primary)] text-[var(--text-primary)]" />
                   </button>
-                  <span className="text-[11px] text-white/70 font-normal">Stop</span>
+                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Stop</span>
                 </div>
               </div>
 
               {/* Status Waveform Pill */}
-              <div className="pointer-events-auto px-4 py-1 rounded-full bg-[#1b1824]/90 backdrop-blur-md border border-white/10 flex items-center gap-3 shadow-lg max-w-[85%]">
-                <span className="text-xs text-white/80 font-medium truncate">
+              <div className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-panel)]/90 backdrop-blur-md border border-[var(--text-primary)]/15 flex items-center gap-3 shadow-lg max-w-[85%]">
+                <span className="text-xs text-[var(--text-primary)]/85 font-medium truncate">
                   {isListening ? "Lyra is listening..." : isLoading ? "Lyra is thinking..." : isLyraSpeaking ? "Lyra is speaking..." : isMuted ? "Microphone is muted" : "Lyra is ready"}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
-                  <span className={`w-0.5 rounded-full bg-[#ff4081] transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
-                  <span className={`w-0.5 rounded-full bg-[#ff4081] transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-4 animate-pulse delay-75' : 'h-1.5 opacity-60'}`} />
-                  <span className={`w-0.5 rounded-full bg-[#ff4081] transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-3 animate-pulse delay-150' : 'h-2 opacity-80'}`} />
-                  <span className={`w-0.5 rounded-full bg-[#ff4081] transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-5 animate-pulse delay-100' : 'h-2.5 opacity-100'}`} />
-                  <span className={`w-0.5 rounded-full bg-[#ff4081] transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-2 animate-pulse delay-200' : 'h-1.5 opacity-60'}`} />
-                  <span className="w-1 h-1 rounded-full bg-[#ff4081]/40 ml-0.5" />
-                  <span className="w-1 h-1 rounded-full bg-[#ff4081]/30" />
-                  <span className="w-1 h-1 rounded-full bg-[#ff4081]/20" />
-                  <span className="w-1 h-1 rounded-full bg-[#ff4081]/10" />
+                  <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
+                  <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-4 animate-pulse delay-75' : 'h-1.5 opacity-60'}`} />
+                  <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-3 animate-pulse delay-150' : 'h-2 opacity-80'}`} />
+                  <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-5 animate-pulse delay-100' : 'h-2.5 opacity-100'}`} />
+                  <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-2 animate-pulse delay-200' : 'h-1.5 opacity-60'}`} />
+                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-40 ml-0.5" />
+                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-30" />
+                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-20" />
+                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-10" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Half: Chat & About Container (~48% height) */}
-          <div className="flex-1 min-h-0 bg-[#13111a] rounded-t-[28px] border-t border-white/10 flex flex-col relative shadow-2xl overflow-hidden">
+          <div className="flex-1 min-h-0 bg-[var(--bg-panel)] rounded-t-[28px] border-t border-[var(--text-primary)]/10 flex flex-col relative shadow-2xl overflow-hidden">
             {/* Tabs Bar */}
-            <div className="flex px-6 pt-3 pb-0 border-b border-white/5 gap-8 shrink-0 bg-[#13111a]">
+            <div className="flex px-6 pt-3 pb-0 border-b border-[var(--text-primary)]/5 gap-8 shrink-0 bg-[var(--bg-panel)]">
               <button 
                 onClick={() => setActiveTab('chat')} 
-                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'chat' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'chat' ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 Chat
                 {activeTab === 'chat' && (
-                  <motion.div layoutId="mobile-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#ff3377] rounded-full" />
+                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
                 )}
               </button>
               <button 
                 onClick={() => setActiveTab('about')} 
-                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'about' ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
+                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'about' ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
                 About
                 {activeTab === 'about' && (
-                  <motion.div layoutId="mobile-tab-indicator" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#ff3377] rounded-full" />
+                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
                 )}
               </button>
             </div>
@@ -1181,23 +1189,23 @@ export default function Chat() {
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
                       <div key={msg.id} className="self-end max-w-[82%] flex flex-col items-end">
-                        <div className="bg-[#4c1d38] text-white/95 rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-sm border border-white/5">
+                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-sm border border-white/5">
                           <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                         </div>
-                        <span className="text-[10px] text-white/40 mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-[var(--text-muted)] mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
                       <div key={msg.id} className="self-start max-w-[90%] flex gap-2.5 items-start">
                         <img 
                           src="/images/Logo.png" 
                           alt="Lyra" 
-                          className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[#ff8fc0]/60 shadow-[0_0_8px_rgba(255,143,192,0.25)]" 
+                          className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[var(--accent-primary)]/60" 
                         />
                         <div className="flex flex-col items-start">
-                          <div className="bg-[#1c1a24] text-white/90 rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-sm border border-white/5">
+                          <div className="bg-[var(--bg-elevated)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-sm border border-[var(--text-primary)]/5">
                             <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           </div>
-                          <span className="text-[10px] text-white/40 mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-[10px] text-[var(--text-muted)] mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )
@@ -1207,13 +1215,13 @@ export default function Chat() {
                       <img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
-                        className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[#ff8fc0]/60 shadow-[0_0_8px_rgba(255,143,192,0.25)] animate-pulse" 
+                        className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[var(--accent-primary)]/60 animate-pulse" 
                       />
-                      <div className="bg-[#1c1a24] rounded-2xl rounded-tl-xs px-4 py-3 border border-white/5 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#ff3377] animate-bounce" />
-                        <div className="w-2 h-2 rounded-full bg-[#ff3377]/70 animate-bounce [animation-delay:0.2s]" />
-                        <div className="w-2 h-2 rounded-full bg-[#ff3377]/40 animate-bounce [animation-delay:0.4s]" />
-                        <span className="text-xs text-white/50 italic ml-1">Lyra is thinking...</span>
+                      <div className="bg-[var(--bg-elevated)] rounded-2xl rounded-tl-xs px-4 py-3 border border-[var(--text-primary)]/5 flex items-center gap-2">
+                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full animate-bounce" />
+                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
+                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
+                        <span className="text-xs text-[var(--text-muted)] italic ml-1">Lyra is thinking...</span>
                       </div>
                     </div>
                   )}
@@ -1229,7 +1237,7 @@ export default function Chat() {
                         setInputText(text);
                         handleSend(text);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-[#1e1c28] hover:bg-[#282536] border border-white/10 text-xs text-white/75 hover:text-white whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
+                      className="px-3.5 py-1.5 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 text-xs text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
                     >
                       {text}
                     </button>
@@ -1237,8 +1245,8 @@ export default function Chat() {
                 </div>
 
                 {/* Input Bar */}
-                <div className="p-3 pt-0 pb-3 bg-[#13111a] shrink-0">
-                  <div className="relative bg-[#181622] rounded-full flex items-center p-1 pl-4 border border-white/10 shadow-inner">
+                <div className="p-3 pt-0 pb-3 bg-[var(--bg-panel)] shrink-0">
+                  <div className="relative bg-[var(--bg-elevated)] rounded-full flex items-center p-1 pl-4 border border-[var(--text-primary)]/10 shadow-inner">
                     <input 
                       type="text" 
                       value={inputText}
@@ -1249,29 +1257,32 @@ export default function Chat() {
                           if (!isLoading && inputText.trim()) handleSend();
                         }
                       }}
-                      className="flex-1 bg-transparent border-none text-white/90 text-sm focus:outline-none placeholder:text-white/30 h-9 w-full" 
+                      className="flex-1 bg-transparent border-none text-[var(--text-primary)] text-sm focus:outline-none placeholder:text-[var(--text-muted)]/50 h-9 w-full" 
                       placeholder={isListening ? "Listening..." : "Ask Anything..."}
                       disabled={isListening || isLoading}
                     />
                     <button 
                       onClick={() => handleSend()}
                       disabled={!inputText.trim() || isLoading}
-                      className="w-9 h-9 rounded-full bg-[#ff3377] hover:bg-[#ff1a66] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-white transition-all shrink-0 cursor-pointer shadow-md"
+                      style={{ 
+                        backgroundColor: inputText.trim() && !isLoading ? activeAccent : undefined 
+                      }}
+                      className="w-9 h-9 rounded-full bg-[var(--accent-primary)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-[var(--bg-base)] transition-all shrink-0 cursor-pointer shadow-md"
                     >
                       <Send className="w-4 h-4 text-white ml-0.5" />
                     </button>
                   </div>
                   {/* Home Indicator Bar */}
-                  <div className="w-32 h-1 bg-white/20 rounded-full mx-auto mt-2.5" />
+                  <div className="w-32 h-1 bg-[var(--text-primary)]/20 rounded-full mx-auto mt-2.5" />
                 </div>
               </>
             ) : (
-              <div className="flex-1 overflow-y-auto p-6 text-white/70 text-sm space-y-4">
-                <h3 className="text-white font-medium text-lg">About Lyra</h3>
+              <div className="flex-1 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4">
+                <h3 className="text-[var(--text-primary)] font-medium text-lg">About Lyra</h3>
                 <p className="leading-relaxed">Lyra is a warm, empathetic, and intellectually curious AI companion designed to bring positivity, thoughtful conversation, and genuine companionship to your day.</p>
-                <div className="bg-[#1c1a24] p-4 rounded-2xl border border-white/5 space-y-2">
-                  <h4 className="text-white/90 font-medium text-sm">Conversation Starters:</h4>
-                  <ul className="list-disc pl-5 space-y-1.5 text-xs text-white/60">
+                <div className="bg-[var(--bg-elevated)] p-4 rounded-2xl border border-[var(--text-primary)]/5 space-y-2">
+                  <h4 className="text-[var(--text-primary)] font-medium text-sm">Conversation Starters:</h4>
+                  <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--text-muted)]">
                     <li>"What's something that made you curious today?"</li>
                     <li>"Can you tell me a relaxing bedtime story?"</li>
                     <li>"Sing a short melody or poem for me."</li>
@@ -1458,7 +1469,7 @@ export default function Chat() {
                       </div>
                     ) : (
                       <div key={msg.id} className="self-start max-w-[95%] flex gap-3">
-                        <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shadow-[0_0_8px_rgba(255,143,192,0.25)] shrink-0 object-cover mt-1" />
+                        <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-1" />
                         <div className="flex flex-col items-start">
                           <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-sm p-3.5 px-4 shadow-sm border border-[var(--text-primary)]/5">
                             <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -1479,7 +1490,7 @@ export default function Chat() {
                       <motion.img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
-                        className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shadow-[0_0_8px_rgba(255,143,192,0.25)] shrink-0 object-cover mt-1"
+                        className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-1"
                         animate={{ scale: [1, 1.05, 1] }}
                         transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                       />
@@ -1590,18 +1601,18 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              className="fixed inset-y-0 left-0 w-[280px] sm:w-[320px] z-[120] bg-[#14121c] border-r border-white/10 flex flex-col shadow-2xl p-5"
+              className="fixed inset-y-0 left-0 w-[280px] sm:w-[320px] z-[120] bg-[var(--bg-drawer)] border-r border-[var(--text-primary)]/10 flex flex-col shadow-2xl p-5"
             >
               {/* Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center justify-between pb-4 border-b border-[var(--text-primary)]/10">
                 <div className="flex items-center gap-3">
-                  <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-[10px] object-cover border-[1.5px] border-[#ff8fc0]/60 shadow-[0_0_8px_rgba(255,143,192,0.25)]" />
+                  <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-[10px] object-cover border-[1.5px] border-[var(--accent-primary)]/60" />
                   <div>
-                    <h3 className="font-heading font-medium text-white text-base">Lyra</h3>
-                    <p className="text-[11px] text-[#ff7eb6]">AI Companion</p>
+                    <h3 className="font-heading font-medium text-[var(--text-primary)] text-base">Lyra</h3>
+                    <p className="text-[11px] font-medium" style={{ color: activeAccent }}>AI Companion</p>
                   </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-white/50 hover:text-white rounded-full hover:bg-white/5 cursor-pointer">
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--text-primary)]/5 cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1613,9 +1624,9 @@ export default function Chat() {
                     setIsMobileMenuOpen(false);
                     setIsWardrobeOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
-                  <Shirt className="w-4 h-4 text-[#ff7eb6]" />
+                  <Shirt className="w-4 h-4" style={{ color: activeAccent }} />
                   <span>Wardrobe & Outfits</span>
                 </button>
 
@@ -1624,9 +1635,9 @@ export default function Chat() {
                     setIsMobileMenuOpen(false);
                     setIsSettingsOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
-                  <Settings className="w-4 h-4 text-[#ff7eb6]" />
+                  <Settings className="w-4 h-4" style={{ color: activeAccent }} />
                   <span>Voice & Mic Settings</span>
                 </button>
 
@@ -1635,34 +1646,34 @@ export default function Chat() {
                     setIsMobileMenuOpen(false);
                     setIsRapportOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
-                  <Heart className="w-4 h-4 text-[#ff7eb6]" />
+                  <Heart className="w-4 h-4" style={{ color: activeAccent }} />
                   <span>Rapport & Friendship</span>
                 </button>
 
-                <div className="pt-4 mt-4 border-t border-white/10 space-y-1">
+                <div className="pt-4 mt-4 border-t border-[var(--text-primary)]/10 space-y-1">
                   <Link
                     to="/"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium"
                   >
-                    <Home className="w-4 h-4 text-white/60" />
+                    <Home className="w-4 h-4 text-[var(--text-muted)]" />
                     <span>Home</span>
                   </Link>
                   <Link
                     to="/account"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium"
                   >
-                    <User className="w-4 h-4 text-white/60" />
+                    <User className="w-4 h-4 text-[var(--text-muted)]" />
                     <span>Account Settings</span>
                   </Link>
                 </div>
               </div>
 
               {/* Log Out */}
-              <div className="pt-3 border-t border-white/10">
+              <div className="pt-3 border-t border-[var(--text-primary)]/10">
                 <button
                   onClick={async () => {
                     setIsMobileMenuOpen(false);
@@ -1827,6 +1838,102 @@ export default function Chat() {
                     ))}
                   </div>
                 )}
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* RAPPORT & FRIENDSHIP DRAWER */}
+        <AnimatePresence>
+          {isRapportOpen && (
+            <motion.aside
+              tabIndex={-1}
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+              className="fixed inset-0 md:right-auto md:w-[360px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
+            >
+              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10">
+                <div className="flex items-center gap-2.5">
+                  <Heart className="w-5 h-5 fill-current" style={{ color: activeAccent }} />
+                  <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Rapport</h2>
+                </div>
+                <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--text-primary)]/5 active:scale-95 transition-all cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Current Bond Card */}
+                <div className="bg-[var(--bg-elevated)] rounded-2xl p-5 border border-[var(--text-primary)]/10 flex flex-col items-center text-center relative overflow-hidden">
+                  <div className="w-16 h-16 rounded-full bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center mb-3 text-[var(--accent-primary)] shadow-inner">
+                    <Heart className="w-8 h-8 fill-current" style={{ color: activeAccent }} />
+                  </div>
+                  <span className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)]">Current Bond</span>
+                  <h3 className="text-xl font-heading font-medium text-[var(--text-primary)] mt-0.5">
+                    {rapportData?.tierName || 'Close Companion'}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                    {rapportData?.friendshipDays || 1} {(rapportData?.friendshipDays || 1) === 1 ? 'day' : 'days'} of shared memories
+                  </p>
+
+                  {/* Affection Bar */}
+                  <div className="w-full mt-4 space-y-1.5">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-[var(--text-muted)]">Affection Level</span>
+                      <span style={{ color: activeAccent }} className="font-semibold">{rapportData?.affectionLevel || 35}%</span>
+                    </div>
+                    <div className="w-full bg-[var(--bg-base)]/80 rounded-full h-2.5 overflow-hidden border border-[var(--text-primary)]/5">
+                      <div 
+                        className="h-full rounded-full transition-all duration-700" 
+                        style={{ 
+                          width: `${Math.min(100, Math.max(10, rapportData?.affectionLevel || 35))}%`,
+                          backgroundColor: activeAccent 
+                        }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Friendship Statistics */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[var(--bg-elevated)]/60 rounded-xl p-3.5 border border-[var(--text-primary)]/5">
+                    <span className="text-[11px] text-[var(--text-muted)] block">Total Sessions</span>
+                    <span className="text-lg font-heading font-medium text-[var(--text-primary)]">{rapportData?.totalSessions || messages.length > 0 ? Math.max(1, Math.ceil(messages.length / 6)) : 1}</span>
+                  </div>
+                  <div className="bg-[var(--bg-elevated)]/60 rounded-xl p-3.5 border border-[var(--text-primary)]/5">
+                    <span className="text-[11px] text-[var(--text-muted)] block">Messages Exchanged</span>
+                    <span className="text-lg font-heading font-medium text-[var(--text-primary)]">{messages.length}</span>
+                  </div>
+                </div>
+
+                {/* Bond Progression Milestones */}
+                <div className="bg-[var(--bg-elevated)]/40 rounded-2xl p-4 border border-[var(--text-primary)]/5 space-y-3">
+                  <h4 className="text-xs font-heading uppercase tracking-wider font-semibold text-[var(--text-primary)]/70">Bond Progression</h4>
+                  <div className="space-y-2.5 text-xs">
+                    {[
+                      { tier: 'Acquaintance', desc: 'Getting to know each other', level: '0%' },
+                      { tier: 'Companion', desc: 'Sharing daily thoughts & emotions', level: '25%' },
+                      { tier: 'Close Friend', desc: 'Deep conversation & mutual trust', level: '50%' },
+                      { tier: 'Confidante', desc: 'Unfiltered openness & deep empathy', level: '75%' },
+                      { tier: 'Soul Companion', desc: 'Harmonious intellectual & emotional bond', level: '100%' },
+                    ].map((m, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-1 border-b border-[var(--text-primary)]/5 last:border-0">
+                        <div>
+                          <span className="font-medium text-[var(--text-primary)]/90">{m.tier}</span>
+                          <span className="text-[11px] text-[var(--text-muted)] block">{m.desc}</span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-[var(--text-muted)]">{m.level}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tips */}
+                <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--text-primary)]/5 text-xs text-[var(--text-muted)] leading-relaxed">
+                  💡 <strong className="text-[var(--text-primary)]">Tip:</strong> Talk with Lyra regularly, share your day, or try voice conversations to build rapport and unlock deeper conversational nuances.
+                </div>
               </div>
             </motion.aside>
           )}

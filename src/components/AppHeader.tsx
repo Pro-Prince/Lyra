@@ -55,6 +55,7 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
   const { isMockAuthed, setMockAuthed } = useMockAuthState();
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     setMockAuthed(false);
@@ -63,45 +64,104 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
     navigate("/");
   };
 
+  const isHome = location.pathname === "/";
+  const isChat = location.pathname === "/chat";
+  const isLogin = location.pathname === "/login";
+  const isSignUp = location.pathname === "/signup";
+  const isAccount = location.pathname === "/account" || location.pathname === "/settings";
+
   return (
     <>
       <div className="nav-dropdown-backdrop" onClick={onClose} />
-      <div className="nav-dropdown animate-in fade-in slide-in-from-top-2 duration-150">
-        <NavItem to="/" onClick={onClose}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: -6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: -6 }}
+        transition={{ duration: 0.16, ease: "easeOut" }}
+        className="nav-dropdown"
+      >
+        {/* HOME ITEM */}
+        <Link
+          to="/"
+          onClick={onClose}
+          className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+            isHome
+              ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+          }`}
+        >
           Home
-        </NavItem>
+        </Link>
+
+        {/* SUBTLE DIVIDER */}
+        <div className="nav-dropdown-divider" />
+
         {isMockAuthed ? (
           <>
-            <NavItem to="/chat" onClick={onClose}>
-              Chat
-            </NavItem>
-            <div className="nav-dropdown-divider" />
-            <NavItem
-              to="/account"
-              icon={<User className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />}
+            <Link
+              to="/chat"
               onClick={onClose}
+              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+                isChat
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+              }`}
             >
-              Account Settings
-            </NavItem>
-            <NavItem
-              icon={<LogOut className="w-4 h-4 text-[var(--text-danger)] shrink-0" />}
-              className="nav-item-danger hover:bg-[var(--text-danger)]/10"
+              Chat
+            </Link>
+
+            <Link
+              to="/account"
+              onClick={onClose}
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+                isAccount
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+              }`}
+            >
+              <User className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+              <span>Account</span>
+            </Link>
+
+            <button
+              type="button"
               onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[15px] font-body text-[var(--text-danger)] hover:bg-[var(--text-danger)]/10 transition-colors text-left cursor-pointer font-medium"
             >
-              Log Out
-            </NavItem>
+              <LogOut className="w-4 h-4 text-[var(--text-danger)] shrink-0" />
+              <span>Log Out</span>
+            </button>
           </>
         ) : (
           <>
-            <NavItem to="/login" onClick={onClose}>
+            {/* LOGIN ITEM */}
+            <Link
+              to="/login"
+              onClick={onClose}
+              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+                isLogin
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 font-normal"
+              }`}
+            >
               Login
-            </NavItem>
-            <NavItem to="/signup" onClick={onClose}>
+            </Link>
+
+            {/* SIGN UP ITEM */}
+            <Link
+              to="/signup"
+              onClick={onClose}
+              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+                isSignUp
+                  ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--accent-primary)] hover:brightness-110 hover:bg-[var(--accent-primary)]/10 font-medium"
+              }`}
+            >
               Sign Up
-            </NavItem>
+            </Link>
           </>
         )}
-      </div>
+      </motion.div>
     </>
   );
 }
@@ -311,7 +371,7 @@ export default function AppHeader() {
           className="header-logo min-h-[40px] flex items-center gap-2.5 group transition-transform active:scale-95"
           aria-label="Lyra Home"
         >
-          <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm" />
+          <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img" />
           <span className="wordmark font-heading font-semibold text-base sm:text-lg text-[var(--text-primary)] tracking-tight">
             Lyra
           </span>
