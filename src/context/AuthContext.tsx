@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getLocalProfile, saveLocalProfile } from '../lib/storage';
+import { getLocalProfile, saveLocalProfile, clearAllData } from '../lib/storage';
 
 export function calculateAge(birthdateStr: string): number {
   if (!birthdateStr) return 0;
@@ -76,9 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const continueAsGuest = async (birthdate?: string) => {
+    await clearAllData();
     setIsGuestMode(true);
-    const existing = await getLocalProfile();
-    await saveLocalProfile({ ...existing, birthdate: birthdate || null, adultConfirmed: true });
+    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true, initialized: false });
   };
 
   const signIn = async () => {
@@ -87,18 +87,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (_email?: string, _password?: string, birthdate?: string) => {
+    await clearAllData();
     setMockAuthed(true);
-    const existing = await getLocalProfile();
-    await saveLocalProfile({ ...existing, birthdate: birthdate || null, adultConfirmed: true });
+    await saveLocalProfile({ birthdate: birthdate || null, adultConfirmed: true, initialized: false });
     return {};
   };
 
   const signInWithGoogle = async () => {
+    await clearAllData();
     setMockAuthed(true);
+    await saveLocalProfile({ birthdate: null, adultConfirmed: true, initialized: false });
     return {};
   };
 
   const signOut = async () => {
+    await clearAllData();
     setIsMockAuthedState(false);
     setIsGuestMode(false);
     setUser(null);
