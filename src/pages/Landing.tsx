@@ -139,7 +139,7 @@ function OutfitShowcase() {
             className="group relative bg-[var(--bg-surface)]/80 backdrop-blur-xl border border-[var(--text-muted)]/15 hover:border-[var(--accent-primary)]/30 rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-lg transition-all duration-300 hover:-translate-y-1"
           >
             {/* 3D Canvas Container */}
-            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/40 to-[var(--bg-surface)] relative border border-white/5 z-10">
+            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/40 to-[var(--bg-surface)] relative border border-[var(--text-primary)]/5 z-10">
               <VRMPreviewCanvas url={url} className="w-full h-full" interactive={true} autoRotate={true} />
             </div>
 

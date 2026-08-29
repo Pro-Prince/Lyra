@@ -114,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 24, opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className={`pointer-events-auto w-full sm:w-auto min-w-[320px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3.5 overflow-hidden relative group`}
+              className={`pointer-events-auto w-full sm:w-auto min-w-[320px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-between gap-3.5 overflow-hidden relative group`}
             >
               {/* Animated Accent Line */}
               <div className={`absolute top-0 left-0 bottom-0 w-[3px] ${

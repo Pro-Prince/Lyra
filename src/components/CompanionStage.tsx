@@ -369,6 +369,12 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         // Apply rest pose
         applyRestPose(vrmInstance);
 
+        // Detailed Diagnostics for Checks 1, 2, 3
+        console.log('[VRM Diagnostic] Model loaded:', url);
+        console.log('[VRM Diagnostic] Position before centering:', vrmInstance.scene.position.clone());
+        console.log('[VRM Diagnostic] Scale:', vrmInstance.scene.scale.clone());
+        console.log('[VRM Diagnostic] Initial Bounding Box:', new THREE.Box3().setFromObject(vrmInstance.scene));
+
         // Center & floor VRM
         vrmInstance.scene.traverse((child) => { if (!child.parent) child.parent = null; });
         vrmInstance.scene.updateMatrixWorld(true);
@@ -378,6 +384,18 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         vrmInstance.scene.position.x -= center.x;
         vrmInstance.scene.position.z -= center.z;
         vrmInstance.scene.position.y -= box.min.y;
+
+        console.log('[VRM Diagnostic] Position after centering/grounding:', vrmInstance.scene.position.clone());
+        console.log('[VRM Diagnostic] Bounding Box after grounding:', new THREE.Box3().setFromObject(vrmInstance.scene));
+
+        // Check materials & textures
+        vrmInstance.scene.traverse((obj: any) => {
+          if (obj.isMesh) {
+            console.log(
+              `[VRM Mesh] ${obj.name || 'unnamed'} | material: ${obj.material?.type} | visible: ${obj.visible} | map: ${!!(obj.material?.map || obj.material?.userData?.vrmMToonTexture)}`
+            );
+          }
+        });
 
         // Setup LookAt target
         lookTarget.current.position.set(0, 1.35, 3);
@@ -540,6 +558,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   useEffect(() => {
     if (!vrm || !gl.domElement || !camera) return;
 
+    let lookAtTimer: NodeJS.Timeout | number | null = null;
+
     const interactionMgr = new InteractionManager({
       camera,
       domElement: gl.domElement,
@@ -548,7 +568,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
       onInteract: (_gesture, hitPoint) => {
         if (hitPoint) {
           targetLookAt.current.set(hitPoint.x * 1.1, Math.max(1.1, hitPoint.y), 2.5);
-          setTimeout(() => {
+          if (lookAtTimer) clearTimeout(lookAtTimer);
+          lookAtTimer = setTimeout(() => {
             targetLookAt.current.set(0, 1.35, 3);
           }, 1600);
         }
@@ -556,6 +577,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
     });
 
     return () => {
+      if (lookAtTimer) clearTimeout(lookAtTimer);
       interactionMgr.dispose();
     };
   }, [vrm, camera, gl.domElement]);
@@ -740,6 +762,16 @@ function CompanionStageComponent({
   const [vrmSceneRef, setVrmSceneRef] = useState<THREE.Group | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const retryCount = useRef(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, []);
   const [isTabVisible, setIsTabVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
 
   useEffect(() => {
@@ -764,7 +796,8 @@ function CompanionStageComponent({
       retryCount.current++;
       console.warn('Companion load failed, retrying once:', err);
       // Wait a moment then retry quietly
-      setTimeout(() => {
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = setTimeout(() => {
         handleRetry();
       }, 1000);
       return;

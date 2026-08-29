@@ -277,7 +277,8 @@ export async function loadVRM(url: string, renderer?: THREE.WebGLRenderer): Prom
           }
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
-            mesh.frustumCulled = true;
+            // Skinned meshes in VRMs with animated bones should not be prematurely frustum-culled
+            mesh.frustumCulled = false;
             if (mesh.geometry) {
               mesh.geometry.computeVertexNormals();
             }

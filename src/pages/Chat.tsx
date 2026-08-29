@@ -532,14 +532,6 @@ export default function Chat() {
       if (!reader) throw new Error("No readable stream from chat response");
 
       modelMsgId = crypto.randomUUID();
-      const modelMsg = {
-        id: modelMsgId,
-        role: 'model',
-        content: '',
-        timestamp: Date.now()
-      };
-      
-      setMessages(prev => [...prev, modelMsg]);
       let subtitleId: string | undefined = undefined;
 
       let accumulatedText = "";
@@ -563,15 +555,25 @@ export default function Chat() {
                  console.error('[ChatAPI Stream Error]', data.error);
                  if (modelMsgId) {
                    setMessages(prev => prev.filter(m => m.id !== modelMsgId));
+                   messagesRef.current = messagesRef.current.filter(m => m.id !== modelMsgId);
                  }
                  showError(data.error.replace(/\[.*?\]/g, '').trim());
                  setAppState(AppState.IDLE);
+                 setIsStreaming(false);
                  return;
                }
                if (data.text) {
                   if (isFirstChunk) {
                       isFirstChunk = false;
                       setAppState(AppState.SPEAKING);
+                      const modelMsg = {
+                        id: modelMsgId,
+                        role: 'model',
+                        content: '',
+                        timestamp: Date.now()
+                      };
+                      messagesRef.current = [...messagesRef.current, modelMsg];
+                      setIsStreaming(true);
                   }
                   
                   accumulatedText += data.text;
@@ -602,6 +604,7 @@ export default function Chat() {
                   
                   // Update ref immediately and display subtitle
                   messagesRef.current = messagesRef.current.map(m => m.id === modelMsgId ? { ...m, content: displayContent } : m);
+                  setMessages([...messagesRef.current]);
                   subtitleId = triggerSubtitle('model', displayContent, subtitleId);
                   
                   const matches = [...displayContent.matchAll(/[^.?!]+[.?!]+/g)];
@@ -627,6 +630,7 @@ export default function Chat() {
       }
 
       // Sync final completed message to state once stream concludes
+      setIsStreaming(false);
       setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, content: finalDisplayContent } : m));
 
       const finalMatches = [...finalDisplayContent.matchAll(/[^.?!]+[.?!]+/g)];
@@ -760,11 +764,13 @@ export default function Chat() {
      prevAppStateRef.current = appState;
   }, [appState, memories]);
 
+  const [isStreaming, setIsStreaming] = useState(false);
+
   useEffect(() => {
      if (activeTab === 'chat') {
-         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+         chatEndRef.current?.scrollIntoView({ behavior: isStreaming ? 'auto' : 'smooth' });
      }
-  }, [messages, activeTab]);
+  }, [messages, activeTab, isStreaming]);
 
   const activeAccent = emotionColors[currentEmotion] || ACCENT_COLOR;
 
@@ -780,7 +786,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-page-container w-full h-[calc(100dvh-72px)] bg-[#130f12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <div className="chat-layout chat-page-container w-full h-[calc(100vh-72px)] bg-[var(--bg-base)] flex flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
         {/* Click-away overlay when a drawer is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen) && (
           <div 
@@ -791,20 +797,20 @@ export default function Chat() {
         )}
 
         {/* LEFT PANEL: 3D STAGE & HUD */}
-        <div className="companion-viewport-container relative flex-[1_1_auto] min-h-0 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
+        <div className="companion-viewport companion-viewport-container relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
             {/* HUD Top Left */}
             <div className="absolute top-6 left-6 flex gap-3 z-20">
-                <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                     <Shirt className="w-5 h-5" />
                 </button>
-                <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                     <Settings className="w-5 h-5" />
                 </button>
             </div>
              
             {/* HUD Top Right */}
             <div className="absolute top-6 right-6 z-20">
-                <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/90 hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                     <Camera className="w-4 h-4" />
                     <span className="text-sm font-medium">Capture</span>
                 </button>
@@ -834,44 +840,44 @@ export default function Chat() {
             </div>
 
             {/* HUD Bottom Controls */}
-            <div className="absolute bottom-6 md:bottom-12 z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
+            <div className="control-bar absolute bottom-6 md:bottom-12 z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
                 {/* View */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                    <button onClick={() => setIsPortraitMode(!isPortraitMode)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isPortraitMode ? 'bg-white text-black border-white' : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:bg-black/60 hover:text-white'}`}>
+                    <button onClick={() => setIsPortraitMode(!isPortraitMode)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isPortraitMode ? 'bg-[var(--bg-elevated)] text-[var(--bg-base)] border-[var(--text-primary)]' : 'bg-[var(--bg-elevated)]/40 backdrop-blur-md border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'}`}>
                         <Scan className="w-5 h-5" />
                     </button>
-                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">View</span>
+                    <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">View</span>
                 </div>
                 {/* Mute */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                    <button onClick={() => setIsMuted(!isMuted)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isMuted ? 'bg-white text-black border-white' : 'bg-black/40 backdrop-blur-md border-white/10 text-white/80 hover:bg-black/60 hover:text-white'}`}>
+                    <button onClick={() => setIsMuted(!isMuted)} className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer ${isMuted ? 'bg-[var(--bg-elevated)] text-[var(--bg-base)] border-[var(--text-primary)]' : 'bg-[var(--bg-elevated)]/40 backdrop-blur-md border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'}`}>
                         {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                     </button>
-                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Mute</span>
+                    <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">Mute</span>
                 </div>
                 {/* Talk (Big Pink) */}
                 <div className="flex flex-col items-center gap-2 -mb-2 pointer-events-auto">
                     <button 
                        onClick={toggleMic}
-                       className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(255,126,182,0.15)] hover:shadow-[0_0_25px_rgba(255,126,182,0.3)] hover:brightness-110 active:scale-95 cursor-pointer ${isListening ? 'bg-white text-[#ff7eb6]' : 'bg-[#ff7eb6] text-[#2D0A1E]'}`}
+                       className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-[0_0_20px_rgba(255,126,182,0.15)] hover:shadow-[0_0_25px_rgba(255,126,182,0.3)] hover:brightness-110 active:scale-95 cursor-pointer ${isListening ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)]' : 'bg-[var(--accent-primary)] text-[var(--bg-base)]'}`}
                     >
                         <Mic className="w-7 h-7" />
                     </button>
-                    <span className="text-[10px] text-[#ff7eb6] font-semibold tracking-wide uppercase">{isListening ? 'Listening' : 'Talk'}</span>
+                    <span className="text-[10px] text-[var(--accent-primary)] font-semibold tracking-wide uppercase">{isListening ? 'Listening' : 'Talk'}</span>
                 </div>
                 {/* Speaker */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                    <button className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 flex items-center justify-center hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <button className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 flex items-center justify-center hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                         <Volume2 className="w-5 h-5" />
                     </button>
-                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Speaker</span>
+                    <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">Speaker</span>
                 </div>
                 {/* Stop */}
                 <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                    <button onClick={cancelSpeech} className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 flex items-center justify-center hover:bg-black/60 hover:text-white transition-all shadow-lg cursor-pointer">
+                    <button onClick={cancelSpeech} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 flex items-center justify-center hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                         <Square className="w-4 h-4" />
                     </button>
-                    <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Stop</span>
+                    <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">Stop</span>
                 </div>
             </div>
 
@@ -884,7 +890,7 @@ export default function Chat() {
                    exit={{ opacity: 0, y: -10 }}
                    className="absolute bottom-36 z-20 pointer-events-none"
                 >
-                   <div className="px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-sm text-white flex items-center gap-3 shadow-xl max-w-[80vw] text-center">
+                   <div className="px-5 py-2.5 rounded-full bg-[var(--bg-elevated)]/60 backdrop-blur-md border border-[var(--text-primary)]/10 text-sm text-[var(--text-primary)] flex items-center gap-3 shadow-xl max-w-[80vw] text-center">
                        {subtitles[subtitles.length - 1].text}
                    </div>
                 </motion.div>
@@ -893,26 +899,26 @@ export default function Chat() {
         </div>
 
         {/* RIGHT PANEL: CHAT INTERFACE */}
-        <div className={`chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[#130f12] border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-30 shadow-2xl relative shrink-0 transition-all duration-300 ${isChatDrawerOpen ? 'h-[70%] md:h-full' : 'h-[56px] md:h-full overflow-hidden'}`}>
+        <div className={`chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[var(--bg-base)] border-t md:border-t-0 md:border-l border-[var(--text-primary)]/5 flex flex-col z-30 shadow-2xl relative shrink-0 transition-all duration-300 ${isChatDrawerOpen ? 'h-[70%] md:h-full' : 'h-[56px] md:h-full overflow-hidden'}`}>
             {/* Mobile Drawer Handle bar */}
             <div 
-              className="md:hidden flex items-center justify-center py-3 border-b border-white/5 cursor-pointer select-none h-[44px] shrink-0"
+              className="md:hidden flex items-center justify-center py-3 border-b border-[var(--text-primary)]/5 cursor-pointer select-none h-[44px] shrink-0"
               onClick={() => setIsChatDrawerOpen(!isChatDrawerOpen)}
             >
-              <div className="w-12 h-1 bg-white/20 rounded-full" />
+              <div className="w-12 h-1 bg-[var(--bg-elevated)]/20 rounded-full" />
             </div>
 
             {/* Tabs */}
-            <div className="flex px-6 pt-2 border-b border-white/5 shrink-0">
+            <div className="flex px-6 pt-2 border-b border-[var(--text-primary)]/5 shrink-0">
                <button 
                  onClick={() => { setActiveTab('chat'); setIsChatDrawerOpen(true); }}
-                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'chat' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'chat' ? 'text-[var(--accent-primary)] border-[var(--accent-primary)]' : 'text-[var(--text-primary)]/40 border-transparent hover:text-[var(--text-primary)]/70'}`}
                >
                  Chat
                </button>
                <button 
                  onClick={() => { setActiveTab('about'); setIsChatDrawerOpen(true); }}
-                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'about' ? 'text-[#ff7eb6] border-[#ff7eb6]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+                 className={`px-4 py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${activeTab === 'about' ? 'text-[var(--accent-primary)] border-[var(--accent-primary)]' : 'text-[var(--text-primary)]/40 border-transparent hover:text-[var(--text-primary)]/70'}`}
                >
                  About
                </button>
@@ -925,19 +931,19 @@ export default function Chat() {
                         {messages.map((msg) => (
                             msg.role === 'user' ? (
                                <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
-                                   <div className="bg-[#592f44] text-white/95 rounded-2xl rounded-tr-sm p-3.5 px-4 shadow-sm border border-white/5">
+                                   <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-2xl rounded-tr-sm p-3.5 px-4 shadow-sm border border-[var(--text-primary)]/5">
                                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                    </div>
-                                   <span className="text-[10px] text-white/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                   <span className="text-[10px] text-[var(--text-primary)]/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                </div>
                             ) : (
                                <div key={msg.id} className="self-start max-w-[95%] flex gap-3">
-                                   <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm" />
+                                   <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] border border-[var(--text-primary)]/10 shrink-0 object-cover mt-1 shadow-sm" />
                                    <div className="flex flex-col items-start">
-                                       <div className="bg-[#1e191d] text-white/90 rounded-2xl rounded-tl-sm p-3.5 px-4 shadow-sm border border-white/5">
+                                       <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-sm p-3.5 px-4 shadow-sm border border-[var(--text-primary)]/5">
                                            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                        </div>
-                                       <span className="text-[10px] text-white/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                       <span className="text-[10px] text-[var(--text-primary)]/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                    </div>
                                </div>
                             )
@@ -953,34 +959,34 @@ export default function Chat() {
                             <motion.img 
                               src="/images/Logo.png" 
                               alt="Lyra" 
-                              className="w-8 h-8 rounded-lg bg-[#2a272c] border border-white/10 shrink-0 object-cover mt-1 shadow-sm"
+                              className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] border border-[var(--text-primary)]/10 shrink-0 object-cover mt-1 shadow-sm"
                               animate={{ scale: [1, 1.05, 1] }}
                               transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                             />
                             <div className="flex flex-col items-start gap-1">
-                              <div className="bg-[#1e191d] rounded-2xl rounded-tl-sm p-4 border border-white/5 flex gap-2 items-center h-11 shadow-inner relative overflow-hidden">
+                              <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm p-4 border border-[var(--text-primary)]/5 flex gap-2 items-center h-11 shadow-inner relative overflow-hidden">
                                 <motion.div 
                                   className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff7eb6]/5 to-transparent"
                                   animate={{ x: ['-100%', '100%'] }}
                                   transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
                                 />
                                 <motion.div 
-                                  className="w-2 h-2 bg-[#ff7eb6] rounded-full"
+                                  className="w-2 h-2 bg-[var(--accent-primary)] rounded-full"
                                   animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
                                   transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0 }}
                                 />
                                 <motion.div 
-                                  className="w-2 h-2 bg-[#ff7eb6]/80 rounded-full"
+                                  className="w-2 h-2 bg-[var(--accent-primary)]/80 rounded-full"
                                   animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
                                   transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.18 }}
                                 />
                                 <motion.div 
-                                  className="w-2 h-2 bg-[#ff7eb6]/60 rounded-full"
+                                  className="w-2 h-2 bg-[var(--accent-primary)]/60 rounded-full"
                                   animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
                                   transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.36 }}
                                 />
                               </div>
-                              <span className="text-[10px] text-white/30 px-1 font-medium italic animate-pulse">Lyra is thinking...</span>
+                              <span className="text-[10px] text-[var(--text-primary)]/30 px-1 font-medium italic animate-pulse">Lyra is thinking...</span>
                             </div>
                           </motion.div>
                         )}
@@ -988,10 +994,10 @@ export default function Chat() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="input-bar-container p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0 transition-transform duration-150 ease-out">
+                    <div className="input-bar input-bar-container p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0 transition-transform duration-150 ease-out">
                        {/* Suggestions */}
                        {messages.length <= 1 && (
-                         <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                         <div className="suggestion-chips flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
                                <button 
                                   key={text}
@@ -1001,7 +1007,7 @@ export default function Chat() {
                                      handleSend(text);
                                      setIsChatDrawerOpen(true);
                                   }}
-                                  className="whitespace-nowrap px-4 py-2 rounded-full bg-[#1c181d] border border-white/5 text-[13px] text-white/60 hover:text-white/90 hover:bg-[#2a272c] transition-colors cursor-pointer"
+                                  className="whitespace-nowrap px-4 py-2 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/5 text-[13px] text-[var(--text-primary)]/60 hover:text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer"
                                >
                                   {text}
                                </button>
@@ -1010,7 +1016,7 @@ export default function Chat() {
                        )}
 
                        {/* Input Field */}
-                       <div className="relative bg-[#1e191d] rounded-full flex items-center p-1.5 border border-white/10 shadow-inner">
+                       <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1.5 border border-[var(--text-primary)]/10 shadow-inner">
                           <input 
                              type="text" 
                              value={inputText}
@@ -1026,7 +1032,7 @@ export default function Chat() {
                                   if (!isLoading && inputText.trim()) handleSend();
                                 }
                              }}
-                             className="flex-1 bg-transparent border-none text-white/90 text-[15px] focus:outline-none placeholder:text-white/30 px-4 h-10 w-full" 
+                             className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-[15px] focus:outline-none placeholder:text-[var(--text-primary)]/30 px-4 h-10 w-full" 
                              placeholder={isListening ? "Listening..." : "Ask Anything..."}
                              disabled={isListening || isLoading}
                           />
@@ -1036,18 +1042,18 @@ export default function Chat() {
                                handleSend();
                              }}
                              disabled={!inputText.trim() || isLoading}
-                             className="w-10 h-10 rounded-full bg-[#ff7eb6] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
+                             className="w-10 h-10 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
                           >
-                              <Send className="w-4 h-4 text-[#2D0A1E] ml-0.5" />
+                              <Send className="w-4 h-4 text-[var(--bg-base)] ml-0.5" />
                           </button>
                        </div>
                     </div>
                 </>
             ) : (
-                <div className="flex-1 overflow-y-auto p-8 text-white/60 text-sm">
-                   <h3 className="text-white font-medium mb-4 text-lg">About Lyra</h3>
+                <div className="flex-1 overflow-y-auto p-8 text-[var(--text-primary)]/60 text-sm">
+                   <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
                    <p className="mb-4 leading-relaxed">Lyra is a warm, intellectually curious, and deeply empathetic companion. She loves exploring abstract concepts, finding beauty in the little things, and making you feel seen and heard.</p>
-                   <h4 className="text-white font-medium mb-3 mt-6">Try asking her:</h4>
+                   <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>
                    <ul className="list-disc pl-5 space-y-2 mb-6">
                      <li>"What's something that made you curious today?"</li>
                      <li>"Tell me about your day."</li>
@@ -1078,7 +1084,7 @@ export default function Chat() {
                     localStorage.setItem('ai_disclosure_accepted', 'true');
                     setShowDisclosure(false);
                   }}
-                  className="w-full py-3.5 rounded-xl text-[#2D0A1E] bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] active:brightness-95 font-body font-bold text-sm transition-all  cursor-pointer"
+                  className="w-full py-3.5 rounded-xl text-[var(--bg-base)] bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] active:brightness-95 font-body font-bold text-sm transition-all  cursor-pointer"
                 >
                   I Understand
                 </button>
@@ -1096,11 +1102,11 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[#1c181d] md:border-r border-white/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
+              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
             >
-              <div className="p-6 flex items-center justify-between border-b border-white/5">
-                <h2 className="font-heading font-medium text-2xl text-white/90">Settings</h2>
-                <button onClick={closeDrawers} className="p-2 text-white/50 hover:text-white/90 rounded-full hover:bg-white/5 active:scale-95 transition-all cursor-pointer">
+              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/5">
+                <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Settings</h2>
+                <button onClick={closeDrawers} className="p-2 text-[var(--text-primary)]/50 hover:text-[var(--text-primary)]/90 rounded-full hover:bg-[var(--bg-elevated)]/5 active:scale-95 transition-all cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1108,14 +1114,14 @@ export default function Chat() {
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {/* Voice Settings */}
                 <div>
-                  <Heading2 className="text-xs font-heading font-medium text-white/40 uppercase tracking-wider mb-3">Voice</Heading2>
+                  <Heading2 className="text-xs font-heading font-medium text-[var(--text-primary)]/40 uppercase tracking-wider mb-3">Voice</Heading2>
                   <VoicePicker />
                 </div>
 
                 {/* Microphone Settings */}
                 <div>
-                  <Heading2 className="text-xs font-heading font-medium text-white/40 uppercase tracking-wider mb-3">Microphone Mode</Heading2>
-                  <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
+                  <Heading2 className="text-xs font-heading font-medium text-[var(--text-primary)]/40 uppercase tracking-wider mb-3">Microphone Mode</Heading2>
+                  <div className="flex bg-[var(--bg-elevated)]/40 rounded-xl p-1 border border-[var(--text-primary)]/5">
                     <button
                       onClick={async () => {
                         setMicMode('ptt');
@@ -1124,8 +1130,8 @@ export default function Chat() {
                       }}
                       className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                         micMode === 'ptt' 
-                          ? 'bg-white/10 text-white shadow-sm' 
-                          : 'text-white/40 hover:text-white/80'
+                          ? 'bg-[var(--bg-elevated)]/10 text-[var(--text-primary)] shadow-sm' 
+                          : 'text-[var(--text-primary)]/40 hover:text-[var(--text-primary)]/80'
                       }`}
                     >
                       Push-to-Talk
@@ -1138,14 +1144,14 @@ export default function Chat() {
                       }}
                       className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                         micMode === 'hands-free' 
-                          ? 'bg-white/10 text-white shadow-sm' 
-                          : 'text-white/40 hover:text-white/80'
+                          ? 'bg-[var(--bg-elevated)]/10 text-[var(--text-primary)] shadow-sm' 
+                          : 'text-[var(--text-primary)]/40 hover:text-[var(--text-primary)]/80'
                       }`}
                     >
                       Hands-Free
                     </button>
                   </div>
-                  <p className="text-[11px] text-white/40 mt-3 font-body leading-relaxed">
+                  <p className="text-[11px] text-[var(--text-primary)]/40 mt-3 font-body leading-relaxed">
                     {micMode === 'ptt' ? 'Hold down the mic button to speak. Releasing automatically sends your message.' : 'Microphone stays on and listens continuously during conversations.'}
                   </p>
                 </div>
@@ -1163,20 +1169,20 @@ export default function Chat() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[#1c181d] md:border-r border-white/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
+              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
             >
-              <div className="p-6 flex items-center justify-between border-b border-white/5">
-                <h2 className="font-heading font-medium text-2xl text-white/90">Wardrobe</h2>
-                <button onClick={closeDrawers} className="p-2 text-white/50 hover:text-white/90 rounded-full hover:bg-white/5 active:scale-95 transition-all cursor-pointer">
+              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/5">
+                <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Wardrobe</h2>
+                <button onClick={closeDrawers} className="p-2 text-[var(--text-primary)]/50 hover:text-[var(--text-primary)]/90 rounded-full hover:bg-[var(--bg-elevated)]/5 active:scale-95 transition-all cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
                 {!isOutfitsReady ? (
-                  <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-white/5 overflow-hidden bg-black/20">
-                    <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/50 animate-spin mb-3 z-10" />
-                    <span className="text-xs font-body text-white/40 z-10">Preparing wardrobe...</span>
+                  <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-[var(--text-primary)]/5 overflow-hidden bg-black/20">
+                    <div className="w-8 h-8 rounded-full border-2 border-[var(--text-primary)]/10 border-t-white/50 animate-spin mb-3 z-10" />
+                    <span className="text-xs font-body text-[var(--text-primary)]/40 z-10">Preparing wardrobe...</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
@@ -1190,14 +1196,14 @@ export default function Chat() {
                         onClick={() => handleOutfitChange(item.id)}
                         className={`flex flex-col items-center gap-3 p-3 rounded-2xl border text-center group cursor-pointer transition-all ${
                           outfit === item.id 
-                            ? 'bg-white/10 border-white/20 shadow-inner' 
-                            : 'bg-black/20 border-white/5 hover:border-white/20 hover:bg-white/5'
+                            ? 'bg-[var(--bg-elevated)]/10 border-[var(--text-primary)]/20 shadow-inner' 
+                            : 'bg-black/20 border-[var(--text-primary)]/5 hover:border-[var(--text-primary)]/20 hover:bg-[var(--bg-elevated)]/5'
                         }`}
                       >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/5 group-hover:scale-[1.02] transition-transform">
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-[var(--bg-elevated)]/40 border border-[var(--text-primary)]/5 group-hover:scale-[1.02] transition-transform">
                           <OutfitThumbnail id={item.id} />
                         </div>
-                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-white/90' : 'text-white/50'}`}>
+                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)]/90' : 'text-[var(--text-primary)]/50'}`}>
                           {item.label}
                         </span>
                       </button>

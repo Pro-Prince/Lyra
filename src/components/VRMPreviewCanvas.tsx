@@ -293,7 +293,11 @@ export function VRMPreviewCanvas({
       }
 
       if (renderer) {
-        renderer.dispose();
+        try {
+          renderer.forceContextLoss?.();
+          renderer.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
+          renderer.dispose();
+        } catch {}
       }
       cleanupPromise.then((cleanup) => {
         if (typeof cleanup === 'function') cleanup();
@@ -327,7 +331,7 @@ export function VRMPreviewCanvas({
       {/* Interactive 3D Rotation Badge */}
       {!loading && !error && interactive && (
         <div
-          className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-body text-white/80 pointer-events-none transition-opacity duration-300 ${
+          className={`absolute bottom-2.5 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-[var(--bg-elevated)] backdrop-blur-md border border-[var(--text-primary)]/10 text-[10px] font-body text-[var(--text-primary)]/80 pointer-events-none transition-opacity duration-300 ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
         >

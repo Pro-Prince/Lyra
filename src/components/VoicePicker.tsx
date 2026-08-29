@@ -106,7 +106,7 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
               <div className={`w-3 h-3 rounded-full border-2 transition-all flex items-center justify-center ${
                 isSelected 
                   ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]' 
-                  : 'border-white/20 bg-transparent'
+                  : 'border-[var(--text-primary)]/20 bg-transparent'
               }`}>
                 {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#2D0A1E]" />}
               </div>
@@ -123,7 +123,7 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
               className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
                 isThisPlaying 
                   ? 'bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] animate-pulse' 
-                  : 'bg-[var(--bg-surface)] border-white/10 text-[var(--text-muted)] hover:text-white hover:border-white/30'
+                  : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]/30'
               }`}
               title="Preview Voice Preset"
             >

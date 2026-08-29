@@ -60,7 +60,7 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[var(--bg-base)]/70 border border-white/[0.1] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
+                className="w-full bg-[var(--bg-base)]/70 border border-[var(--text-primary)]/[0.1] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
               />
             </div>
 
@@ -74,7 +74,7 @@ export default function SignUpPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[var(--bg-base)]/70 border border-white/[0.1] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
+                className="w-full bg-[var(--bg-base)]/70 border border-[var(--text-primary)]/[0.1] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
               />
             </div>
 
@@ -89,7 +89,7 @@ export default function SignUpPage() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-white/[0.08] text-center">
+          <div className="mt-6 pt-4 border-t border-[var(--text-primary)]/[0.08] text-center">
             <p className="text-xs text-[var(--text-muted)]">
               Already have an account?{' '}
               <Link to="/login" className="text-[var(--accent-primary)] font-medium hover:underline">

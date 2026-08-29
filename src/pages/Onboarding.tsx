@@ -270,7 +270,7 @@ export default function Onboarding() {
                 </Button>
                 <button
                   onClick={() => navigate("/")}
-                  className="w-full bg-[var(--bg-base)] border border-white/10 text-[var(--text-muted)] font-body text-xs py-3 px-6 rounded-xl hover:text-white active:scale-[0.98] transition-all cursor-pointer"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-muted)] font-body text-xs py-3 px-6 rounded-xl hover:text-[var(--text-primary)] active:scale-[0.98] transition-all cursor-pointer"
                 >
                   Exit
                 </button>
@@ -335,7 +335,7 @@ export default function Onboarding() {
                       className={`flex items-center gap-1.5 text-xs px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
                         isSpeaking
                           ? "bg-[var(--accent-primary)]/20 border-[var(--accent-primary)] text-[var(--accent-primary)] animate-pulse"
-                          : "bg-[var(--bg-surface)] border-white/10 text-[var(--text-muted)] hover:border-white/30"
+                          : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10 text-[var(--text-muted)] hover:border-[var(--text-primary)]/30"
                       }`}
                       title="Replay Voice"
                     >
@@ -453,11 +453,11 @@ export default function Onboarding() {
                           className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left ${
                             isSelected
                               ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]  ring-1 ring-[var(--accent-primary)]/50"
-                              : "bg-[var(--bg-surface)] border-white/10 hover:border-[var(--accent-primary)]/30 hover:bg-white/[0.04]"
+                              : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--text-primary)]/[0.04]"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-white/5 text-[var(--text-muted)]"}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-muted)]"}`}>
                               <Icon className="w-4 h-4" />
                             </div>
                             <div>
@@ -527,7 +527,7 @@ export default function Onboarding() {
                           className={`interactive-surface px-4 py-2 rounded-full text-sm font-body cursor-pointer ${
                             active
                               ? "bg-[var(--accent-primary)] text-[#2D0A1E] font-medium shadow-sm"
-                              : "bg-transparent border border-white/20 text-white/70 hover:border-white/40 hover:text-white"
+                              : "bg-transparent border border-[var(--text-primary)]/20 text-[var(--text-primary)]/70 hover:border-[var(--text-primary)]/40 hover:text-[var(--text-primary)]"
                           }`}
                         >
                           {tag}

@@ -47,6 +47,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollb
 :root {
   --bg-base: #160F17;
   --bg-surface: #241823;
+  --bg-elevated: #2a272c;
+  --bg-panel: #1e191d;
+  --bg-drawer: #1c181d;
+  --bg-user-bubble: #592f44;
   --accent-primary: #FF8FC0;
   --accent-secondary: #C9A6FF;
   --accent-glow: #FFD9B3;
@@ -73,6 +77,22 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollb
   --transition-fast: var(--duration-feedback) var(--ease-signature);
 
   color-scheme: dark;
+}
+
+:root.light {
+  --bg-base: #FFF5F8;
+  --bg-surface: #FFE4F0;
+  --bg-elevated: #FCE0EB;
+  --bg-panel: #FAFAFA;
+  --bg-drawer: #FFF5F8;
+  --bg-user-bubble: #F8B4D4;
+  --accent-primary: #E0357B;
+  --accent-secondary: #9B66E5;
+  --accent-glow: #FFB370;
+  --text-primary: #382531;
+  --text-muted: #826578;
+  --text-danger: #D62846;
+  color-scheme: light;
 }
 
 .btn, .interactive-surface, .faq-row, .footer-link, .presence-topbar a, .presence-topbar button {
@@ -295,7 +315,10 @@ h3, .heading-3 {
   right: 0;
   z-index: 50;
   height: 72px;
+  min-height: 72px;
+  max-height: 72px;
   padding: 0 var(--space-md);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -321,6 +344,15 @@ h3, .heading-3 {
   min-width: 200px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   z-index: 50;
+}
+
+@media (max-width: 768px) {
+  .nav-dropdown {
+    right: 16px;
+    left: 16px;
+    width: auto;
+    min-width: 0;
+  }
 }
 .nav-dropdown-divider {
   height: 1px;
@@ -829,17 +861,15 @@ h3, .heading-3 {
 }
 
 /* 3. Safe Area Insets (Respecting notches & home indicators on fixed components) */
-.control-bar,
-.presence-bottombar {
-  padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-}
+@media (max-width: 900px) {
+  .control-bar,
+  .presence-bottombar {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  }
 
-.app-header {
-  padding-top: env(safe-area-inset-top) !important;
-}
-
-.fixed.top-0 {
-  padding-top: env(safe-area-inset-top) !important;
+  .fixed.top-0 {
+    padding-top: env(safe-area-inset-top) !important;
+  }
 }
 
 /* 4. Onboarding split height boundary below 900px */
@@ -863,7 +893,34 @@ h3, .heading-3 {
   }
 }
 
-/* 6. Mobile Chat Slider Drawer Patterns */
+/* 6. Dynamic Viewport & Chat Layout Mobile Boundary */
+@media (max-width: 900px) {
+  .chat-layout {
+    height: 100dvh;
+    height: calc(100dvh - 72px);
+    display: flex;
+    flex-direction: column;
+  }
+  .companion-viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .control-bar, .suggestion-chips, .input-bar {
+    flex: 0 0 auto;
+  }
+}
+
+/* 7. Mobile Account Settings Stacking */
+@media (max-width: 768px) {
+  .account-section-grid {
+    grid-template-columns: 1fr;
+  }
+  .account-panel {
+    padding: var(--space-md);
+  }
+}
+
+/* 8. Mobile Chat Slider Drawer Patterns */
 @media (max-width: 768px) {
   /* Full screen canvas viewport layout */
   .chat-page-container {

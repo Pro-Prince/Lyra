@@ -132,7 +132,7 @@ export default function Auth() {
         {/* Auth Glass Container */}
         <div className="bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.85)]">
           {/* Mode Switch Tabs */}
-          <div className="flex bg-[var(--bg-base)]/50 border border-white/[0.08] p-1 rounded-xl mb-6">
+          <div className="flex bg-[var(--bg-base)]/50 border border-[var(--text-primary)]/[0.08] p-1 rounded-xl mb-6">
             <button
               type="button"
               onClick={() => setMode('signup')}
@@ -164,7 +164,7 @@ export default function Auth() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-3 bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.12] text-white py-3 px-4 rounded-xl font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.98] mb-4"
+                className="w-full flex items-center justify-center gap-3 bg-[var(--text-primary)]/[0.05] hover:bg-[var(--text-primary)]/[0.09] border border-[var(--text-primary)]/[0.12] text-[var(--text-primary)] py-3 px-4 rounded-xl font-medium text-xs sm:text-sm transition-all shadow-sm active:scale-[0.98] mb-4"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -188,11 +188,11 @@ export default function Auth() {
               </button>
 
               <div className="relative flex py-2 items-center mb-5">
-                <div className="flex-grow border-t border-white/[0.08]" />
+                <div className="flex-grow border-t border-[var(--text-primary)]/[0.08]" />
                 <span className="flex-shrink mx-3 text-[11px] font-body uppercase tracking-wider text-[var(--text-muted)]">
                   {t('auth_or_divider')}
                 </span>
-                <div className="flex-grow border-t border-white/[0.08]" />
+                <div className="flex-grow border-t border-[var(--text-primary)]/[0.08]" />
               </div>
             </>
           )}
@@ -212,7 +212,7 @@ export default function Auth() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-[var(--bg-base)]/70 border border-white/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
+                  className="w-full bg-[var(--bg-base)]/70 border border-[var(--text-primary)]/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
                 />
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function Auth() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   minLength={6}
-                  className="w-full bg-[var(--bg-base)]/70 border border-white/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
+                  className="w-full bg-[var(--bg-base)]/70 border border-[var(--text-primary)]/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body"
                 />
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function Auth() {
                       required
                       value={birthdate}
                       onChange={(e) => setBirthdate(e.target.value)}
-                      className="w-full bg-[var(--bg-base)]/70 border border-white/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body [color-scheme:dark]"
+                      className="w-full bg-[var(--bg-base)]/70 border border-[var(--text-primary)]/[0.1] rounded-xl pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)]/50 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-all font-body [color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export default function Auth() {
                       required
                       checked={aiDisclosure}
                       onChange={(e) => setAiDisclosure(e.target.checked)}
-                      className="peer appearance-none w-4 h-4 border border-white/20 rounded bg-black/40 checked:bg-[var(--accent-primary)] checked:border-[var(--accent-primary)] transition-all focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                      className="peer appearance-none w-4 h-4 border border-[var(--text-primary)]/20 rounded bg-[var(--bg-base)]/40 checked:bg-[var(--accent-primary)] checked:border-[var(--accent-primary)] transition-all focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
                     />
                     <svg
                       className="absolute w-2.5 h-2.5 pointer-events-none opacity-0 peer-checked:opacity-100 text-[var(--bg-base)] top-0.5"
@@ -308,14 +308,14 @@ export default function Auth() {
 
           {/* Local Guest Fallback */}
           {!isConfigured && (
-            <div className="mt-5 pt-4 border-t border-white/[0.08] text-center">
+            <div className="mt-5 pt-4 border-t border-[var(--text-primary)]/[0.08] text-center">
               <p className="text-[11px] text-[var(--text-muted)] mb-2">
                 Local storage mode active. No cloud credentials required.
               </p>
               <button
                 type="button"
                 onClick={handleLocalGuestMode}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-medium text-[var(--text-primary)] transition-colors"
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--text-primary)]/[0.04] hover:bg-[var(--text-primary)]/[0.08] border border-[var(--text-primary)]/[0.1] text-xs font-medium text-[var(--text-primary)] transition-colors"
               >
                 {t('auth_guest_button')}
               </button>

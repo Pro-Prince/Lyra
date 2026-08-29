@@ -63,7 +63,7 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
               className={`w-auto max-w-[94%] sm:max-w-[88%] text-center select-none ${
                 sub.role === 'user'
-                  ? 'bg-[var(--bg-surface)] backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
+                  ? 'bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--text-primary)]/10 px-4 py-2.5 rounded-2xl shadow-[0_6px_24px_rgba(0,0,0,0.6)]'
                   : 'bg-[var(--bg-surface)] backdrop-blur-sm border border-[var(--accent-primary)]/35 px-6 py-4 rounded-2xl '
               }`}
             >

@@ -83,7 +83,11 @@ export async function renderPosedOutfit(
   scene.remove(vrm.scene);
 
   if (shouldDispose) {
-    try { r.dispose(); } catch {}
+    try {
+      r.forceContextLoss?.();
+      r.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
+      r.dispose();
+    } catch {}
   }
 
   return dataUrl;
@@ -119,57 +123,51 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    for (const [id, url] of Object.entries(OUTFIT_FILES)) {
-      try {
-        console.log('Requesting:', url);
-        const vrm = await loadVRM(url);
-        console.log(`${url} loaded successfully`);
-        
-        applyRestPose(vrm);
-        applyRelaxedHandPose(vrm, 'left');
-        applyRelaxedHandPose(vrm, 'right');
+    // Single shared renderer for batch thumbnail generation to avoid WebGL context leaks
+    const batchRenderer = createThumbnailRenderer(400, 400);
 
-        const thumbnail = await renderPosedOutfit(vrm, undefined, { frame: 'outfit', size: 320 });
-        const fullBodyRender = await renderPosedOutfit(vrm, undefined, { frame: 'full-body', size: 380 });
-        const heroPortrait = await renderPosedOutfit(vrm, undefined, { frame: 'portrait', size: 400 });
-
-        // Preload idle animation
-        const clips: Record<string, THREE.AnimationClip> = {};
+    try {
+      for (const [id, url] of Object.entries(OUTFIT_FILES)) {
         try {
-          const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
-          const idleClip = await loadMixamoAnimation(idleUrl, vrm);
-          if (idleClip) clips['idle'] = idleClip;
-        } catch (err) {
-          console.warn(`Failed to preload idle for outfit ${id}:`, err);
-        }
+          console.log('Requesting:', url);
+          const vrm = await loadVRM(url);
+          console.log(`${url} loaded successfully`);
+          
+          applyRestPose(vrm);
+          applyRelaxedHandPose(vrm, 'left');
+          applyRelaxedHandPose(vrm, 'right');
 
-        const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
-        sessionVrmCache[id] = entry;
-        sessionVrmCache[url] = entry;
+          const thumbnail = await renderPosedOutfit(vrm, batchRenderer, { frame: 'outfit', size: 320 });
+          const fullBodyRender = await renderPosedOutfit(vrm, batchRenderer, { frame: 'full-body', size: 380 });
+          const heroPortrait = await renderPosedOutfit(vrm, batchRenderer, { frame: 'portrait', size: 400 });
 
-        if (id === 'lyra' && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
-        }
-
-        // Load remaining animations asynchronously in background
-        (async () => {
-          for (const file of MIXAMO_FILES) {
-            if (file === 'idle') continue;
-            try {
-              const animUrl = new URL(`../assets/animations/mixamo/${file}.fbx`, import.meta.url).href;
-              const clip = await loadMixamoAnimation(animUrl, vrm);
-              if (clip) {
-                entry.clips[file] = clip;
-              }
-            } catch (err) {
-              console.warn(`Failed to preload mixamo ${file} for outfit ${id}:`, err);
-            }
+          // Preload idle animation
+          const clips: Record<string, THREE.AnimationClip> = {};
+          try {
+            const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
+            const idleClip = await loadMixamoAnimation(idleUrl, vrm);
+            if (idleClip) clips['idle'] = idleClip;
+          } catch (err) {
+            console.warn(`Failed to preload idle for outfit ${id}:`, err);
           }
-        })();
 
-      } catch (err) {
-        console.error(`Failed to preload outfit ${id} (${url}):`, err);
+          const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
+          sessionVrmCache[id] = entry;
+          sessionVrmCache[url] = entry;
+
+          if (id === 'lyra' && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
+          }
+        } catch (err) {
+          console.error(`Failed to preload outfit ${id} (${url}):`, err);
+        }
       }
+    } finally {
+      try {
+        batchRenderer.forceContextLoss?.();
+        batchRenderer.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
+        batchRenderer.dispose();
+      } catch {}
     }
 
     if (typeof window !== 'undefined') {

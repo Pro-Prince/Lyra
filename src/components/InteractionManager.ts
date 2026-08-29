@@ -40,6 +40,7 @@ export class InteractionManager {
   private idleCheckInterval: number | null = null;
   private isPlayingIdleAnimation: boolean = false;
   private activeIdleCancelFn: (() => void) | null = null;
+  private activeTimeouts: Set<any> = new Set();
 
   private pointerDownPos = { x: 0, y: 0, time: 0 };
   private maxClickDistance = 10; // max pixel drift for a tap/click vs drag
@@ -422,7 +423,11 @@ export class InteractionManager {
       if (typeof win.playGesture === 'function') {
         win.playGesture('think');
       }
-      setTimeout(onComplete, 2000);
+      const t = setTimeout(() => {
+        if (!this.isDisposed) onComplete();
+        this.activeTimeouts.delete(t);
+      }, 2000);
+      this.activeTimeouts.add(t);
       return;
     }
 
@@ -648,14 +653,20 @@ export class InteractionManager {
       
       // Momentary pleasant smile reaction
       expr.setValue('happy', Math.min(1, initialHappy + 0.5));
-      setTimeout(() => {
-        expr.setValue('happy', initialHappy);
+      const t = setTimeout(() => {
+        if (!this.isDisposed && this.vrm?.expressionManager) {
+          expr.setValue('happy', initialHappy);
+        }
+        this.activeTimeouts.delete(t);
       }, 1400);
+      this.activeTimeouts.add(t);
     }
   }
 
   public dispose() {
     this.isDisposed = true;
+    this.activeTimeouts.forEach(t => clearTimeout(t));
+    this.activeTimeouts.clear();
     if (this.idleCheckInterval !== null) {
       clearInterval(this.idleCheckInterval);
       this.idleCheckInterval = null;

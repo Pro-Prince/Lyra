@@ -158,13 +158,13 @@ export default function Settings() {
         initial="hidden"
         animate="visible"
         variants={groupVariants}
-        className="grid grid-cols-1 md:grid-cols-12 gap-8 max-w-6xl mx-auto w-full pb-12"
+        className="account-section-grid grid grid-cols-1 md:grid-cols-12 gap-8 max-w-6xl mx-auto w-full pb-12"
       >
         
         {/* CARD 1: Voice Configuration (Span 7) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -205,7 +205,7 @@ export default function Settings() {
         {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -253,7 +253,7 @@ export default function Settings() {
                       }
                     }}
                   />
-                  <div className="w-11 h-6 bg-black/60 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-gray-300 peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
+                  <div className="w-11 h-6 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
                 </label>
               </div>
 
@@ -287,7 +287,7 @@ export default function Settings() {
         {/* CARD 3: Wardrobe (Span 12 - Full Width Bento Tile) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Sparkles} size={48} />
@@ -327,7 +327,7 @@ export default function Settings() {
         {/* CARD 4: Remembered Context (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -371,7 +371,7 @@ export default function Settings() {
         {/* CARD 5: Account & Data Portability (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl font-body"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl font-body"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Download} size={48} />
@@ -460,7 +460,7 @@ export default function Settings() {
                 value={resetConfirm}
                 onChange={(e) => setResetConfirm(e.target.value)}
                 placeholder="Type RESET"
-                className="w-full sm:w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="w-full sm:w-28 bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
               />
               <Button
                 variant="destructive"
@@ -481,7 +481,7 @@ export default function Settings() {
                 value={clearConfirm}
                 onChange={(e) => setClearConfirm(e.target.value)}
                 placeholder="Type CLEAR"
-                className="w-full sm:w-28 bg-[var(--bg-base)] border border-white/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="w-full sm:w-28 bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
               />
               <Button
                 variant="destructive"

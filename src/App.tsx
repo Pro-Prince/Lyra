@@ -21,8 +21,10 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
 import { preloadAllOutfits } from "./lib/outfitCache";
+import { useTheme } from "./hooks/useTheme";
 
 function ScrollToTop() {
+
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -52,6 +54,7 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  useTheme();
 
   useEffect(() => {
     // Preload all outfits once at startup
