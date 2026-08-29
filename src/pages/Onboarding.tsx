@@ -239,6 +239,27 @@ export default function Onboarding() {
     >
       {/* Top Segmented Progress Bar Section (matching reference image) */}
       <div className="absolute top-0 left-0 right-0 w-full max-w-6xl mx-auto px-6 pt-8 pb-4 flex items-center justify-center z-50">
+        
+        {/* Back Button (Left aligned with cross button) */}
+        <div className="absolute left-6 top-6">
+          <AnimatePresence>
+            {step > 1 && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleBack}
+                className="p-2 inline-flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
         <div className="flex items-center gap-3 flex-1 max-w-lg mx-auto">
           {Array.from({ length: 4 }).map((_, idx) => (
             <div
@@ -260,26 +281,6 @@ export default function Onboarding() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-      </div>
-
-      {/* Back Button (Fixed below progress bar) */}
-      <div className="absolute top-24 left-0 right-0 w-full max-w-6xl mx-auto px-6 z-40 pointer-events-none">
-        <AnimatePresence>
-          {step > 1 && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleBack}
-              className="pointer-events-auto inline-flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
-            </motion.button>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Adult Confirmation Modal (fires once before step 1 if not confirmed) */}

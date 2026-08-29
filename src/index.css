@@ -322,9 +322,9 @@ h3, .heading-3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(36, 24, 35, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(36, 24, 35, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255, 182, 213, 0.12);
 }
 
