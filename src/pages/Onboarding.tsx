@@ -332,13 +332,12 @@ export default function Onboarding() {
             className={`order-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} lg:col-span-5 flex items-center justify-center relative w-full`}
           >
             {/* Ambient Presence Glow anchored directly behind her silhouette */}
-            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)]/60 backdrop-blur-[16px] border border-[var(--accent-primary)]/24 shadow-2xl flex items-center justify-center">
+            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--accent-primary)]/24 shadow-xl flex items-center justify-center">
               <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
                 <div 
-                  className="w-[120%] h-[120%] max-w-[500px] max-h-[500px] rounded-full blur-3xl opacity-75 animate-pulse" 
+                  className="w-full h-full max-w-[500px] max-h-[500px] rounded-full opacity-50" 
                   style={{ 
-                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.28) 0%, rgba(201,166,255,0.16) 45%, transparent 70%)',
-                    animationDuration: '6s'
+                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.15) 0%, rgba(201,166,255,0.08) 45%, transparent 70%)',
                   }} 
                 />
               </div>

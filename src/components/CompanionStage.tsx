@@ -873,10 +873,9 @@ function CompanionStageComponent({
           gl={{ 
             alpha: true, 
             antialias: true, 
-            powerPreference: "high-performance",
+            powerPreference: "default",
             stencil: false,
             depth: true,
-            preserveDrawingBuffer: true,
             failIfMajorPerformanceCaveat: false
           }}
           onCreated={({ gl }) => {
@@ -884,7 +883,7 @@ function CompanionStageComponent({
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.05;
           }}
-          dpr={[1, 1.5]}
+          dpr={1}
         >
           <CameraRig mode={isWardrobeOpen ? 'panned-left' : (isPortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
