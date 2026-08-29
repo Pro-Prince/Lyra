@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Copy, Check } from "lucide-react";
+import { Mail, Copy, Check, ExternalLink } from "lucide-react";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import LegalPageWrapper from "../components/LegalPageWrapper";
@@ -16,24 +16,30 @@ export default function Contact() {
 
   return (
     <LegalPageWrapper>
-      <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
+      <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between pt-16 sm:pt-20">
         <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center my-auto">
-          <div className="content-card bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
-            <h1 className="font-heading font-medium text-2xl sm:text-[32px] text-[var(--text-primary)] leading-tight mb-2">Contact Us</h1>
-            <p className="subtext text-[var(--text-muted)] text-sm sm:text-base mb-6">Have a question or something to share? Reach out directly.</p>
+          <div className="content-card bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-10 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.6)]">
+            <h1 className="font-heading font-medium text-2xl sm:text-[32px] text-[var(--text-primary)] leading-tight mb-3">
+              Contact Us
+            </h1>
+            <p className="subtext text-[var(--text-muted)] text-sm sm:text-[15px] leading-relaxed mb-6 sm:mb-8">
+              Have questions or need assistance? We're here to help. Reach out to us and we'll get back to you as soon as possible.
+            </p>
 
             {/* Email Rectangle Box */}
             <div 
               onClick={handleCopy}
-              className="email-box w-full bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-xl sm:rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 my-6 cursor-pointer hover:bg-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/40 transition-all group select-none"
+              className="email-box w-full bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/15 rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 mb-6 cursor-pointer hover:bg-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 transition-all group select-none shadow-sm"
               title="Click to copy email address"
             >
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                <div className="email-icon w-10 h-10 rounded-xl bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] flex items-center justify-center shrink-0">
+                <div className="email-icon w-11 h-11 rounded-xl bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] flex items-center justify-center shrink-0 border border-[var(--accent-primary)]/20">
                   <Mail size={20} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="email-label text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-medium block">EMAIL ADDRESS</span>
+                  <span className="email-label text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold block">
+                    EMAIL ADDRESS
+                  </span>
                   <p className="email-value font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate mt-0.5 break-all sm:break-normal">
                     {email}
                   </p>
@@ -55,21 +61,31 @@ export default function Contact() {
               </div>
             </div>
 
+            {/* Action CTA Button */}
             <Button
               variant="primary"
               size="lg"
-              icon={Mail}
               href={`mailto:${email}`}
-              className="w-full text-center flex justify-center items-center font-medium"
+              className="w-full text-center flex justify-center items-center font-bold text-sm sm:text-base mb-8 shadow-md"
             >
-              Contact on email
+              <span className="flex items-center justify-center gap-2">
+                <span>Email Us</span>
+                <ExternalLink size={16} className="shrink-0" />
+              </span>
             </Button>
 
-            <hr className="divider border-t border-[var(--accent-primary)]/10 my-6" />
-
-            <p className="support-note text-xs text-[var(--text-muted)] leading-relaxed text-center sm:text-left">
-              This is a solo project, not a staffed support line. Response times vary, but every message gets read.
-            </p>
+            {/* Support Hours Section */}
+            <div className="border-t border-[var(--accent-primary)]/10 pt-6 space-y-2">
+              <h2 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)]">
+                Support Hours
+              </h2>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
+                Monday — Friday: 9:00 AM - 6:00 PM EST
+              </p>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
+                We typically respond within 24 hours during business days.
+              </p>
+            </div>
           </div>
         </main>
 
@@ -78,4 +94,5 @@ export default function Contact() {
     </LegalPageWrapper>
   );
 }
+
 
