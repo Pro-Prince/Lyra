@@ -36,6 +36,35 @@ const emotionColors: Record<Emotion, string> = {
   excited: '#FF8FC0',
 };
 
+// Pre-loaded logo watermark image for instant capture
+const logoWatermarkImg = new Image();
+logoWatermarkImg.crossOrigin = 'anonymous';
+logoWatermarkImg.src = '/images/Logo.png';
+
+const drawLyraLogoWatermark = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  logoImg: HTMLImageElement
+) => {
+  if (!logoImg || !logoImg.complete || logoImg.naturalWidth === 0) return;
+
+  ctx.save();
+  // Clean logo watermark positioned at bottom-right of 1080x1080 canvas
+  const logoSize = Math.round(width * 0.085); // ~92px at 1080px
+  const margin = Math.round(width * 0.035);   // ~38px margin
+  const x = width - logoSize - margin;
+  const y = height - logoSize - margin;
+
+  // Add subtle drop shadow to logo
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  ctx.shadowBlur = Math.round(12 * (width / 1000));
+  ctx.shadowOffsetY = Math.round(3 * (width / 1000));
+
+  ctx.drawImage(logoImg, x, y, logoSize, logoSize);
+  ctx.restore();
+};
+
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo } = useToast();
@@ -887,42 +916,58 @@ export default function Chat() {
     setInputText("");
   };
 
+  const [isCapturingFlash, setIsCapturingFlash] = useState(false);
+
   const handleCapture = () => {
     const canvas = document.querySelector('canvas');
-    if (!canvas) return;
+    if (!canvas) {
+      showError('No active stage found to capture');
+      return;
+    }
 
+    // Trigger visual camera shutter flash effect
+    setIsCapturingFlash(true);
+    setTimeout(() => {
+      setIsCapturingFlash(false);
+    }, 250);
+
+    // Export high quality 1080x1080 (1:1 square)
+    const exportSize = 1080;
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
+    tempCanvas.width = exportSize;
+    tempCanvas.height = exportSize;
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(canvas, 0, 0);
+    // Center crop source canvas into 1:1 square ratio
+    const srcWidth = canvas.width;
+    const srcHeight = canvas.height;
+    const minDim = Math.min(srcWidth, srcHeight);
+    const sx = (srcWidth - minDim) / 2;
+    const sy = (srcHeight - minDim) / 2;
 
-    const watermark = new Image();
-    watermark.src = '/images/Logo.png';
-    watermark.crossOrigin = 'anonymous';
-    watermark.onload = () => {
-      const size = Math.max(32, Math.floor(tempCanvas.width * 0.05));
-      const padding = size / 2;
-      ctx.globalAlpha = 0.85;
-      ctx.drawImage(watermark, tempCanvas.width - size - padding, tempCanvas.height - size - padding, size, size);
-      ctx.globalAlpha = 1.0;
-      
-      const dataUrl = tempCanvas.toDataURL('image/png');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    ctx.drawImage(canvas, sx, sy, minDim, minDim, 0, 0, exportSize, exportSize);
+
+    // Draw watermark logo ONLY (exact logo image in bottom-right corner)
+    drawLyraLogoWatermark(ctx, exportSize, exportSize, logoWatermarkImg);
+
+    // Download instantly with short, clean filename (no timestamps or underscores)
+    try {
+      const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
-      link.download = `Lyra_Capture_${new Date().getTime()}.png`;
+      link.download = 'Lyra.png';
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
-    };
-    
-    watermark.onerror = () => {
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `Lyra_Capture_${new Date().getTime()}.png`;
-      link.href = dataUrl;
-      link.click();
-    };
+      document.body.removeChild(link);
+      showInfo('Photo saved! 📸');
+    } catch (err) {
+      console.error('Failed to export capture:', err);
+      showError('Failed to save image');
+    }
   };
 
   // Process Memory extraction upon returning to IDLE from SPEAKING
@@ -987,6 +1032,11 @@ export default function Chat() {
 
   return (
     <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#0b0a12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+        {/* Camera Shutter Flash Effect */}
+        {isCapturingFlash && (
+          <div className="fixed inset-0 bg-white z-[99999] pointer-events-none transition-opacity duration-200 opacity-90 animate-pulse" />
+        )}
+
         {/* Click-away overlay when a drawer or mobile menu is open */}
         {(isSettingsOpen || isRapportOpen || isWardrobeOpen || isMobileMenuOpen) && (
           <div 

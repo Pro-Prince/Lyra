@@ -876,6 +876,7 @@ function CompanionStageComponent({
             powerPreference: "high-performance",
             stencil: false,
             depth: true,
+            preserveDrawingBuffer: true,
             failIfMajorPerformanceCaveat: false
           }}
           onCreated={({ gl }) => {
