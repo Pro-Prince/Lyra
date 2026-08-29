@@ -107,14 +107,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollb
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 143, 192, 0.6);
+  box-shadow: 0 0 10px rgba(255, 143, 192, 0.25);
   overflow: hidden;
   object-fit: cover;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .logo-badge-img:hover {
-  border-color: rgba(255, 143, 192, 0.5);
+  border-color: rgba(255, 143, 192, 0.9);
+  box-shadow: 0 0 14px rgba(255, 143, 192, 0.45);
 }
 
 .preview-tag {
@@ -314,9 +316,9 @@ h3, .heading-3 {
   left: 0;
   right: 0;
   z-index: 50;
-  height: 72px;
-  min-height: 72px;
-  max-height: 72px;
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
   padding: 0 var(--space-md);
   box-sizing: border-box;
   display: flex;
@@ -648,7 +650,7 @@ h3, .heading-3 {
 }
 
 #features, #faq, #wardrobe {
-  scroll-margin-top: 96px; /* 72px header + margin */
+  scroll-margin-top: 80px; /* 56px header + margin */
 }
 
 .content-card {
@@ -789,7 +791,10 @@ h3, .heading-3 {
 .install-banner-logo {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(255, 143, 192, 0.6);
+  box-shadow: 0 0 8px rgba(255, 143, 192, 0.25);
+  object-fit: cover;
   flex-shrink: 0;
 }
 .install-banner-text {
@@ -897,7 +902,7 @@ h3, .heading-3 {
 @media (max-width: 900px) {
   .chat-layout {
     height: 100dvh;
-    height: calc(100dvh - 72px);
+    height: calc(100dvh - 56px);
     display: flex;
     flex-direction: column;
   }

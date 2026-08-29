@@ -148,6 +148,37 @@ export async function deleteMemory(id: string): Promise<void> {
   });
 }
 
+export async function getRapport(): Promise<any> {
+  const db = await openLyraDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('companion', 'readonly');
+    const store = tx.objectStore('companion');
+    const req = store.get('rapport');
+    req.onsuccess = () => resolve(req.result || {
+      score: 15,
+      tier: 'Tier 1',
+      tierName: 'Acquaintance',
+      affectionLevel: 25,
+      friendshipDays: 1,
+      totalSessions: 1,
+      lastInteraction: Date.now()
+    });
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function saveRapport(data: any): Promise<void> {
+  const db = await openLyraDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('companion', 'readwrite');
+    const store = tx.objectStore('companion');
+    const payload = withMeta(data);
+    const req = store.put(payload, 'rapport');
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
 export async function getNotificationPreferences(): Promise<any> {
   const db = await openLyraDB();
   return new Promise((resolve, reject) => {
@@ -283,4 +314,6 @@ export const storage = {
   saveNotificationPreferences,
   getLocalProfile,
   saveLocalProfile,
+  getRapport,
+  saveRapport,
 };

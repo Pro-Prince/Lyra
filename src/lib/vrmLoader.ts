@@ -128,82 +128,21 @@ async function fetchModelBuffer(targetUrl: string): Promise<ArrayBuffer> {
     throw new Error(`Invalid model format at ${targetUrl}: expected glTF binary or JSON, got magic '${magic}'`);
   }
 
-  // 1x1 RGBA transparent PNG fallback
-  const TRANSPARENT_1X1_PNG = new Uint8Array([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
-    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-    0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
-    0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
-    0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
-    0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
-  ]);
-
-  // If binary glTF (GLB), ensure buffer is fully allocated to match header/chunks
+  // If binary glTF (GLB), ensure buffer matches full expected chunk size
   if (magic === 'glTF' && buf.byteLength >= 20) {
     const dataView = new DataView(buf);
     const totalLength = dataView.getUint32(8, true);
     const jsonLength = dataView.getUint32(12, true);
 
     try {
-      const textDecoder = new TextDecoder('utf-8');
-      const jsonStr = textDecoder.decode(new Uint8Array(buf, 20, Math.min(jsonLength, buf.byteLength - 20)));
-      const gltf = JSON.parse(jsonStr);
-      const expectedBinLength = gltf.buffers?.[0]?.byteLength || (totalLength - 20 - jsonLength - 8);
-      const fullExpectedTotal = 20 + jsonLength + 8 + expectedBinLength;
-
-      let workingArray: Uint8Array;
-      if (buf.byteLength < fullExpectedTotal || buf.byteLength < totalLength) {
-        console.warn(`[loadVRM] Repairing partially truncated GLB buffer from ${targetUrl} (${buf.byteLength} bytes -> ${fullExpectedTotal} bytes)`);
-        const paddedArray = new Uint8Array(fullExpectedTotal);
+      if (buf.byteLength < totalLength) {
+        console.warn(`[loadVRM] Padded buffer from ${targetUrl} (${buf.byteLength} bytes -> ${totalLength} bytes)`);
+        const paddedArray = new Uint8Array(totalLength);
         paddedArray.set(new Uint8Array(buf), 0);
-
-        const paddedDataView = new DataView(paddedArray.buffer);
-        paddedDataView.setUint32(8, fullExpectedTotal, true);
-        paddedDataView.setUint32(20 + jsonLength, expectedBinLength, true);
-        paddedArray[20 + jsonLength + 4] = 0x42; // 'B'
-        paddedArray[20 + jsonLength + 5] = 0x49; // 'I'
-        paddedArray[20 + jsonLength + 6] = 0x4e; // 'N'
-        paddedArray[20 + jsonLength + 7] = 0x00; // '\0'
-        workingArray = paddedArray;
-      } else {
-        workingArray = new Uint8Array(buf);
+        buf = paddedArray.buffer as ArrayBuffer;
       }
-
-      // Validate embedded images within the buffer
-      if (Array.isArray(gltf.images)) {
-        let modified = false;
-        for (const img of gltf.images) {
-          if (typeof img.bufferView === 'number' && gltf.bufferViews?.[img.bufferView]) {
-            const bv = gltf.bufferViews[img.bufferView];
-            const offset = 20 + jsonLength + 8 + (bv.byteOffset || 0);
-            const byteLen = bv.byteLength || 0;
-            if (offset + Math.min(byteLen, 8) <= workingArray.length) {
-              const b0 = workingArray[offset];
-              const b1 = workingArray[offset + 1];
-              const b2 = workingArray[offset + 2];
-              const b3 = workingArray[offset + 3];
-              const isPng = b0 === 0x89 && b1 === 0x50 && b2 === 0x4e && b3 === 0x47;
-              const isJpg = b0 === 0xff && b1 === 0xd8 && b2 === 0xff;
-              const isWebp = b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46;
-              if (!isPng && !isJpg && !isWebp) {
-                workingArray.set(TRANSPARENT_1X1_PNG, offset);
-                bv.byteLength = TRANSPARENT_1X1_PNG.length;
-                modified = true;
-              }
-            }
-          }
-        }
-        if (modified) {
-          const newJsonStr = JSON.stringify(gltf).padEnd(jsonLength, ' ');
-          const textEncoder = new TextEncoder();
-          const encoded = textEncoder.encode(newJsonStr);
-          workingArray.set(encoded.subarray(0, jsonLength), 20);
-        }
-      }
-
-      buf = workingArray.buffer as ArrayBuffer;
     } catch (e) {
-      console.warn(`[loadVRM] Error during buffer header check for ${targetUrl}:`, e);
+      console.warn(`[loadVRM] Error during buffer length check for ${targetUrl}:`, e);
     }
   }
 

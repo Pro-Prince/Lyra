@@ -295,14 +295,20 @@ function DesktopNav() {
 
 export default function AppHeader() {
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const location = useLocation();
+
+  // On mobile /chat route, the chat page renders its own dedicated mock-accurate top bar
+  if (isMobile && location.pathname === "/chat") {
+    return null;
+  }
 
   return (
     <>
-      <header className="app-header h-[72px]">
+      <header className="app-header h-[56px]">
         {/* BRAND / LOGO */}
         <Link
           to="/"
-          className="header-logo min-h-[44px] flex items-center gap-2.5 group transition-transform active:scale-95"
+          className="header-logo min-h-[40px] flex items-center gap-2.5 group transition-transform active:scale-95"
           aria-label="Lyra Home"
         >
           <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img shadow-sm" />
@@ -315,7 +321,7 @@ export default function AppHeader() {
       </header>
 
       {/* STICKY / FIXED HEADER SPACER */}
-      <div className="h-[72px] w-full shrink-0" aria-hidden="true" />
+      <div className="h-[56px] w-full shrink-0" aria-hidden="true" />
     </>
   );
 }
