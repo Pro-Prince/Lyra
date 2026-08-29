@@ -775,21 +775,21 @@ h3, .heading-3 {
    ========================================================================== */
 .install-banner {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: 24px;
+  right: 24px;
   left: auto;
   margin: 0;
   width: auto;
-  min-width: 360px;
-  max-width: 440px;
+  min-width: 340px;
+  max-width: 420px;
   background: rgba(26, 20, 31, 0.94);
   border: 1px solid rgba(255, 143, 192, 0.22);
-  border-radius: 22px;
-  padding: 14px 18px;
+  border-radius: 20px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 22px 50px -6px rgba(0, 0, 0, 0.75), 0 6px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   z-index: 1000;
@@ -798,33 +798,33 @@ h3, .heading-3 {
 :root.light .install-banner {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(255, 143, 192, 0.35);
-  box-shadow: 0 20px 45px -6px rgba(0, 0, 0, 0.14), 0 6px 18px -2px rgba(255, 143, 192, 0.15);
+  box-shadow: 0 20px 45px -6px rgba(0, 0, 0, 0.12), 0 6px 18px -2px rgba(255, 143, 192, 0.15);
 }
 
 @media (max-width: 767px) {
   .install-banner {
-    bottom: 18px;
+    bottom: 16px;
     left: 16px;
     right: 16px;
-    max-width: 430px;
+    max-width: 420px;
     margin: 0 auto;
     min-width: 0;
-    padding: 12px 16px;
-    border-radius: 20px;
+    padding: 12px 14px;
+    border-radius: 18px;
   }
 }
 
 .install-banner-logo {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(255, 143, 192, 0.45);
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  border: 1.5px solid rgba(255, 143, 192, 0.4);
   object-fit: cover;
   flex-shrink: 0;
 }
 
 :root.light .install-banner-logo {
-  border: 1.5px solid rgba(255, 143, 192, 0.6);
+  border: 1.5px solid rgba(255, 143, 192, 0.55);
 }
 
 .install-banner-text {
@@ -837,7 +837,7 @@ h3, .heading-3 {
 .install-banner-text strong {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--text-primary);
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -845,10 +845,10 @@ h3, .heading-3 {
 
 .install-banner-text span {
   font-family: var(--font-body);
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.25;
-  margin-top: 3px;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -857,64 +857,29 @@ h3, .heading-3 {
 .install-banner-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.install-banner-btn {
-  background: var(--accent-primary);
-  color: #160e19;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 9px 20px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(255, 143, 192, 0.3);
-  transition: all 0.15s ease-in-out;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-:root.light .install-banner-btn {
-  background: var(--accent-primary);
-  color: #160e19;
-}
-
-.install-banner-btn:hover {
-  background: #ffa7cf;
-  color: #160e19;
-  transform: scale(1.03);
-  box-shadow: 0 4px 14px rgba(255, 143, 192, 0.45);
-}
-
-:root.light .install-banner-btn:hover {
-  background: #ffa7cf;
-  color: #160e19;
-}
-
-.install-banner-btn:active {
-  transform: scale(0.96);
-}
-
 .install-banner-close {
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 7px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  transition: background-color 0.2s, color 0.2s, transform 0.15s;
+  border-radius: 9999px;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .install-banner-close:hover {
-  background-color: rgba(255, 143, 192, 0.15);
+  background-color: rgba(255, 143, 192, 0.14);
   color: var(--text-primary);
 }
 

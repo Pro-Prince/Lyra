@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X, Share } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Button } from './Button';
 import { useToast } from '../hooks/useToast';
 
 export function InstallBanner() {
@@ -87,13 +88,21 @@ export function InstallBanner() {
       {showBanner && !isStandalone && (
         <motion.div
           key="lyra-install-banner"
-          initial={{ opacity: 0, y: 24, scale: 0.95 }}
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          exit={{ opacity: 0, y: 16, scale: 0.96 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="install-banner"
+          role="dialog"
+          aria-label="Install Lyra Application"
         >
-          <img src="/images/Logo.png" alt="Lyra" className="install-banner-logo" />
+          <img 
+            src="/images/Logo.png" 
+            alt="Lyra" 
+            className="install-banner-logo" 
+            width={44}
+            height={44}
+          />
           
           <div className="install-banner-text">
             <strong>Install Lyra</strong>
@@ -102,32 +111,34 @@ export function InstallBanner() {
           
           <div className="install-banner-actions">
             {isIOSDevice ? (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={triggerInstall}
-                className="install-banner-btn flex items-center gap-1.5"
                 aria-label="How to install on iOS"
+                className="gap-1.5 shadow-sm"
               >
-                <Share size={15} />
+                <Share size={14} className="shrink-0" />
                 <span>Install</span>
-              </button>
+              </Button>
             ) : (
-              <button 
-                type="button"
-                onClick={triggerInstall} 
-                className="install-banner-btn"
+              <Button 
+                variant="primary"
+                size="sm"
+                onClick={triggerInstall}
+                className="shadow-sm"
               >
                 Install
-              </button>
+              </Button>
             )}
 
             <button 
               type="button"
               className="install-banner-close" 
               onClick={() => dismissInstallBanner(true)} 
-              aria-label="Close install banner"
+              aria-label="Dismiss install banner"
             >
-              <X size={18} />
+              <X size={17} />
             </button>
           </div>
         </motion.div>
