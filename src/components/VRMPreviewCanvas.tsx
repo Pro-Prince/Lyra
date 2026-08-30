@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { loadVRM } from '../lib/vrmLoader';
 import { applyRestPose, applyRelaxedHandPose } from '../lib/poseUtils';
+import { useOutfitThumbnail } from '../lib/outfitCache';
 
 interface VRMPreviewCanvasProps {
   url: string;
@@ -22,8 +23,13 @@ export function VRMPreviewCanvas({
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const thumbnail = useOutfitThumbnail(url);
 
   useEffect(() => {
+    // If not hovered and we have a thumbnail, DO NOT spin up WebGL!
+    if (!isHovered && thumbnail) {
+      return;
+    }
     let isCancelled = false;
     let animFrameId: number;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -311,7 +317,7 @@ export function VRMPreviewCanvas({
         if (typeof cleanup === 'function') cleanup();
       });
     };
-  }, [url, interactive, autoRotate, retryKey]);
+  }, [url, interactive, autoRotate, retryKey, isHovered, thumbnail]);
 
   const retryRender = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -328,8 +334,17 @@ export function VRMPreviewCanvas({
     >
       <div ref={containerRef} className="w-full h-full" />
 
-      {/* Loading Overlay */}
-      {loading && (
+      {/* Show Static Thumbnail (visible until WebGL fully loads over it) */}
+      {thumbnail && (
+        <img 
+          src={thumbnail} 
+          alt="Outfit Preview" 
+          className={`absolute inset-0 w-full h-full object-cover z-[5] transition-opacity duration-300 ${isHovered && !loading ? 'opacity-0' : 'opacity-100'}`} 
+        />
+      )}
+
+      {/* Loading Overlay (only if no thumbnail and still loading WebGL) */}
+      {loading && !thumbnail && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 backdrop-blur-sm transition-opacity duration-300 z-10">
           <div className="w-7 h-7 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin mb-2" />
           <span className="text-[11px] font-body text-[var(--text-muted)] font-medium">Loading 3D Model…</span>
