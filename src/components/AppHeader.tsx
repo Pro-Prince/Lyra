@@ -368,7 +368,7 @@ export default function AppHeader() {
 
   return (
     <>
-      <header className="app-header h-[56px]">
+      <header className="app-header h-12 sm:h-14">
         {/* BRAND / LOGO */}
         <Link
           to="/"
@@ -385,7 +385,7 @@ export default function AppHeader() {
       </header>
 
       {/* STICKY / FIXED HEADER SPACER */}
-      <div className="h-[56px] w-full shrink-0" aria-hidden="true" />
+      <div className="h-12 sm:h-14 w-full shrink-0" aria-hidden="true" />
     </>
   );
 }
