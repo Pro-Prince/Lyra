@@ -24,10 +24,15 @@ import { preloadAllOutfits } from "./lib/outfitCache";
 import { useTheme } from "./hooks/useTheme";
 
 function ScrollToTop() {
-
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+    const root = document.getElementById("root");
+    if (root) {
+      root.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    document.documentElement.scrollTo(0, 0);
+    document.body.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }

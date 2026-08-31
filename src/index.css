@@ -21,24 +21,37 @@
 
 }
 
-html {
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
-body {
+#root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow-y: auto;
   overflow-x: hidden;
-  min-height: 100vh;
-  min-height: 100svh;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Smooth hidden scrollbar without UI cutoff or layout shift */
-html, body, .no-scrollbar {
+html, body, #root, .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-html::-webkit-scrollbar, body::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
@@ -313,7 +326,7 @@ h3, .heading-3 {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 100;
   padding: 0 var(--space-md);
   box-sizing: border-box;
   display: flex;

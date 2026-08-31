@@ -255,24 +255,32 @@ export default function Landing() {
             className="fixed inset-0 z-[9999] bg-[var(--bg-base)] flex flex-col items-center justify-center pointer-events-none"
           >
             <motion.div 
-              animate={{ 
-                scale: [1, 1.05, 1],
-                opacity: [0.6, 1, 0.6]
-              }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="flex flex-col items-center justify-center gap-6"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="flex flex-col items-center justify-center gap-8"
             >
               <div className="relative">
-                 <div className="absolute inset-0 blur-2xl bg-[var(--accent-primary)]/20 rounded-full animate-pulse" />
-                 <img src="/images/Logo.png" alt="Loading..." className="w-20 h-20 relative z-10 opacity-90 drop-shadow-2xl" />
+                 {/* Slow steady breathing glow */}
+                 <motion.div 
+                   animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.8, 1.2, 0.8] }}
+                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                   className="absolute inset-0 blur-2xl bg-[var(--accent-primary)]/30 rounded-full" 
+                 />
+                 <img 
+                   src="/images/Logo.png" 
+                   alt="Loading..." 
+                   className="w-20 h-20 sm:w-24 sm:h-24 relative z-10 opacity-95 drop-shadow-2xl rounded-2xl border-2 border-[var(--accent-primary)]/50 object-cover overflow-hidden" 
+                 />
               </div>
-              <div className="text-[var(--text-muted)] font-heading tracking-widest uppercase text-xs font-semibold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-ping" />
-                Initializing
+              
+              <div className="text-[var(--text-muted)] font-heading tracking-[0.2em] uppercase text-xs sm:text-sm font-medium flex items-center gap-3">
+                <motion.span 
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" 
+                />
+                Loading Companion
               </div>
             </motion.div>
           </motion.div>
