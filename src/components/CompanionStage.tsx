@@ -8,6 +8,7 @@ import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
 import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
+import { loadCompanionModel } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
 import { InteractionManager } from './InteractionManager';
 
@@ -352,19 +353,14 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
     const setupVRM = async () => {
       try {
         if (onProgress) onProgress(20);
-        let cached = getCachedOutfit(url);
-        if (!cached) {
-          if (onProgress) onProgress(50);
-          await preloadAllOutfits();
-          cached = getCachedOutfit(url);
-        }
+        const vrmInstance = await loadCompanionModel(url);
 
-        if (isCancelled || !cached) {
-          if (!cached && onError) onError(`Failed to resolve outfit for ${url}`);
+        if (isCancelled || !vrmInstance) {
+          if (!vrmInstance && onError) onError(`Failed to resolve outfit for ${url}`);
           return;
         }
 
-        const vrmInstance = cached.vrm;
+        const cached = getCachedOutfit(url);
 
         // Apply rest pose
         applyRestPose(vrmInstance);
@@ -730,6 +726,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 }
 
 function CompanionStageComponent({
+  modelId,
   isWardrobeOpen = false,
   accentColor = "#FF8FC0",
   scenery = 'neutral',
@@ -740,9 +737,14 @@ function CompanionStageComponent({
   isProcessing = false,
   silentError = false,
   transparentBg = false,
+  className = '',
+  mode,
   onModelLoaded,
   onError
 }: {
+  modelId?: string;
+  className?: string;
+  mode?: 'full-body' | 'portrait' | 'room-wide' | 'panned-left';
   accentColor?: string;
   isCallMode?: boolean;
   scenery?: string;
@@ -757,8 +759,12 @@ function CompanionStageComponent({
   onModelLoaded?: () => void;
   onError?: (err?: string) => void;
 }) {
+  const activeModelId = modelId || outfitUrl || '/models/lyra.vrm';
+  const effectivePortraitMode = isPortraitMode || mode === 'portrait';
+  const effectiveWardrobeOpen = isWardrobeOpen || mode === 'panned-left';
   const { showInfo } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
   const [vrmSceneRef, setVrmSceneRef] = useState<THREE.Group | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const retryCount = useRef(0);
@@ -786,6 +792,7 @@ function CompanionStageComponent({
 
   const handleRetry = () => {
     setIsLoaded(false);
+    setHasFailed(false);
     setVrmSceneRef(null);
     setRetryKey(prev => prev + 1);
   };
@@ -794,7 +801,7 @@ function CompanionStageComponent({
     setIsLoaded(false);
     if (retryCount.current === 0) {
       retryCount.current++;
-      console.warn('Companion load failed, retrying once:', err);
+      console.warn('Companion load failed, retrying once quietly:', err);
       // Wait a moment then retry quietly
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = setTimeout(() => {
@@ -803,7 +810,8 @@ function CompanionStageComponent({
       return;
     }
     
-    console.error('Companion load failed again after retry:', err);
+    console.error('Companion load failed after retry:', err);
+    setHasFailed(true);
     if (onError) {
       onError(err);
     }
@@ -819,16 +827,19 @@ function CompanionStageComponent({
   };
 
   useEffect(() => {
-    if (!getCachedOutfit(outfitUrl)) {
-      setIsLoaded(false);
-      setVrmSceneRef(null);
-    }
-  }, [outfitUrl]);
+    setIsLoaded(false);
+    setHasFailed(false);
+    setVrmSceneRef(null);
+  }, [activeModelId]);
 
-  const showOpaqueBg = !transparentBg && !isPortraitMode;
+  const showOpaqueBg = !transparentBg && !effectivePortraitMode;
+
+  if (hasFailed && silentError) {
+    return null;
+  }
 
   return (
-    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[var(--bg-base)]' : 'bg-transparent'}`}>
+    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[var(--bg-base)]' : 'bg-transparent'} ${className}`}>
       {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />}
       
       <AnimatePresence>
@@ -851,9 +862,9 @@ function CompanionStageComponent({
         )}
       </AnimatePresence>
       
-      {/* While loading: show ONLY ambient presence glow from Fix 1, nothing else */}
+      {/* While loading: show ONLY ambient presence glow */}
       <AnimatePresence>
-        {!isLoaded && (
+        {!isLoaded && !hasFailed && (
           <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
             <div className="presence-glow" />
           </div>
@@ -885,13 +896,13 @@ function CompanionStageComponent({
           }}
           dpr={1}
         >
-          <CameraRig mode={isWardrobeOpen ? 'panned-left' : (isPortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
+          <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
 
           <Suspense fallback={null}>
             <VRMModel 
-              url={outfitUrl} 
+              url={activeModelId} 
               emotion={emotion}
               isProcessing={isProcessing}
               onLoaded={(scene) => {

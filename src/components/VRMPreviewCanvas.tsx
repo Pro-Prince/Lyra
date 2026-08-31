@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { loadVRM } from '../lib/vrmLoader';
+import { loadCompanionModel } from '../lib/companionRenderer';
 import { applyRestPose, applyRelaxedHandPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
@@ -100,8 +100,8 @@ export function VRMPreviewCanvas({
         }
         container.appendChild(renderer.domElement);
 
-        // Load actual VRM model file
-        const vrm = await loadVRM(url, renderer);
+        // Load actual VRM model file using the unified companionRenderer
+        const vrm = await loadCompanionModel(url);
         if (isCancelled) {
           vrm.scene.traverse((o) => {
             if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose();

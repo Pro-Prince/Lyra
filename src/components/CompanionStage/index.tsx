@@ -1,3 +1,3 @@
-export default function CompanionStage() {
-  return null;
-}
+import CompanionStage from '../CompanionStage';
+export default CompanionStage;
+export { default as CompanionStage } from '../CompanionStage';

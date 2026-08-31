@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 import { createThumbnailRenderer } from './thumbnailUtils';
-import { loadVRM } from './vrmLoader';
+import { loadCompanionModel, renderStaticPortrait, MODEL_FILES } from './companionRenderer';
 import { loadMixamoAnimation } from './retargetMixamo';
 
 export interface CachedOutfitEntry {
@@ -14,23 +14,7 @@ export interface CachedOutfitEntry {
   clips: Record<string, THREE.AnimationClip>;
 }
 
-export const OUTFIT_FILES: Record<string, string> = {
-  lyra: '/models/lyra.vrm',
-  lyra_casual: '/models/lyra_casual.vrm',
-  lyra_dress: '/models/lyra_dress.vrm',
-};
-
-const MIXAMO_FILES = [
-  'idle',
-  'walk_forward',
-  'walk_backward',
-  'turn_left',
-  'turn_right',
-  'dance',
-  'strafe_left',
-  'strafe_right',
-  'turn_around',
-];
+export const OUTFIT_FILES = MODEL_FILES;
 
 // In-memory session-only caches (no localStorage, no IndexedDB, resets on tab close/refresh)
 const renderCache: Record<string, string> = {};
@@ -42,8 +26,11 @@ export async function renderPosedOutfit(
   renderer?: THREE.WebGLRenderer,
   { frame = 'outfit', size = 300 }: { frame?: 'full-body' | 'portrait' | 'outfit'; size?: number } = {}
 ): Promise<string> {
-  const vrm = typeof vrmUrlOrInstance === 'string' ? await loadVRM(vrmUrlOrInstance) : vrmUrlOrInstance;
-  
+  if (typeof vrmUrlOrInstance === 'string') {
+    return renderStaticPortrait(vrmUrlOrInstance, renderer, { frame, size });
+  }
+
+  const vrm = vrmUrlOrInstance;
   applyRestPose(vrm);
   applyRelaxedHandPose(vrm, 'left');
   applyRelaxedHandPose(vrm, 'right');
@@ -101,19 +88,12 @@ export async function getOutfitRender(
   const cacheKey = `${outfitId}_${options?.frame || 'outfit'}_${options?.size || 300}`;
   if (renderCache[cacheKey]) return renderCache[cacheKey];
 
-  const url = OUTFIT_FILES[outfitId] || outfitId;
-  console.log('Requesting:', url);
   try {
-    const vrm = await loadVRM(url);
-    console.log(`${url} loaded successfully`);
-    applyRestPose(vrm);
-    applyRelaxedHandPose(vrm, 'left');
-    applyRelaxedHandPose(vrm, 'right');
-    const result = await renderPosedOutfit(vrm, renderer, options);
+    const result = await renderStaticPortrait(outfitId, renderer, options);
     renderCache[cacheKey] = result;
     return result;
   } catch (err) {
-    console.error(`${url} load failed:`, err);
+    console.error(`[getOutfitRender] Failed for ${outfitId}:`, err);
     throw err;
   }
 }
@@ -127,19 +107,15 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
     const batchRenderer = createThumbnailRenderer(400, 400);
 
     try {
-      for (const [id, url] of Object.entries(OUTFIT_FILES)) {
+      for (const id of ['lyra', 'lyra_casual', 'lyra_dress']) {
+        const url = MODEL_FILES[id];
         try {
-          console.log('Requesting:', url);
-          const vrm = await loadVRM(url);
-          console.log(`${url} loaded successfully`);
+          console.log('[preloadAllOutfits] Loading model:', id);
+          const vrm = await loadCompanionModel(id);
           
-          applyRestPose(vrm);
-          applyRelaxedHandPose(vrm, 'left');
-          applyRelaxedHandPose(vrm, 'right');
-
-          const thumbnail = await renderPosedOutfit(vrm, batchRenderer, { frame: 'outfit', size: 320 });
-          const fullBodyRender = await renderPosedOutfit(vrm, batchRenderer, { frame: 'full-body', size: 380 });
-          const heroPortrait = await renderPosedOutfit(vrm, batchRenderer, { frame: 'portrait', size: 400 });
+          const thumbnail = await renderStaticPortrait(id, batchRenderer, { frame: 'outfit', size: 320 });
+          const fullBodyRender = await renderStaticPortrait(id, batchRenderer, { frame: 'full-body', size: 380 });
+          const heroPortrait = await renderStaticPortrait(id, batchRenderer, { frame: 'portrait', size: 400 });
 
           // Preload idle animation
           const clips: Record<string, THREE.AnimationClip> = {};
@@ -174,7 +150,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
       window.dispatchEvent(new CustomEvent('lyraOutfitsReady'));
     }
 
-    console.log('[outfitCache] In-memory session cache resolved keys:', Object.keys(sessionVrmCache));
     return sessionVrmCache;
   })();
 
@@ -184,8 +159,8 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
 export function getCachedOutfit(id: string): CachedOutfitEntry | null {
   if (sessionVrmCache[id]) return sessionVrmCache[id];
 
-  const key = Object.keys(OUTFIT_FILES).find(
-    (k) => k === id || OUTFIT_FILES[k] === id
+  const key = Object.keys(MODEL_FILES).find(
+    (k) => k === id || MODEL_FILES[k] === id
   );
   if (key && sessionVrmCache[key]) return sessionVrmCache[key];
 
@@ -290,5 +265,3 @@ export function useOutfitRenders(): Record<string, string> {
 
   return renders;
 }
-
-
