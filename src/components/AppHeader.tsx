@@ -93,23 +93,24 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
           Home
         </Link>
 
+        {/* CHAT ITEM */}
+        <Link
+          to="/chat"
+          onClick={onClose}
+          className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+            isChat
+              ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+          }`}
+        >
+          Chat
+        </Link>
+
         {/* SUBTLE DIVIDER */}
         <div className="nav-dropdown-divider" />
 
         {isMockAuthed ? (
           <>
-            <Link
-              to="/chat"
-              onClick={onClose}
-              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
-                isChat
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
-              }`}
-            >
-              Chat
-            </Link>
-
             <Link
               to="/account"
               onClick={onClose}
@@ -250,27 +251,27 @@ function DesktopNav() {
         )}
       </Link>
 
+      {/* CHAT LINK */}
+      <Link
+        to="/chat"
+        className={`h-full relative flex items-center px-3 sm:px-4 text-sm sm:text-[15px] font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
+          isChatActive
+            ? "text-[var(--accent-primary)] font-medium"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
+        }`}
+      >
+        <span>Chat</span>
+        {isChatActive && (
+          <motion.span
+            layoutId="header-active-tab-underline"
+            className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[var(--accent-primary)] rounded-t-full z-10"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+      </Link>
+
       {isMockAuthed ? (
         <>
-          {/* CHAT LINK */}
-          <Link
-            to="/chat"
-            className={`h-full relative flex items-center px-3 sm:px-4 text-sm sm:text-[15px] font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
-              isChatActive
-                ? "text-[var(--accent-primary)] font-medium"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
-            }`}
-          >
-            <span>Chat</span>
-            {isChatActive && (
-              <motion.span
-                layoutId="header-active-tab-underline"
-                className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[var(--accent-primary)] rounded-t-full z-10"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-          </Link>
-
           {/* ACCOUNT DROPDOWN */}
           <div ref={accountRef} className="relative h-full flex items-center">
             <button

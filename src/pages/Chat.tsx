@@ -3,10 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, saveLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail } from "../components/Thumbnails";
+import { WardrobeCard } from "../components/WardrobeCard";
 import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
@@ -68,30 +69,56 @@ const drawLyraLogoWatermark = (
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo } = useToast();
-  const [isAdultVerified, setIsAdultVerified] = useState<boolean | null>(null);
+  const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
-    async function verifyAdultAccess() {
+    async function ensureAccessAndDefaults() {
       try {
-        const profile = await getLocalProfile();
-        const companion = await import('../lib/storage').then(m => m.getCompanion());
-        if (!isMounted) return;
-        if (!profile || !profile.adultConfirmed || !profile.initialized || !companion || !companion.initialized) {
-          navigate("/onboarding", { replace: true });
-        } else {
+        let profile = await getLocalProfile();
+        let companion = await import('../lib/storage').then(m => m.getCompanion());
+        
+        if (!profile || !profile.adultConfirmed || !profile.initialized) {
+          profile = {
+            ...(profile || {}),
+            adultConfirmed: true,
+            initialized: true,
+            name: profile?.name || "Friend"
+          };
+          await saveLocalProfile(profile);
+        }
+
+        if (!companion || !companion.initialized) {
+          companion = {
+            ...(companion || {}),
+            name: "Lyra",
+            userName: profile?.name || "Friend",
+            vibe: "Warm & Gentle",
+            interests: ["Daily Life", "Mindfulness"],
+            language: "en-US",
+            pitch: 1.05,
+            rate: 0.98,
+            initialized: true,
+            outfit: companion?.outfit || "/models/lyra.vrm"
+          };
+          await saveCompanion(companion);
+        }
+
+        if (isMounted) {
           setIsAdultVerified(true);
         }
       } catch (err) {
-        if (!isMounted) return;
-        navigate("/onboarding", { replace: true });
+        console.warn("Storage auto-init in Chat:", err);
+        if (isMounted) {
+          setIsAdultVerified(true);
+        }
       }
     }
-    verifyAdultAccess();
+    ensureAccessAndDefaults();
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, []);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
@@ -972,11 +999,13 @@ export default function Chat() {
         )}
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
+        {(isSettingsOpen || isWardrobeOpen || isMobileMenuOpen) && (
           <div 
             className="fixed inset-0 z-50 cursor-pointer backdrop-blur-[10px] bg-black/40" 
             onClick={closeDrawers} 
             aria-label="Close menus" 
           />
+        )}
 
         {/* ========================================================= */}
         {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
@@ -1789,26 +1818,18 @@ export default function Chat() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { id: '/models/lyra.vrm', label: 'Default' },
-                      { id: '/models/lyra_casual.vrm', label: 'Casual' },
-                      { id: '/models/lyra_dress.vrm', label: 'Dress' }
+                      { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
+                      { id: '/models/lyra_casual.vrm', label: 'Casual', tag: 'Everyday' },
+                      { id: '/models/lyra_dress.vrm', label: 'Dress', tag: 'Evening' }
                     ].map(item => (
-                      <button
+                      <WardrobeCard
                         key={item.id}
-                        onClick={() => handleOutfitChange(item.id)}
-                        className={`flex flex-col items-center gap-3 p-3 rounded-2xl border text-center group cursor-pointer transition-all ${
-                          outfit === item.id 
-                            ? 'bg-[var(--bg-elevated)]/10 border-[var(--text-primary)]/20 shadow-inner' 
-                            : 'bg-black/20 border-[var(--text-primary)]/5 hover:border-[var(--text-primary)]/20 hover:bg-[var(--bg-elevated)]/5'
-                        }`}
-                      >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-[var(--bg-elevated)]/40 border border-[var(--text-primary)]/5 group-hover:scale-[1.02] transition-transform">
-                          <OutfitThumbnail id={item.id} />
-                        </div>
-                        <span className={`text-sm font-medium truncate w-full ${outfit === item.id ? 'text-[var(--text-primary)]/90' : 'text-[var(--text-primary)]/50'}`}>
-                          {item.label}
-                        </span>
-                      </button>
+                        modelId={item.id}
+                        label={item.label}
+                        tag={item.tag}
+                        isSelected={outfit === item.id}
+                        onSelect={() => handleOutfitChange(item.id)}
+                      />
                     ))}
                   </div>
                 )}

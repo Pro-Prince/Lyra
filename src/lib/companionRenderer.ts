@@ -7,13 +7,21 @@ export const MODEL_FILES: Record<string, string> = {
   lyra: '/models/lyra.vrm',
   lyra_casual: '/models/lyra_casual.vrm',
   lyra_dress: '/models/lyra_dress.vrm',
+  default: '/models/lyra.vrm',
+  casual: '/models/lyra_casual.vrm',
+  dress: '/models/lyra_dress.vrm',
+  'models/lyra.vrm': '/models/lyra.vrm',
+  'models/lyra_casual.vrm': '/models/lyra_casual.vrm',
+  'models/lyra_dress.vrm': '/models/lyra_dress.vrm',
   '/models/lyra.vrm': '/models/lyra.vrm',
   '/models/lyra_casual.vrm': '/models/lyra_casual.vrm',
   '/models/lyra_dress.vrm': '/models/lyra_dress.vrm',
 };
 
-const LOAD_TIMEOUT_MS = 10000; // hard ceiling, this is what prevents "loading forever"
+const LOAD_TIMEOUT_MS = 15000; // hard ceiling, this is what prevents "loading forever"
 const modelCache: Record<string, VRM> = {}; // in-memory only, per session, no persistence layer
+const inFlightPromises: Map<string, Promise<VRM>> = new Map();
+const rawBufferCache: Map<string, ArrayBuffer> = new Map();
 
 function createLoader() {
   const loader = new GLTFLoader();
@@ -22,54 +30,87 @@ function createLoader() {
 }
 
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
-  if (modelCache[modelId]) return modelCache[modelId]; // already loaded this session
-
   const url = MODEL_FILES[modelId] || modelId;
   if (!url) throw new Error(`Unknown model id: ${modelId}`);
 
-  const loadPromise = (async () => {
-    let arrayBuffer: ArrayBuffer | null = null;
-    const candidates = [
-      url,
-      ...(url.startsWith('/models/') ? [`https://raw.githubusercontent.com/Pro-Prince/Lyra/main/public${url}`] : [])
-    ];
+  // Return cached VRM instance if already fully loaded
+  if (modelCache[url] || modelCache[modelId]) {
+    return modelCache[url] || modelCache[modelId];
+  }
 
-    let lastError: any = null;
-    for (const candidate of candidates) {
-      try {
-        const resp = await fetch(candidate);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${candidate}`);
-        arrayBuffer = await resp.arrayBuffer();
-        break;
-      } catch (err) {
-        lastError = err;
-      }
-    }
+  // Deduplicate in-flight requests for the same model
+  if (inFlightPromises.has(url)) {
+    return inFlightPromises.get(url)!;
+  }
+
+  const loadPromise = (async () => {
+    let arrayBuffer: ArrayBuffer | null = rawBufferCache.get(url) || null;
 
     if (!arrayBuffer) {
-      throw lastError || new Error(`Failed to fetch model from ${url}`);
-    }
+      const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v2`;
+      const candidates = [
+        urlWithVersion,
+        url,
+        ...(typeof window !== 'undefined' && url.startsWith('/') ? [`${window.location.origin}${urlWithVersion}`] : []),
+      ];
 
-    // Binary GLB padding safeguard
-    if (arrayBuffer.byteLength >= 20) {
-      const dv = new DataView(arrayBuffer);
-      const magic = dv.getUint32(0, true);
-      if (magic === 0x46546c67) { // 'glTF'
-        const totalLength = dv.getUint32(8, true);
-        if (arrayBuffer.byteLength < totalLength) {
-          console.warn(`[loadCompanionModel] Padded buffer for ${url} (${arrayBuffer.byteLength} -> ${totalLength} bytes)`);
-          const padded = new Uint8Array(totalLength);
-          padded.set(new Uint8Array(arrayBuffer), 0);
-          arrayBuffer = padded.buffer;
+      let lastError: any = null;
+      for (const candidate of candidates) {
+        try {
+          const resp = await fetch(candidate, { cache: 'no-store' });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${candidate}`);
+          const cType = resp.headers.get('content-type') || '';
+          if (cType.includes('text/html')) {
+            throw new Error(`Candidate returned HTML instead of binary: ${candidate}`);
+          }
+          const buf = await resp.arrayBuffer();
+          if (buf.byteLength < 20) {
+            throw new Error(`Invalid buffer length (${buf.byteLength}) from ${candidate}`);
+          }
+          const dv = new DataView(buf);
+          const magic = dv.getUint32(0, true);
+          if (magic !== 0x46546c67) { // 'glTF'
+            throw new Error(`Invalid binary header magic (0x${magic.toString(16)}) from ${candidate}`);
+          }
+          arrayBuffer = buf;
+          break;
+        } catch (err) {
+          lastError = err;
         }
       }
+
+      if (!arrayBuffer) {
+        throw lastError || new Error(`Failed to fetch valid VRM binary model from ${url}`);
+      }
+
+      // Binary GLB padding safeguard for header total length alignment
+      if (arrayBuffer.byteLength >= 20) {
+        const dv = new DataView(arrayBuffer);
+        const magic = dv.getUint32(0, true);
+        if (magic === 0x46546c67) { // 'glTF'
+          const totalLength = dv.getUint32(8, true);
+          if (arrayBuffer.byteLength < totalLength && totalLength <= 32 * 1024 * 1024) {
+            try {
+              const padded = new Uint8Array(totalLength);
+              padded.set(new Uint8Array(arrayBuffer), 0);
+              arrayBuffer = padded.buffer;
+            } catch (allocErr) {
+              console.warn(`[loadCompanionModel] Buffer padding allocation skipped for ${url}:`, allocErr);
+            }
+          }
+        }
+      }
+
+      rawBufferCache.set(url, arrayBuffer);
     }
 
     const loader = createLoader();
+    const parseBuffer = arrayBuffer.slice(0);
+    const basePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '';
     const gltf = await new Promise<any>((resolve, reject) => {
       loader.parse(
-        arrayBuffer!,
-        url,
+        parseBuffer,
+        basePath,
         (result) => resolve(result),
         (err) => reject(err)
       );
@@ -90,6 +131,14 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     applyRelaxedHandPose(vrm, 'left');
     applyRelaxedHandPose(vrm, 'right');
     vrm.humanoid?.update();
+
+    modelCache[url] = vrm;
+    modelCache[modelId] = vrm;
+    for (const [k, v] of Object.entries(MODEL_FILES)) {
+      if (v === url || k === modelId) {
+        modelCache[k] = vrm;
+      }
+    }
     return vrm;
   })();
 
@@ -97,15 +146,12 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     setTimeout(() => reject(new Error(`Timed out loading ${modelId} after ${LOAD_TIMEOUT_MS}ms`)), LOAD_TIMEOUT_MS)
   );
 
-  const vrm = await Promise.race([loadPromise, timeoutPromise]);
-  modelCache[modelId] = vrm;
-  // Cache by both alias and URL
-  for (const [k, v] of Object.entries(MODEL_FILES)) {
-    if (v === url || k === modelId) {
-      modelCache[k] = vrm;
-    }
-  }
-  return vrm;
+  const sharedPromise = Promise.race([loadPromise, timeoutPromise]).finally(() => {
+    inFlightPromises.delete(url);
+  });
+
+  inFlightPromises.set(url, sharedPromise);
+  return sharedPromise;
 }
 
 export function isModelCached(modelId: string): boolean {

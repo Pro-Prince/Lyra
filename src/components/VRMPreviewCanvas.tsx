@@ -103,9 +103,6 @@ export function VRMPreviewCanvas({
         // Load actual VRM model file using the unified companionRenderer
         const vrm = await loadCompanionModel(url);
         if (isCancelled) {
-          vrm.scene.traverse((o) => {
-            if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose();
-          });
           return;
         }
         vrmInstance = vrm;
@@ -261,7 +258,7 @@ export function VRMPreviewCanvas({
           window.removeEventListener('touchend', onMouseUp);
         };
       } catch (err: any) {
-        console.error('Failed to render VRM preview:', err);
+        console.warn('VRM preview load notice:', err?.message || err);
         if (!isCancelled) {
           setError(err?.message || 'Failed to load model');
           setLoading(false);
@@ -275,35 +272,9 @@ export function VRMPreviewCanvas({
       isCancelled = true;
       cancelAnimationFrame(animFrameId);
 
-      // Clean VRM geometries, materials, and textures
-      if (vrmInstance) {
-        vrmInstance.scene.traverse((o) => {
-          const mesh = o as THREE.Mesh;
-          if (mesh.isMesh) {
-            if (mesh.geometry) mesh.geometry.dispose();
-            if (mesh.material) {
-              if (Array.isArray(mesh.material)) {
-                mesh.material.forEach((m) => {
-                  m.dispose();
-                  for (const key in m) {
-                    if (m[key] && typeof m[key].dispose === 'function') {
-                      m[key].dispose();
-                    }
-                  }
-                });
-              } else {
-                mesh.material.dispose();
-                for (const key in mesh.material) {
-                  // @ts-ignore
-                  if (mesh.material[key] && typeof mesh.material[key].dispose === 'function') {
-                    // @ts-ignore
-                    mesh.material[key].dispose();
-                  }
-                }
-              }
-            }
-          }
-        });
+      // Detach model from scene without disposing shared cache geometry/materials
+      if (modelGroup && vrmInstance) {
+        modelGroup.remove(vrmInstance.scene);
       }
 
       if (renderer) {

@@ -321,6 +321,42 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
+  // Serve 3D models with explicit binary stream handler
+  app.get("/models/:filename", (req, res) => {
+    const filename = path.basename(req.params.filename);
+    const candidatePaths = [
+      path.join(process.cwd(), "public", "models", filename),
+      path.join(process.cwd(), "src", "models", filename),
+      path.join(process.cwd(), "dist", "models", filename),
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        res.setHeader("Content-Type", "model/gltf-binary");
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        return res.sendFile(p);
+      }
+    }
+    res.status(404).send("Model not found");
+  });
+
+  const publicModelsPath = path.join(process.cwd(), "public", "models");
+  if (fs.existsSync(publicModelsPath)) {
+    app.use("/models", express.static(publicModelsPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".vrm")) {
+          res.setHeader("Content-Type", "model/gltf-binary");
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
+          res.setHeader("Access-Control-Allow-Origin", "*");
+        }
+      }
+    }));
+  }
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

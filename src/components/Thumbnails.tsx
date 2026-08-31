@@ -1,40 +1,45 @@
 import React from "react";
-import { VRMPreviewCanvas } from "./VRMPreviewCanvas";
-import { useOutfitThumbnail } from "../lib/outfitCache";
+import { WardrobeCard } from "./WardrobeCard";
 
-// Outfit thumbnail component using actual 3D VRM model rendering
 export function OutfitThumbnail({ 
   id, 
   className = "w-full h-full",
-  alt = "Outfit Preview"
+  isSelected = false,
+  onSelect
 }: { 
   id: string; 
   className?: string;
+  isSelected?: boolean;
+  onSelect?: () => void;
   alt?: string;
 }) {
   // Normalize outfit URL if a key is passed
-  let modelUrl = id;
+  let modelUrl依照 = id;
   if (id === 'default' || id === 'lyra') {
-    modelUrl = '/models/lyra.vrm';
+    modelUrl依照 = '/models/lyra.vrm';
   } else if (id === 'casual' || id === 'lyra_casual') {
-    modelUrl = '/models/lyra_casual.vrm';
+    modelUrl依照 = '/models/lyra_casual.vrm';
   } else if (id === 'dress' || id === 'lyra_dress') {
-    modelUrl = '/models/lyra_dress.vrm';
+    modelUrl依照 = '/models/lyra_dress.vrm';
   }
 
-  const snapshot = useOutfitThumbnail(modelUrl);
+  const labelMap: Record<string, string> = {
+    '/models/lyra.vrm': 'Default',
+    '/models/lyra_casual.vrm': 'Casual',
+    '/models/lyra_dress.vrm': 'Dress',
+  };
 
-  if (snapshot) {
-    return (
-      <img 
-        src={snapshot} 
-        alt={alt} 
-        className={`${className} object-cover w-full h-full`}
-        referrerPolicy="no-referrer"
-      />
-    );
-  }
-
-  return <VRMPreviewCanvas url={modelUrl} className={className} />;
+  return (
+    <WardrobeCard 
+      modelId={modelUrl依照} 
+      label={labelMap[modelUrl依照] || 'Outfit'}
+      isSelected={isSelected}
+      onSelect={onSelect}
+      className={className}
+      showRotateHint={false}
+    />
+  );
 }
+
+export default OutfitThumbnail;
 

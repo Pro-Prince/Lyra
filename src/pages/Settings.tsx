@@ -5,6 +5,7 @@ import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/m
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
 import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, Download, User as UserIcon } from "lucide-react";
 import { OutfitThumbnail } from "../components/Thumbnails";
+import { WardrobeCard } from "../components/WardrobeCard";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import { Heading1, Heading2 } from "../components/Typography";
@@ -355,24 +356,14 @@ export default function Settings() {
             {OUTFITS.map(outfit => {
               const isSelected = currentOutfit === outfit.id;
               return (
-                <button
+                <WardrobeCard
                   key={outfit.id}
-                  type="button"
-                  onClick={() => handleSelectOutfit(outfit.id)}
-                  className={`interactive-surface flex flex-col items-center p-4 rounded-2xl border text-center group cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] ring-1 ring-[var(--accent-primary)]/50'
-                      : 'bg-[var(--bg-base)]/50 border-[var(--accent-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-base)]/70'
-                  }`}
-                >
-                  <div className="w-full aspect-square rounded-xl overflow-hidden mb-3.5 bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 group-hover:scale-[1.02] transition-transform">
-                    <OutfitThumbnail id={outfit.id} />
-                  </div>
-                  <span className={`text-base font-body truncate w-full ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
-                    {outfit.label}
-                  </span>
-                  <span className="text-xs font-body text-[var(--text-muted)]/70 mt-0.5">{outfit.tag}</span>
-                </button>
+                  modelId={outfit.id}
+                  label={outfit.label}
+                  tag={outfit.tag}
+                  isSelected={isSelected}
+                  onSelect={() => handleSelectOutfit(outfit.id)}
+                />
               );
             })}
           </div>
