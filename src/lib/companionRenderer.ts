@@ -18,7 +18,7 @@ export const MODEL_FILES: Record<string, string> = {
   '/models/lyra_dress.vrm': '/models/lyra_dress.vrm',
 };
 
-const LOAD_TIMEOUT_MS = 15000; // hard ceiling, this is what prevents "loading forever"
+const LOAD_TIMEOUT_MS = 10000; // hard ceiling, this is what prevents "loading forever"
 const modelCache: Record<string, VRM> = {}; // in-memory only, per session, no persistence layer
 const inFlightPromises: Map<string, Promise<VRM>> = new Map();
 const rawBufferCache: Map<string, ArrayBuffer> = new Map();
