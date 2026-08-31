@@ -22,6 +22,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
 import { preloadAllOutfits } from "./lib/outfitCache";
 import { useTheme } from "./hooks/useTheme";
+import AppSplash from "./components/AppSplash";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -110,15 +111,17 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <Router>
-          <ScrollToTop />
-          <AppHeader />
-          <AnimatedRoutes />
-          <InstallBanner />
-        </Router>
-      </ToastProvider>
-    </AuthProvider>
+    <AppSplash>
+      <AuthProvider>
+        <ToastProvider>
+          <Router>
+            <ScrollToTop />
+            <AppHeader />
+            <AnimatedRoutes />
+            <InstallBanner />
+          </Router>
+        </ToastProvider>
+      </AuthProvider>
+    </AppSplash>
   );
 }

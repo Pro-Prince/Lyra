@@ -286,6 +286,76 @@ h3, .heading-3 {
   50% { opacity: 1; transform: scale(1.05); }
 }
 
+/* ==========================================================================
+   Redesigned Minimalist Splash Screen (Ambient Glow & Pulsing Dots)
+   ========================================================================== */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  z-index: 99999;
+}
+
+.splash-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 217, 179, 0.14), transparent 70%);
+  animation: breathe 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  position: relative;
+  z-index: 1;
+  animation: breathe 2s ease-in-out infinite;
+  border: 1px solid rgba(255, 182, 213, 0.15);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.6), 0 0 24px -4px rgba(255, 143, 192, 0.2);
+  object-fit: cover;
+}
+
+.splash-dots {
+  display: flex;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.splash-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: dot-pulse 1.2s ease-in-out infinite;
+}
+
+.splash-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.splash-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .presence-glow {
     animation: none;
@@ -332,10 +402,10 @@ h3, .heading-3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(36, 24, 35, 0.45);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 182, 213, 0.12);
+  background: var(--bg-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid rgba(255, 182, 213, 0.08);
 }
 
 .nav-dropdown-backdrop {
@@ -988,6 +1058,60 @@ h3, .heading-3 {
   }
 }
 
+.profile-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-md) 0 var(--space-lg);
+}
+
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  background: rgba(255, 143, 192, 0.15);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.profile-signin-note {
+  margin-top: var(--space-sm);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.profile-signin-note a {
+  color: var(--accent-primary);
+}
+
+.account-panel input:not([type="checkbox"]):not([type="file"]), .account-panel select {
+  background: var(--bg-base);
+  border: 1px solid rgba(255, 182, 213, 0.16);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  width: 100%;
+}
+
+.account-panel input:not([type="checkbox"]):not([type="file"]):focus, .account-panel select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.account-panel label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+  display: block;
+}
+
 /* 8. Mobile Chat Slider Drawer Patterns */
 @media (max-width: 768px) {
   /* Full screen canvas viewport layout */
@@ -1025,3 +1149,21 @@ h3, .heading-3 {
 
 
 
+.companion-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  height: calc(100dvh - 72px); /* minus header */
+}
+.companion-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative; /* so the control bar can anchor to its bottom, not the page's */
+}
+.control-bar {
+  position: absolute;
+  bottom: var(--space-md);
+  left: 0;
+  right: 0;
+  flex: 0 0 auto;
+}

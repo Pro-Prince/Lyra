@@ -22,7 +22,6 @@ import Footer from "../components/Footer";
 import Button from "../components/Button";
 import IconBadge from "../components/IconBadge";
 import { VRMPreviewCanvas } from "../components/VRMPreviewCanvas";
-import { isPreloadComplete } from "../lib/outfitCache";
 
 interface FAQItem {
   id: string;
@@ -176,23 +175,8 @@ export default function Landing() {
   const location = useLocation();
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
-  const [isAppLoaded, setIsAppLoaded] = useState(() => isPreloadComplete());
   const [, setCanGoToChat] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isAppLoaded) return;
-    
-    const handleLoaded = () => setIsAppLoaded(true);
-    window.addEventListener('lyraOutfitsReady', handleLoaded);
-    
-    // Fallback check
-    if (isPreloadComplete()) {
-      setIsAppLoaded(true);
-    }
-    
-    return () => window.removeEventListener('lyraOutfitsReady', handleLoaded);
-  }, [isAppLoaded]);
 
   useEffect(() => {
     if (location.state?.scrollTo) {
@@ -245,55 +229,13 @@ export default function Landing() {
   };
 
   return (
-    <>
-      <AnimatePresence>
-        {!isAppLoaded && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: SIGNATURE_EASE }}
-            className="fixed inset-0 z-[9999] bg-[var(--bg-base)] flex flex-col items-center justify-center pointer-events-none"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="flex flex-col items-center justify-center gap-8"
-            >
-              <div className="relative">
-                 {/* Slow steady breathing glow */}
-                 <motion.div 
-                   animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.8, 1.2, 0.8] }}
-                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                   className="absolute inset-0 blur-2xl bg-[var(--accent-primary)]/30 rounded-full" 
-                 />
-                 <img 
-                   src="/images/Logo.png" 
-                   alt="Loading..." 
-                   className="w-20 h-20 sm:w-24 sm:h-24 relative z-10 opacity-95 drop-shadow-2xl rounded-2xl border-2 border-[var(--accent-primary)]/50 object-cover overflow-hidden" 
-                 />
-              </div>
-              
-              <div className="text-[var(--text-muted)] font-heading tracking-[0.2em] uppercase text-xs sm:text-sm font-medium flex items-center gap-3">
-                <motion.span 
-                  animate={{ opacity: [0.2, 1, 0.2] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" 
-                />
-                Loading Companion
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div 
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={pageCrossfadeVariants}
-        className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-clip flex flex-col justify-between"
-      >
+    <motion.div 
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      variants={pageCrossfadeVariants}
+      className="relative min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body overflow-x-clip flex flex-col justify-between"
+    >
       {/* Subtle Grain Texture Overlay for Depth */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 
@@ -484,7 +426,6 @@ export default function Landing() {
       {/* Global Footer: --bg-base with thin top border */}
       <Footer />
     </motion.div>
-    </>
   );
 }
 

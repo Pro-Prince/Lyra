@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, Heart, CheckCircle2, Menu, User, LogOut } from "lucide-react";
+import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, getRapport, saveRapport } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail } from "../components/Thumbnails";
@@ -94,7 +94,6 @@ export default function Chat() {
   }, [navigate]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isRapportOpen, setIsRapportOpen] = useState(false);
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false);
   const [micMode, setMicMode] = useState<'ptt' | 'hands-free'>('hands-free');
   const [graphicsTier, setGraphicsTier] = useState<'low' | 'medium' | 'high'>('high');
@@ -135,14 +134,6 @@ export default function Chat() {
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const isSpeakerOnRef = useRef(isSpeakerOn);
 
-  const [rapportData, setRapportData] = useState<any>(null);
-  const [sessionSummary, setSessionSummary] = useState<{
-    show: boolean;
-    affectionGained: number;
-    totalAffection: number;
-    friendshipDays: number;
-    tierName: string;
-  } | null>(null);
 
   const [isCallMode, setIsCallMode] = useState(false);
   const [isPortraitMode, setIsPortraitMode] = useState(false);
@@ -273,8 +264,6 @@ export default function Chat() {
       }
       
       const comp = await getCompanion();
-      const rap = await getRapport();
-      setRapportData(rap);
       const local = await import('../lib/storage').then(m => m.getLocalProfile());
       if (local) {
         if (local.micMode) setMicMode(local.micMode);
@@ -500,62 +489,7 @@ export default function Chat() {
     setAppState(AppState.IDLE);
     setIsCallMode(false);
     
-    // 4. Save current context block & recalculate progression metrics (rapport tier, affection, friendship days)
-    try {
-      const currentRapport = await getRapport() || { score: 15, affectionLevel: 25, friendshipDays: 1, totalSessions: 0 };
-      const allMessages = messagesRef.current;
-      const firstTimestamp = allMessages.length > 0 ? allMessages[0].timestamp : Date.now();
-      const daysSinceFirst = Math.max(1, Math.ceil((Date.now() - firstTimestamp) / (1000 * 60 * 60 * 24)));
-      
-      const affectionGain = 5;
-      const newAffection = Math.min(100, (currentRapport.affectionLevel || 25) + affectionGain);
-      const newScore = (currentRapport.score || 15) + 12;
-      const newSessions = (currentRapport.totalSessions || 0) + 1;
-      
-      let tier = 'Tier 1';
-      let tierName = 'Acquaintance';
-      if (newAffection >= 80) {
-        tier = 'Tier 4';
-        tierName = 'Soulmate';
-      } else if (newAffection >= 55) {
-        tier = 'Tier 3';
-        tierName = 'Close Friend';
-      } else if (newAffection >= 30) {
-        tier = 'Tier 2';
-        tierName = 'Companion';
-      }
-      
-      const updatedRapport = {
-        ...currentRapport,
-        score: newScore,
-        tier,
-        tierName,
-        affectionLevel: newAffection,
-        friendshipDays: daysSinceFirst,
-        totalSessions: newSessions,
-        lastInteraction: Date.now()
-      };
-      
-      await saveRapport(updatedRapport);
-      setRapportData(updatedRapport);
-      
-      const comp = await getCompanion() || {};
-      comp.rapport = updatedRapport;
-      await saveCompanion(comp);
-      
-      setSessionSummary({
-        show: true,
-        affectionGained: affectionGain,
-        totalAffection: newAffection,
-        friendshipDays: daysSinceFirst,
-        tierName
-      });
-      
-      showInfo(`Live session ended • Affection level reached ${newAffection}% (${tierName}). Context & progress saved!`);
-    } catch (err) {
-      console.error('Error ending session and saving progress:', err);
       showInfo("Live session ended. Conversation context saved.");
-    }
   };
 
   const toggleMic = () => {
@@ -664,7 +598,6 @@ export default function Chat() {
 
   const closeDrawers = () => {
     setIsSettingsOpen(false);
-    setIsRapportOpen(false);
     setIsWardrobeOpen(false);
     setIsMobileMenuOpen(false);
   };
@@ -1039,13 +972,11 @@ export default function Chat() {
         )}
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
-        {(isSettingsOpen || isRapportOpen || isWardrobeOpen || isMobileMenuOpen) && (
           <div 
             className="fixed inset-0 z-50 cursor-pointer backdrop-blur-[10px] bg-black/40" 
             onClick={closeDrawers} 
             aria-label="Close menus" 
           />
-        )}
 
         {/* ========================================================= */}
         {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
@@ -1350,7 +1281,8 @@ export default function Chat() {
         {/* ========================================================= */}
         <div className="hidden md:flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
-          <div className="companion-viewport companion-viewport-container relative flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1c131a] to-black overflow-hidden group">
+          <div className="companion-screen flex-1 bg-gradient-to-b from-[#1c131a] to-black group">
+            <div className="companion-viewport w-full">
             {/* HUD Top Left */}
             <div className="absolute top-6 left-6 flex gap-3 z-20">
               <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
@@ -1393,7 +1325,7 @@ export default function Chat() {
             </div>
 
             {/* HUD Bottom Controls */}
-            <div className="control-bar absolute bottom-6 md:bottom-12 z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
+            <div className="control-bar z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
               {/* 1. View */}
               <div className="flex flex-col items-center gap-2 pointer-events-auto">
                 <button 
@@ -1486,6 +1418,7 @@ export default function Chat() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
 
           {/* DESKTOP RIGHT PANEL: CHAT DRAWER PANEL */}
@@ -1692,32 +1625,22 @@ export default function Chat() {
                   <span>Voice & Mic Settings</span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsRapportOpen(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
-                >
-                  <Heart className="w-4 h-4" style={{ color: activeAccent }} />
-                  <span>Rapport & Friendship</span>
-                </button>
 
                 <div className="pt-4 mt-4 border-t border-[var(--text-primary)]/10 space-y-1">
                   <Link
                     to="/"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                   >
-                    <Home className="w-4 h-4 text-[var(--text-muted)]" />
+                    <Home className="w-4 h-4" style={{ color: activeAccent }} />
                     <span>Home</span>
                   </Link>
                   <Link
                     to="/account"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                   >
-                    <User className="w-4 h-4 text-[var(--text-muted)]" />
+                    <User className="w-4 h-4" style={{ color: activeAccent }} />
                     <span>Account Settings</span>
                   </Link>
                 </div>
@@ -1732,7 +1655,7 @@ export default function Chat() {
                     await signOut();
                     navigate("/");
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-danger)]/90 hover:text-[var(--text-danger)] hover:bg-[var(--text-danger)]/10 transition-all text-sm font-medium cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Log Out</span>
@@ -1894,154 +1817,7 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* RAPPORT & FRIENDSHIP DRAWER */}
-        <AnimatePresence>
-          {isRapportOpen && (
-            <motion.aside
-              tabIndex={-1}
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed inset-0 md:right-auto md:w-[360px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
-            >
-              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10">
-                <div className="flex items-center gap-2.5">
-                  <Heart className="w-5 h-5 fill-current" style={{ color: activeAccent }} />
-                  <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]">Rapport</h2>
-                </div>
-                <button onClick={closeDrawers} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--text-primary)]/5 active:scale-95 transition-all cursor-pointer">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Current Bond Card */}
-                <div className="bg-[var(--bg-elevated)] rounded-2xl p-5 border border-[var(--text-primary)]/10 flex flex-col items-center text-center relative overflow-hidden">
-                  <div className="w-16 h-16 rounded-full bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center mb-3 text-[var(--accent-primary)] shadow-inner">
-                    <Heart className="w-8 h-8 fill-current" style={{ color: activeAccent }} />
-                  </div>
-                  <span className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)]">Current Bond</span>
-                  <h3 className="text-xl font-heading font-medium text-[var(--text-primary)] mt-0.5">
-                    {rapportData?.tierName || 'Close Companion'}
-                  </h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">
-                    {rapportData?.friendshipDays || 1} {(rapportData?.friendshipDays || 1) === 1 ? 'day' : 'days'} of shared memories
-                  </p>
-
-                  {/* Affection Bar */}
-                  <div className="w-full mt-4 space-y-1.5">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-[var(--text-muted)]">Affection Level</span>
-                      <span style={{ color: activeAccent }} className="font-semibold">{rapportData?.affectionLevel || 35}%</span>
-                    </div>
-                    <div className="w-full bg-[var(--bg-base)]/80 rounded-full h-2.5 overflow-hidden border border-[var(--text-primary)]/5">
-                      <div 
-                        className="h-full rounded-full transition-all duration-700" 
-                        style={{ 
-                          width: `${Math.min(100, Math.max(10, rapportData?.affectionLevel || 35))}%`,
-                          backgroundColor: activeAccent 
-                        }} 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Friendship Statistics */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[var(--bg-elevated)]/60 rounded-xl p-3.5 border border-[var(--text-primary)]/5">
-                    <span className="text-[11px] text-[var(--text-muted)] block">Total Sessions</span>
-                    <span className="text-lg font-heading font-medium text-[var(--text-primary)]">{rapportData?.totalSessions || messages.length > 0 ? Math.max(1, Math.ceil(messages.length / 6)) : 1}</span>
-                  </div>
-                  <div className="bg-[var(--bg-elevated)]/60 rounded-xl p-3.5 border border-[var(--text-primary)]/5">
-                    <span className="text-[11px] text-[var(--text-muted)] block">Messages Exchanged</span>
-                    <span className="text-lg font-heading font-medium text-[var(--text-primary)]">{messages.length}</span>
-                  </div>
-                </div>
-
-                {/* Bond Progression Milestones */}
-                <div className="bg-[var(--bg-elevated)]/40 rounded-2xl p-4 border border-[var(--text-primary)]/5 space-y-3">
-                  <h4 className="text-xs font-heading uppercase tracking-wider font-semibold text-[var(--text-primary)]/70">Bond Progression</h4>
-                  <div className="space-y-2.5 text-xs">
-                    {[
-                      { tier: 'Acquaintance', desc: 'Getting to know each other', level: '0%' },
-                      { tier: 'Companion', desc: 'Sharing daily thoughts & emotions', level: '25%' },
-                      { tier: 'Close Friend', desc: 'Deep conversation & mutual trust', level: '50%' },
-                      { tier: 'Confidante', desc: 'Unfiltered openness & deep empathy', level: '75%' },
-                      { tier: 'Soul Companion', desc: 'Harmonious intellectual & emotional bond', level: '100%' },
-                    ].map((m, idx) => (
-                      <div key={idx} className="flex items-center justify-between py-1 border-b border-[var(--text-primary)]/5 last:border-0">
-                        <div>
-                          <span className="font-medium text-[var(--text-primary)]/90">{m.tier}</span>
-                          <span className="text-[11px] text-[var(--text-muted)] block">{m.desc}</span>
-                        </div>
-                        <span className="text-[11px] font-semibold text-[var(--text-muted)]">{m.level}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tips */}
-                <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-[var(--text-primary)]/5 text-xs text-[var(--text-muted)] leading-relaxed">
-                  💡 <strong className="text-[var(--text-primary)]">Tip:</strong> Talk with Lyra regularly, share your day, or try voice conversations to build rapport and unlock deeper conversational nuances.
-                </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-
-        {/* SESSION PROGRESSION & SUMMARY MODAL */}
-        <AnimatePresence>
-          {sessionSummary?.show && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto"
-            >
-              <motion.div 
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-[var(--bg-surface)]/95 backdrop-blur-[24px] border border-[var(--accent-primary)]/30 rounded-3xl p-8 max-w-md w-full shadow-2xl relative text-center flex flex-col items-center"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center mb-4 text-[var(--accent-primary)] shadow-inner">
-                  <Heart className="w-8 h-8 fill-current text-[var(--accent-primary)]" />
-                </div>
-                <h2 className="text-2xl font-heading font-medium text-[var(--text-primary)] mb-1">Session Saved</h2>
-                <p className="font-body text-[var(--text-muted)] text-sm mb-6 leading-relaxed">
-                  Your live session has ended, conversation context is saved to memory, and Lyra's rapport has grown.
-                </p>
-
-                <div className="w-full bg-[var(--bg-elevated)]/40 rounded-2xl p-4 border border-[var(--text-primary)]/10 flex flex-col gap-3 mb-6">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-[var(--text-primary)]/60">Affection Progress</span>
-                    <span className="text-[var(--accent-primary)] font-semibold flex items-center gap-1">
-                      +{sessionSummary.affectionGained}% → {sessionSummary.totalAffection}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-black/40 rounded-full h-2.5 overflow-hidden">
-                    <div 
-                      className="bg-[var(--accent-primary)] h-full rounded-full transition-all duration-1000" 
-                      style={{ width: `${sessionSummary.totalAffection}%` }} 
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-xs text-[var(--text-primary)]/50 pt-1 border-t border-[var(--text-primary)]/5">
-                    <span>Rapport Tier: <strong className="text-[var(--text-primary)]/80">{sessionSummary.tierName}</strong></span>
-                    <span>Friendship: <strong className="text-[var(--text-primary)]/80">{sessionSummary.friendshipDays} {sessionSummary.friendshipDays === 1 ? 'Day' : 'Days'}</strong></span>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => setSessionSummary(null)}
-                  className="w-full py-3.5 rounded-xl text-[var(--bg-base)] bg-[var(--accent-primary)] hover:brightness-105 active:scale-[0.98] font-body font-bold text-sm transition-all cursor-pointer shadow-lg"
-                >
-                  Continue
-                </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
     </div>
   );
 }

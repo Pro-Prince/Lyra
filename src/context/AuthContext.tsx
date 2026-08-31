@@ -133,5 +133,6 @@ export const useAuth = () => useContext(AuthContext);
 
 export function useMockAuthState() {
   const { isMockAuthed, setMockAuthed } = useContext(AuthContext);
-  return { isMockAuthed, setMockAuthed };
+  const mockUser = isMockAuthed ? { name: "Alex", email: "alex@example.com" } : null;
+  return { isMockAuthed, setMockAuthed, mockUser };
 }

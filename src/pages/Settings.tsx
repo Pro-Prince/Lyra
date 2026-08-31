@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
-import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, Download } from "lucide-react";
+import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, Download, User as UserIcon } from "lucide-react";
 import { OutfitThumbnail } from "../components/Thumbnails";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import { Heading1, Heading2 } from "../components/Typography";
 import IconBadge from "../components/IconBadge";
 import Button from "../components/Button";
+import { useMockAuthState } from "../context/AuthContext";
 
 const OUTFITS = [
   { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
@@ -20,6 +21,7 @@ const OUTFITS = [
 export default function Settings() {
   const navigate = useNavigate();
   const { showInfo, showError } = useToast();
+  const { isMockAuthed, mockUser } = useMockAuthState();
   const [memories, setMemories] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -137,6 +139,11 @@ export default function Settings() {
     showInfo("Voice settings saved");
   };
 
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    showInfo("Profile information saved");
+  };
+
   return (
     <motion.div 
       initial="initial"
@@ -161,10 +168,58 @@ export default function Settings() {
         className="account-section-grid grid grid-cols-1 md:grid-cols-12 gap-8 max-w-6xl mx-auto w-full pb-12"
       >
         
+        {/* PROFILE INFORMATION (Span 12) */}
+        <motion.section 
+          variants={entranceVariants}
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+        >
+          <div className="flex items-center gap-4 mb-6">
+            <IconBadge icon={UserIcon} size={48} />
+            <div>
+              <Heading2>Profile Information</Heading2>
+              <p className="text-xs font-body text-[var(--text-muted)] mt-0.5">Update your details and how she knows you.</p>
+            </div>
+          </div>
+
+          <div className="profile-avatar-row">
+            <div className="profile-avatar">
+              {mockUser?.name ? mockUser.name[0].toUpperCase() : <UserIcon size={24} />}
+            </div>
+            <div>
+              <strong className="block text-[var(--text-primary)]">{mockUser?.name || 'Not signed in'}</strong>
+              <p className="text-xs text-[var(--text-muted)] mt-1">{mockUser?.email || 'Sign in to personalize your profile'}</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div>
+              <label>Full Name</label>
+              <input type="text" defaultValue={mockUser?.name} placeholder="What should she call you?" disabled={!isMockAuthed} />
+            </div>
+
+            <div>
+              <label>Email Address</label>
+              <input type="email" defaultValue={mockUser?.email} disabled />
+            </div>
+
+            <div className="pt-2">
+              <Button variant="primary" size="lg" type="submit" disabled={!isMockAuthed}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+
+          {!isMockAuthed && (
+            <p className="profile-signin-note">
+              <Link to="/auth">Log in</Link> to save a profile across sessions.
+            </p>
+          )}
+        </motion.section>
+
         {/* CARD 1: Voice Configuration (Span 7) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -205,7 +260,7 @@ export default function Settings() {
         {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -270,7 +325,6 @@ export default function Settings() {
                       comp.dailyCheckInTime = val;
                       await saveCompanion(comp);
                     }}
-                    className="w-full bg-[var(--bg-base)]/80 border border-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-xl p-3 text-sm focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)]/50 font-body"
                   />
                 </div>
               )}
@@ -287,7 +341,7 @@ export default function Settings() {
         {/* CARD 3: Wardrobe (Span 12 - Full Width Bento Tile) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Sparkles} size={48} />
@@ -327,7 +381,7 @@ export default function Settings() {
         {/* CARD 4: Remembered Context (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -351,7 +405,7 @@ export default function Settings() {
               memories.map(mem => (
                 <div 
                   key={mem.id} 
-                  className="flex items-center justify-between gap-4 p-4 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-2xl hover:bg-[var(--accent-primary)]/[0.03] active:bg-[var(--accent-primary)]/[0.06] transition-colors group"
+                  className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-xl hover:bg-[rgba(255,143,192,0.03)] active:bg-[rgba(255,143,192,0.06)] transition-colors group"
                 >
                   <p className="text-sm text-[var(--text-primary)] leading-relaxed">{mem.content}</p>
                   <button 
@@ -371,7 +425,7 @@ export default function Settings() {
         {/* CARD 5: Account & Data Portability (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl font-body"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl font-body"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Download} size={48} />
@@ -460,7 +514,7 @@ export default function Settings() {
                 value={resetConfirm}
                 onChange={(e) => setResetConfirm(e.target.value)}
                 placeholder="Type RESET"
-                className="w-full sm:w-28 bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="sm:w-28 placeholder:text-[var(--text-muted)]/50"
               />
               <Button
                 variant="destructive"
@@ -481,7 +535,7 @@ export default function Settings() {
                 value={clearConfirm}
                 onChange={(e) => setClearConfirm(e.target.value)}
                 placeholder="Type CLEAR"
-                className="w-full sm:w-28 bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--text-danger)] font-body"
+                className="sm:w-28 placeholder:text-[var(--text-muted)]/50"
               />
               <Button
                 variant="destructive"
