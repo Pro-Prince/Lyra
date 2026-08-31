@@ -353,8 +353,8 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
-      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-16 sm:py-24">
-        <div className="w-full max-w-3xl mx-auto px-6">
+      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-12 sm:py-20 md:py-24">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6">
           <motion.div 
             initial="hidden"
             whileInView="visible"
@@ -362,26 +362,26 @@ export default function Landing() {
             variants={groupVariants}
             aria-label="Frequently Asked Questions"
           >
-            <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 inline-block">
+            <motion.div variants={entranceVariants} className="text-center mb-6 sm:mb-10">
+              <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-1.5 inline-block">
                 FAQ
               </span>
-              <h2 className="font-heading font-medium text-2xl sm:text-3xl text-[var(--text-primary)]">
+              <h2 className="font-heading font-semibold text-xl sm:text-2xl md:text-3xl text-[var(--text-primary)] tracking-tight">
                 Common Questions
               </h2>
             </motion.div>
 
-            <motion.div variants={groupVariants} className="faq-list space-y-3.5 sm:space-y-4">
+            <motion.div variants={groupVariants} className="faq-list space-y-3 sm:space-y-4">
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
                   <motion.div 
                     key={faq.id} 
                     variants={entranceVariants}
-                    className={`faq-row cursor-pointer rounded-2xl sm:rounded-3xl border transition-all duration-300 p-4 sm:p-5.5 ${
+                    className={`faq-row cursor-pointer rounded-xl sm:rounded-2xl border transition-all duration-300 p-3.5 sm:p-5 ${
                       isOpen
-                        ? "bg-[var(--bg-surface)] border-[var(--accent-primary)]/35 shadow-xl shadow-black/10"
-                        : "bg-[var(--bg-surface)]/60 hover:bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/25"
+                        ? "bg-[var(--bg-surface)] border-[var(--accent-primary)]/40 shadow-lg shadow-black/10"
+                        : "bg-[var(--bg-surface)]/70 hover:bg-[var(--bg-surface)] border-[var(--text-primary)]/12 hover:border-[var(--accent-primary)]/30"
                     }`}
                     onClick={() => toggleFaq(faq.id)}
                     role="button"
@@ -394,20 +394,23 @@ export default function Landing() {
                     }}
                     aria-expanded={isOpen}
                   >
-                    <div className="faq-row-header flex items-center justify-between gap-3 select-none">
-                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                        <IconBadge icon={faq.icon} size={38} />
-                        <span className={`faq-question font-heading font-medium text-base sm:text-[17px] leading-snug transition-colors ${
+                    <div className="faq-row-header flex items-center justify-between gap-2.5 sm:gap-4 select-none">
+                      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                        <div className="shrink-0">
+                          <IconBadge icon={faq.icon} size={34} className="hidden sm:flex" />
+                          <IconBadge icon={faq.icon} size={30} className="flex sm:hidden" />
+                        </div>
+                        <span className={`faq-question font-heading font-medium text-sm sm:text-base md:text-[17px] leading-snug transition-colors ${
                           isOpen ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]"
                         }`}>
                           {faq.question}
                         </span>
                       </div>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                         isOpen ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-black/20 text-[var(--text-muted)]"
                       }`}>
                         <ChevronDown
-                          className={`w-4.5 h-4.5 transition-transform duration-300 ${
+                          className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-300 ${
                             isOpen ? "rotate-180" : ""
                           }`}
                         />
@@ -423,9 +426,11 @@ export default function Landing() {
                           transition={{ duration: 0.25, ease: SIGNATURE_EASE }}
                           className="overflow-hidden"
                         >
-                          <p className="faq-answer mt-3.5 sm:mt-4 pl-[46px] sm:pl-[54px] pr-2 text-sm sm:text-[15px] text-[var(--text-muted)] leading-relaxed font-body">
-                            {faq.answer}
-                          </p>
+                          <div className="border-t border-[var(--text-primary)]/10 mt-3 pt-3 sm:mt-3.5 sm:pt-3.5">
+                            <p className="faq-answer sm:pl-[44px] pr-1 text-xs sm:text-sm md:text-[15px] text-[var(--text-muted)] leading-relaxed font-body">
+                              {faq.answer}
+                            </p>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
