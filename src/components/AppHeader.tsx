@@ -93,18 +93,20 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
           Home
         </Link>
 
-        {/* CHAT ITEM */}
-        <Link
-          to="/chat"
-          onClick={onClose}
-          className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
-            isChat
-              ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
-          }`}
-        >
-          Chat
-        </Link>
+        {/* CHAT ITEM (ONLY VISIBLE WHEN SIGNED IN) */}
+        {isMockAuthed && (
+          <Link
+            to="/chat"
+            onClick={onClose}
+            className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+              isChat
+                ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+            }`}
+          >
+            Chat
+          </Link>
+        )}
 
         {/* SUBTLE DIVIDER */}
         <div className="nav-dropdown-divider" />
@@ -179,11 +181,11 @@ function MobileHeaderMenu() {
     <>
       <button
         type="button"
-        className="icon-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)]"
+        className="icon-btn min-w-[42px] min-h-[42px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)]"
         onClick={() => setMenuOpen((v) => !v)}
         aria-label={menuOpen ? "Close menu" : "Open menu"}
       >
-        {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {menuOpen ? <X className="w-5.5 h-5.5 stroke-[2.2]" /> : <Menu className="w-5.5 h-5.5 stroke-[2.2]" />}
       </button>
 
       {menuOpen && <MobileNavDropdown onClose={() => setMenuOpen(false)} />}
@@ -231,11 +233,11 @@ function DesktopNav() {
   };
 
   return (
-    <nav className="flex items-center gap-1.5 sm:gap-3 h-full">
+    <nav className="flex items-center gap-1 sm:gap-2 h-full">
       {/* HOME LINK */}
       <Link
         to="/"
-        className={`h-full relative flex items-center px-3 sm:px-4 text-sm sm:text-[15px] font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
+        className={`h-full relative flex items-center px-2.5 sm:px-3.5 text-xs sm:text-sm font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
           isHomeActive
             ? "text-[var(--accent-primary)] font-medium"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
@@ -245,30 +247,32 @@ function DesktopNav() {
         {isHomeActive && (
           <motion.span
             layoutId="header-active-tab-underline"
-            className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[var(--accent-primary)] rounded-t-full z-10"
+            className="absolute bottom-0 left-2 right-2 h-[2px] bg-[var(--accent-primary)] rounded-t-full z-10"
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           />
         )}
       </Link>
 
-      {/* CHAT LINK */}
-      <Link
-        to="/chat"
-        className={`h-full relative flex items-center px-3 sm:px-4 text-sm sm:text-[15px] font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
-          isChatActive
-            ? "text-[var(--accent-primary)] font-medium"
-            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
-        }`}
-      >
-        <span>Chat</span>
-        {isChatActive && (
-          <motion.span
-            layoutId="header-active-tab-underline"
-            className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[var(--accent-primary)] rounded-t-full z-10"
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          />
-        )}
-      </Link>
+      {/* CHAT LINK (ONLY VISIBLE WHEN SIGNED IN) */}
+      {isMockAuthed && (
+        <Link
+          to="/chat"
+          className={`h-full relative flex items-center px-2.5 sm:px-3.5 text-xs sm:text-sm font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
+            isChatActive
+              ? "text-[var(--accent-primary)] font-medium"
+              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
+          }`}
+        >
+          <span>Chat</span>
+          {isChatActive && (
+            <motion.span
+              layoutId="header-active-tab-underline"
+              className="absolute bottom-0 left-2 right-2 h-[2px] bg-[var(--accent-primary)] rounded-t-full z-10"
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
+        </Link>
+      )}
 
       {isMockAuthed ? (
         <>
@@ -277,7 +281,7 @@ function DesktopNav() {
             <button
               type="button"
               onClick={() => setIsAccountOpen((prev) => !prev)}
-              className={`h-full relative flex items-center gap-1.5 px-3 sm:px-4 text-sm sm:text-[15px] font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
+              className={`h-full relative flex items-center gap-1 px-2.5 sm:px-3.5 text-xs sm:text-sm font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
                 isAccountActive
                   ? "text-[var(--accent-primary)] font-medium"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal"
@@ -287,14 +291,14 @@ function DesktopNav() {
             >
               <span>Account</span>
               {isAccountOpen ? (
-                <ChevronUp className="w-4 h-4 transition-transform" />
+                <ChevronUp className="w-3.5 h-3.5 transition-transform" />
               ) : (
-                <ChevronDown className="w-4 h-4 transition-transform" />
+                <ChevronDown className="w-3.5 h-3.5 transition-transform" />
               )}
               {isAccountActive && (
                 <motion.span
                   layoutId="header-active-tab-underline"
-                  className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[var(--accent-primary)] rounded-t-full z-10"
+                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-[var(--accent-primary)] rounded-t-full z-10"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
@@ -369,15 +373,15 @@ export default function AppHeader() {
 
   return (
     <>
-      <header className="app-header h-12 sm:h-14">
+      <header className="app-header h-14 md:h-[50px] border-b border-[var(--text-muted)]/15">
         {/* BRAND / LOGO */}
         <Link
           to="/"
-          className="header-logo min-h-[40px] flex items-center gap-2.5 group transition-transform active:scale-95"
+          className="header-logo min-h-[38px] md:min-h-[34px] flex items-center gap-2 sm:gap-2.5 group transition-transform active:scale-95"
           aria-label="Lyra Home"
         >
-          <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img" />
-          <span className="wordmark font-heading font-semibold text-base sm:text-lg text-[var(--text-primary)] tracking-tight">
+          <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 md:w-6 md:h-6 object-cover rounded-lg border border-[var(--accent-primary)]/40" />
+          <span className="wordmark font-heading font-semibold text-base md:text-sm text-[var(--text-primary)] tracking-tight">
             Lyra
           </span>
         </Link>
@@ -386,7 +390,7 @@ export default function AppHeader() {
       </header>
 
       {/* STICKY / FIXED HEADER SPACER */}
-      <div className="h-12 sm:h-14 w-full shrink-0" aria-hidden="true" />
+      <div className="h-14 md:h-[50px] w-full shrink-0" aria-hidden="true" />
     </>
   );
 }

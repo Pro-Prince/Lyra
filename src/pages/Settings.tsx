@@ -151,7 +151,7 @@ export default function Settings() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto"
+      className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto no-scrollbar scrollbar-hide"
     >
       {/* Top Title */}
       <div className="mb-8 max-w-6xl mx-auto w-full pt-2">
@@ -387,7 +387,7 @@ export default function Settings() {
             </span>
           </div>
 
-          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 font-body">
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 font-body no-scrollbar scrollbar-hide">
             {memories.length === 0 ? (
               <div className="text-[var(--text-muted)] text-sm py-8 text-center bg-[var(--bg-base)]/40 rounded-2xl border border-[var(--accent-primary)]/10">
                 No memories recorded yet. Talk with Lyra and she will remember important details automatically.

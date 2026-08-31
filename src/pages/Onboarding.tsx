@@ -9,6 +9,7 @@ import { getLocalProfile, saveLocalProfile, saveCompanion, saveMemory } from "..
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
+import { useMockAuthState } from "../context/AuthContext";
 
 const VIBE_OPTIONS = [
   { id: "Warm & Gentle", label: "Warm & Gentle", desc: "Cozy & empathetic", icon: Heart },
@@ -27,6 +28,7 @@ const INTEREST_TAGS = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { setMockAuthed } = useMockAuthState();
   const [adultConfirmed, setAdultConfirmed] = useState<boolean | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [_modelLoaded, setModelLoaded] = useState(false);
@@ -224,6 +226,7 @@ export default function Onboarding() {
       (window as any).playGesture("nod");
     }
 
+    setMockAuthed(true);
     navigate("/chat");
   };
 

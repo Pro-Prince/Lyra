@@ -21,126 +21,139 @@ function FooterAnchorLink({ to, children, className }: { to: string; children: R
 }
 
 export default function Footer() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleBrandClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname === "/") {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    } else {
+      navigate("/");
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  };
+
   return (
-    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-16 pb-12 font-body mt-auto relative z-10">
-      <div className="max-w-6xl mx-auto px-6">
+    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-14 sm:pt-16 pb-10 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6">
         {/* Three Columns Desktop / Stacked Mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
-        {/* Column 1: Logo badge, wordmark, 2-line description */}
-        <div className="md:col-span-6 flex flex-col items-start">
-          <Link 
-            to="/" 
-            className="footer-brand flex items-center gap-3 mb-3.5 group"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            aria-label="Lyra Home"
-          >
-            <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img" />
-            <span className="wordmark font-heading font-medium text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
-          </Link>
-          <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">
-            A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 mb-10 sm:mb-12">
+          {/* Column 1: Logo badge, wordmark, 2-line description */}
+          <div className="md:col-span-6 flex flex-col items-start">
+            <Link 
+              to="/" 
+              className="footer-brand flex items-center gap-3 mb-3.5 group cursor-pointer"
+              onClick={handleBrandClick}
+              aria-label="Lyra Home"
+            >
+              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform" />
+              <span className="wordmark font-heading font-medium text-[20px] text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight">Lyra</span>
+            </Link>
+            <p className="text-[var(--text-muted)] text-[14px] leading-relaxed max-w-sm">
+              A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
+            </p>
+          </div>
+
+          {/* Column 2: PRODUCT */}
+          <div className="md:col-span-3 flex flex-col items-start">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
+              PRODUCT
+            </span>
+            <ul className="space-y-2.5 text-[14px] w-full">
+              <li>
+                <FooterAnchorLink
+                  to="features"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                >
+                  Features
+                </FooterAnchorLink>
+              </li>
+              <li>
+                <FooterAnchorLink
+                  to="wardrobe"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                >
+                  Wardrobe
+                </FooterAnchorLink>
+              </li>
+              <li>
+                <FooterAnchorLink
+                  to="faq"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                >
+                  FAQ
+                </FooterAnchorLink>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: SUPPORT */}
+          <div className="md:col-span-3 flex flex-col items-start">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
+              SUPPORT
+            </span>
+            <ul className="space-y-2.5 text-[14px] w-full">
+              <li>
+                <Link
+                  to="/contact"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                >
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/terms"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        {/* Column 2: PRODUCT */}
-        <div className="md:col-span-3 flex flex-col items-start">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
-            PRODUCT
-          </span>
-          <ul className="space-y-2.5 text-[14px]">
-            <li>
-              <FooterAnchorLink
-                to="features"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                Features
-              </FooterAnchorLink>
-            </li>
-            <li>
-              <FooterAnchorLink
-                to="wardrobe"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                Wardrobe
-              </FooterAnchorLink>
-            </li>
-            <li>
-              <FooterAnchorLink
-                to="faq"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                FAQ
-              </FooterAnchorLink>
-            </li>
-          </ul>
+        {/* Full-width 1px divider */}
+        <div className="w-full h-px bg-[var(--text-muted)]/15 mb-8" />
+
+        {/* Bottom bar: space-between copyright & repeated inline links, centered on mobile */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--text-muted)] text-center sm:text-left">
+          <div>
+            © 2026 Lyra. All rights reserved.
+          </div>
+
+          <nav aria-label="Footer legal links" className="flex flex-wrap items-center justify-center gap-4 sm:gap-3">
+            <Link
+              to="/privacy"
+              className="hover:text-[var(--text-primary)] transition-colors"
+            >
+              Privacy
+            </Link>
+            <span className="hidden sm:inline-block opacity-40">·</span>
+            <Link
+              to="/terms"
+              className="hover:text-[var(--text-primary)] transition-colors"
+            >
+              Terms
+            </Link>
+            <span className="hidden sm:inline-block opacity-40">·</span>
+            <Link
+              to="/contact"
+              className="hover:text-[var(--text-primary)] transition-colors"
+            >
+              Contact
+            </Link>
+          </nav>
         </div>
-
-        {/* Column 3: SUPPORT */}
-        <div className="md:col-span-3 flex flex-col items-start">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
-            SUPPORT
-          </span>
-          <ul className="space-y-2.5 text-[14px]">
-            <li>
-              <Link
-                to="/contact"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                Contact Us
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/privacy"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/terms"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                Terms of Service
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Full-width 1px divider */}
-      <div className="w-full h-px bg-[var(--accent-primary)]/10 mb-8" />
-
-      {/* Bottom bar: space-between copyright & repeated inline links, centered on mobile */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--text-muted)] text-center sm:text-left">
-        <div className="text-center sm:text-left">
-          © 2026 Lyra. All rights reserved.
-        </div>
-
-        <nav aria-label="Footer legal links" className="flex flex-wrap items-center justify-center gap-4 sm:gap-3">
-          <Link
-            to="/privacy"
-            className="hover:text-[var(--text-primary)] transition-colors"
-          >
-            Privacy
-          </Link>
-          <span className="hidden sm:inline-block opacity-40">·</span>
-          <Link
-            to="/terms"
-            className="hover:text-[var(--text-primary)] transition-colors"
-          >
-            Terms
-          </Link>
-          <span className="hidden sm:inline-block opacity-40">·</span>
-          <Link
-            to="/contact"
-            className="hover:text-[var(--text-primary)] transition-colors"
-          >
-            Contact
-          </Link>
-        </nav>
-      </div>
       </div>
     </footer>
   );

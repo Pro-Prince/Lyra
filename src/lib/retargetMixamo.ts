@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { VRM } from '@pixiv/three-vrm';
+import { safeUpdateMatrixWorld } from './companionRenderer';
 
 const mixamoVRMRigMap: Record<string, string> = {
   mixamorigHips: 'hips',
@@ -65,8 +66,8 @@ export async function loadMixamoAnimation(url: string, vrm: VRM): Promise<THREE.
   const vrmHips = vrm.humanoid.getNormalizedBoneNode('hips' as any);
   
   if (mixamoHips && vrmHips) {
-    vrm.scene.updateMatrixWorld(true);
-    asset.updateMatrixWorld(true);
+    safeUpdateMatrixWorld(vrm.scene);
+    safeUpdateMatrixWorld(asset);
     const motionHipsHeight = mixamoHips.getWorldPosition(new THREE.Vector3()).y;
     const vrmHipsHeight = vrmHips.getWorldPosition(new THREE.Vector3()).y;
     if (motionHipsHeight > 0) {

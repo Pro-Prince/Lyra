@@ -1,5 +1,6 @@
 import { VRM } from '@pixiv/three-vrm';
 import * as THREE from 'three';
+import { safeUpdateMatrixWorld } from './companionRenderer';
 
 export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
   const h = vrm.humanoid;
@@ -28,10 +29,6 @@ export function applyRestPose(vrm: VRM) {
   const leftUpperArm = h.getNormalizedBoneNode('leftUpperArm');
   const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
 
-  console.log('leftUpperArm bone found:', leftUpperArm);
-  console.log('rightUpperArm bone found:', rightUpperArm);
-  if (leftUpperArm) console.log('rotation before:', leftUpperArm.rotation.z);
-
   const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
   const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
 
@@ -39,8 +36,6 @@ export function applyRestPose(vrm: VRM) {
   if (rightUpperArm) rightUpperArm.rotation.z = 1.15;
   if (leftLowerArm) leftLowerArm.rotation.y = -0.15;
   if (rightLowerArm) rightLowerArm.rotation.y = 0.15;
-
-  if (leftUpperArm) console.log('rotation after:', leftUpperArm.rotation.z);
 
   applyRelaxedHandPose(vrm, 'left');
   applyRelaxedHandPose(vrm, 'right');
@@ -53,8 +48,7 @@ export function frameOutfit(
   camera: THREE.PerspectiveCamera,
   _canvasHeightPx: number = 256
 ) {
-  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
-  vrmScene.updateMatrixWorld(true);
+  safeUpdateMatrixWorld(vrmScene);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const totalHeight = box.max.y - box.min.y;
   const topY = box.max.y + 0.05;
@@ -75,8 +69,7 @@ export function frameFullBody(
   reservedBottomPx: number = 0,
   reservedTopPx: number = 0
 ) {
-  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
-  vrmScene.updateMatrixWorld(true);
+  safeUpdateMatrixWorld(vrmScene);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const size = new THREE.Vector3();
   box.getSize(size);
@@ -98,8 +91,7 @@ export function framePortrait(
   camera: THREE.PerspectiveCamera,
   _canvasHeightPx: number = 256
 ) {
-  vrmScene.traverse((child) => { if (!child.parent) child.parent = null; });
-  vrmScene.updateMatrixWorld(true);
+  safeUpdateMatrixWorld(vrmScene);
   const box = new THREE.Box3().setFromObject(vrmScene);
   const headTop = box.max.y;
   const shoulderY = headTop - (box.max.y - box.min.y) * 0.28;

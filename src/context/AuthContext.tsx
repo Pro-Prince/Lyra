@@ -46,7 +46,12 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(true);
-  const [isMockAuthed, setIsMockAuthedState] = useState<boolean>(false);
+  const [isMockAuthed, setIsMockAuthedState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('lyra_is_authed') === 'true';
+    }
+    return false;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isConfigured] = useState<boolean>(false);
 
@@ -68,6 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setMockAuthed = (authed: boolean) => {
     setIsMockAuthedState(authed);
+    if (typeof window !== 'undefined') {
+      if (authed) {
+        localStorage.setItem('lyra_is_authed', 'true');
+      } else {
+        localStorage.removeItem('lyra_is_authed');
+      }
+    }
     if (authed) {
       getLocalProfile().then(existing => {
         saveLocalProfile({ ...existing, adultConfirmed: true });
@@ -102,6 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await clearAllData();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lyra_is_authed');
+    }
     setIsMockAuthedState(false);
     setIsGuestMode(false);
     setUser(null);

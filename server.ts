@@ -7,9 +7,9 @@ import "dotenv/config";
 
 let ai: GoogleGenAI | null = null;
 
-const MODELS_LIST = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"];
+const MODELS_LIST = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"];
 
-async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 4) {
+async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 3) {
   let modelIndex = 0;
   
   while (modelIndex < MODELS_LIST.length) {
@@ -37,7 +37,7 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
                       errorString.includes("Quota exceeded") ||
                       errorString.includes("quota");
 
-        console.error(`[Gemini API Error] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
+        console.warn(`[Gemini API Retry] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
           status: error?.status,
           message: error?.message,
           is429,
@@ -52,7 +52,7 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
             break;
           }
           
-          let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+          let delay = Math.pow(2, attempt) * 500 + Math.random() * 500;
           if (attempt >= maxRetries) {
             break;
           }
@@ -129,7 +129,6 @@ async function startServer() {
         : { role: 'user', parts: [{ text: 'Hello' }] };
 
       const response = await generateContentWithRetry(aiClient, {
-        model: "gemini-3.7-flash",
         contents: [...validHistory, currentMessage],
         config: {
           systemInstruction: systemPrompt || "You are Lyra.",
@@ -306,7 +305,6 @@ Conversation:
 ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
 
       const response = await generateContentWithRetry(aiClient, {
-        model: "gemini-3.7-flash",
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
             responseMimeType: "application/json",

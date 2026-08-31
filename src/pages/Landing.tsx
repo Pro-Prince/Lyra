@@ -371,14 +371,18 @@ export default function Landing() {
               </h2>
             </motion.div>
 
-            <motion.div variants={groupVariants} className="faq-list border-t border-[rgba(255,182,213,0.12)]">
+            <motion.div variants={groupVariants} className="faq-list space-y-3.5 sm:space-y-4">
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
                   <motion.div 
                     key={faq.id} 
                     variants={entranceVariants}
-                    className="faq-row cursor-pointer"
+                    className={`faq-row cursor-pointer rounded-2xl sm:rounded-3xl border transition-all duration-300 p-4 sm:p-5.5 ${
+                      isOpen
+                        ? "bg-[var(--bg-surface)] border-[var(--accent-primary)]/35 shadow-xl shadow-black/10"
+                        : "bg-[var(--bg-surface)]/60 hover:bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/25"
+                    }`}
                     onClick={() => toggleFaq(faq.id)}
                     role="button"
                     tabIndex={0}
@@ -390,16 +394,24 @@ export default function Landing() {
                     }}
                     aria-expanded={isOpen}
                   >
-                    <div
-                      className="faq-row-header select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] rounded"
-                    >
-                      <IconBadge icon={faq.icon} size={32} />
-                      <span className="faq-question">{faq.question}</span>
-                      <ChevronDown
-                        className={`w-5 h-5 text-[var(--accent-primary)] flex-shrink-0 transition-transform duration-200 ${
-                          isOpen ? "rotated" : ""
-                        }`}
-                      />
+                    <div className="faq-row-header flex items-center justify-between gap-3 select-none">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <IconBadge icon={faq.icon} size={38} />
+                        <span className={`faq-question font-heading font-medium text-base sm:text-[17px] leading-snug transition-colors ${
+                          isOpen ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]"
+                        }`}>
+                          {faq.question}
+                        </span>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                        isOpen ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-black/20 text-[var(--text-muted)]"
+                      }`}>
+                        <ChevronDown
+                          className={`w-4.5 h-4.5 transition-transform duration-300 ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
                     </div>
 
                     <AnimatePresence initial={false}>
@@ -411,7 +423,9 @@ export default function Landing() {
                           transition={{ duration: 0.25, ease: SIGNATURE_EASE }}
                           className="overflow-hidden"
                         >
-                          <p className="faq-answer">{faq.answer}</p>
+                          <p className="faq-answer mt-3.5 sm:mt-4 pl-[46px] sm:pl-[54px] pr-2 text-sm sm:text-[15px] text-[var(--text-muted)] leading-relaxed font-body">
+                            {faq.answer}
+                          </p>
                         </motion.div>
                       )}
                     </AnimatePresence>

@@ -18,10 +18,9 @@ export const MODEL_FILES: Record<string, string> = {
   '/models/lyra_dress.vrm': '/models/lyra_dress.vrm',
 };
 
-const LOAD_TIMEOUT_MS = 10000; // hard ceiling, this is what prevents "loading forever"
-const modelCache: Record<string, VRM> = {}; // in-memory only, per session, no persistence layer
-const inFlightPromises: Map<string, Promise<VRM>> = new Map();
+const LOAD_TIMEOUT_MS = 12000; // hard ceiling, this is what prevents "loading forever"
 const rawBufferCache: Map<string, ArrayBuffer> = new Map();
+const inFlightBufferPromises: Map<string, Promise<ArrayBuffer>> = new Map();
 
 function createLoader() {
   const loader = new GLTFLoader();
@@ -29,80 +28,98 @@ function createLoader() {
   return loader;
 }
 
+export function safeUpdateMatrixWorld(obj: THREE.Object3D | null | undefined): void {
+  if (!obj) return;
+  try {
+    obj.updateMatrixWorld(true);
+  } catch (err) {
+    console.warn('[safeUpdateMatrixWorld] Handled non-fatal matrix update exception:', err);
+  }
+}
+
+async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
+  if (rawBufferCache.has(url)) {
+    return rawBufferCache.get(url)!;
+  }
+  if (inFlightBufferPromises.has(url)) {
+    return inFlightBufferPromises.get(url)!;
+  }
+
+  const promise = (async () => {
+    const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v2`;
+    const candidates = [
+      urlWithVersion,
+      url,
+      ...(typeof window !== 'undefined' && url.startsWith('/') ? [`${window.location.origin}${urlWithVersion}`] : []),
+    ];
+
+    let lastError: any = null;
+    let arrayBuffer: ArrayBuffer | null = null;
+
+    for (const candidate of candidates) {
+      try {
+        const resp = await fetch(candidate, { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${candidate}`);
+        const cType = resp.headers.get('content-type') || '';
+        if (cType.includes('text/html')) {
+          throw new Error(`Candidate returned HTML instead of binary: ${candidate}`);
+        }
+        const buf = await resp.arrayBuffer();
+        if (buf.byteLength < 20) {
+          throw new Error(`Invalid buffer length (${buf.byteLength}) from ${candidate}`);
+        }
+        const dv = new DataView(buf);
+        const magic = dv.getUint32(0, true);
+        if (magic !== 0x46546c67) { // 'glTF'
+          throw new Error(`Invalid binary header magic (0x${magic.toString(16)}) from ${candidate}`);
+        }
+        arrayBuffer = buf;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!arrayBuffer) {
+      throw lastError || new Error(`Failed to fetch valid VRM binary model from ${url}`);
+    }
+
+    // Binary GLB padding safeguard for header total length alignment
+    if (arrayBuffer.byteLength >= 20) {
+      const dv = new DataView(arrayBuffer);
+      const magic = dv.getUint32(0, true);
+      if (magic === 0x46546c67) { // 'glTF'
+        const totalLength = dv.getUint32(8, true);
+        if (arrayBuffer.byteLength < totalLength && totalLength <= 32 * 1024 * 1024) {
+          try {
+            const padded = new Uint8Array(totalLength);
+            padded.set(new Uint8Array(arrayBuffer), 0);
+            arrayBuffer = padded.buffer;
+          } catch (allocErr) {
+            console.warn(`[fetchCompanionBuffer] Buffer padding allocation skipped for ${url}:`, allocErr);
+          }
+        }
+      }
+    }
+
+    rawBufferCache.set(url, arrayBuffer);
+    return arrayBuffer;
+  })();
+
+  inFlightBufferPromises.set(url, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightBufferPromises.delete(url);
+  }
+}
+
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
   const url = MODEL_FILES[modelId] || modelId;
   if (!url) throw new Error(`Unknown model id: ${modelId}`);
 
-  // Return cached VRM instance if already fully loaded
-  if (modelCache[url] || modelCache[modelId]) {
-    return modelCache[url] || modelCache[modelId];
-  }
-
-  // Deduplicate in-flight requests for the same model
-  if (inFlightPromises.has(url)) {
-    return inFlightPromises.get(url)!;
-  }
-
   const loadPromise = (async () => {
-    let arrayBuffer: ArrayBuffer | null = rawBufferCache.get(url) || null;
-
-    if (!arrayBuffer) {
-      const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v2`;
-      const candidates = [
-        urlWithVersion,
-        url,
-        ...(typeof window !== 'undefined' && url.startsWith('/') ? [`${window.location.origin}${urlWithVersion}`] : []),
-      ];
-
-      let lastError: any = null;
-      for (const candidate of candidates) {
-        try {
-          const resp = await fetch(candidate, { cache: 'no-store' });
-          if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${candidate}`);
-          const cType = resp.headers.get('content-type') || '';
-          if (cType.includes('text/html')) {
-            throw new Error(`Candidate returned HTML instead of binary: ${candidate}`);
-          }
-          const buf = await resp.arrayBuffer();
-          if (buf.byteLength < 20) {
-            throw new Error(`Invalid buffer length (${buf.byteLength}) from ${candidate}`);
-          }
-          const dv = new DataView(buf);
-          const magic = dv.getUint32(0, true);
-          if (magic !== 0x46546c67) { // 'glTF'
-            throw new Error(`Invalid binary header magic (0x${magic.toString(16)}) from ${candidate}`);
-          }
-          arrayBuffer = buf;
-          break;
-        } catch (err) {
-          lastError = err;
-        }
-      }
-
-      if (!arrayBuffer) {
-        throw lastError || new Error(`Failed to fetch valid VRM binary model from ${url}`);
-      }
-
-      // Binary GLB padding safeguard for header total length alignment
-      if (arrayBuffer.byteLength >= 20) {
-        const dv = new DataView(arrayBuffer);
-        const magic = dv.getUint32(0, true);
-        if (magic === 0x46546c67) { // 'glTF'
-          const totalLength = dv.getUint32(8, true);
-          if (arrayBuffer.byteLength < totalLength && totalLength <= 32 * 1024 * 1024) {
-            try {
-              const padded = new Uint8Array(totalLength);
-              padded.set(new Uint8Array(arrayBuffer), 0);
-              arrayBuffer = padded.buffer;
-            } catch (allocErr) {
-              console.warn(`[loadCompanionModel] Buffer padding allocation skipped for ${url}:`, allocErr);
-            }
-          }
-        }
-      }
-
-      rawBufferCache.set(url, arrayBuffer);
-    }
+    const arrayBuffer = await fetchCompanionBuffer(url);
 
     const loader = createLoader();
     const parseBuffer = arrayBuffer.slice(0);
@@ -121,7 +138,6 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
 
     // Prevent premature frustum culling on animated skinned meshes
     vrm.scene.traverse((child) => {
-      if (!child.parent) child.parent = null;
       if ((child as THREE.Mesh).isMesh) {
         (child as THREE.Mesh).frustumCulled = false;
       }
@@ -132,13 +148,6 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     applyRelaxedHandPose(vrm, 'right');
     vrm.humanoid?.update();
 
-    modelCache[url] = vrm;
-    modelCache[modelId] = vrm;
-    for (const [k, v] of Object.entries(MODEL_FILES)) {
-      if (v === url || k === modelId) {
-        modelCache[k] = vrm;
-      }
-    }
     return vrm;
   })();
 
@@ -146,16 +155,12 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     setTimeout(() => reject(new Error(`Timed out loading ${modelId} after ${LOAD_TIMEOUT_MS}ms`)), LOAD_TIMEOUT_MS)
   );
 
-  const sharedPromise = Promise.race([loadPromise, timeoutPromise]).finally(() => {
-    inFlightPromises.delete(url);
-  });
-
-  inFlightPromises.set(url, sharedPromise);
-  return sharedPromise;
+  return Promise.race([loadPromise, timeoutPromise]);
 }
 
 export function isModelCached(modelId: string): boolean {
-  return !!modelCache[modelId];
+  const url = MODEL_FILES[modelId] || modelId;
+  return rawBufferCache.has(url);
 }
 
 export async function renderStaticPortrait(
@@ -163,7 +168,7 @@ export async function renderStaticPortrait(
   renderer?: THREE.WebGLRenderer,
   { frame = 'full-body', size = 256 }: { frame?: 'full-body' | 'portrait' | 'outfit'; size?: number } = {}
 ): Promise<string> {
-  const vrm = await loadCompanionModel(modelId); // same cached loader, same pose guarantees
+  const vrm = await loadCompanionModel(modelId);
   const scene = new THREE.Scene();
   const ambient = new THREE.AmbientLight(0xffffff, 0.9);
   const key = new THREE.DirectionalLight(0xffffff, 1.2);

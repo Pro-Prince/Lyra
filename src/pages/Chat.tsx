@@ -69,7 +69,14 @@ const drawLyraLogoWatermark = (
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo } = useToast();
+  const { isMockAuthed } = useMockAuthState();
   const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (!isMockAuthed) {
+      navigate('/login', { replace: true });
+    }
+  }, [isMockAuthed, navigate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1011,15 +1018,15 @@ export default function Chat() {
         {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
         {/* ========================================================= */}
         <div className="md:hidden flex flex-col w-full h-full relative overflow-hidden bg-[var(--bg-base)]">
-          {/* Top Half: 3D Companion Stage & Floating HUD (~52% height) */}
-          <div className="h-[52vh] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[var(--bg-surface)] via-[var(--bg-base)]/90 to-[var(--bg-base)]">
+          {/* Top Half: 3D Companion Stage & Floating HUD (~48% height) */}
+          <div className="h-[48vh] min-h-[300px] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[var(--bg-surface)] via-[var(--bg-base)]/90 to-[var(--bg-base)]">
             {/* Top Navigation Bar */}
-            <div className="w-full px-4 pt-3 flex items-center justify-between z-30 pointer-events-auto shrink-0">
+            <div className="w-full px-3.5 pt-2.5 pb-2 flex items-center justify-between z-30 pointer-events-auto shrink-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px]">
               {/* Left: Hamburger Menu + Lyra Avatar + Name */}
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
-                  className="p-1 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer rounded-lg hover:bg-white/10"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -1027,7 +1034,7 @@ export default function Chat() {
                 <img 
                   src="/images/Logo.png" 
                   alt="Lyra" 
-                  className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70" 
+                  className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" 
                 />
                 <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">
                   Lyra
@@ -1037,9 +1044,9 @@ export default function Chat() {
               {/* Right: Capture Pill Button */}
               <button 
                 onClick={handleCapture} 
-                className="px-3.5 py-1.5 rounded-full bg-[var(--bg-elevated)]/60 hover:bg-[var(--bg-elevated)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
+                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-[var(--text-primary)]/20 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
               >
-                <Scan className="w-3.5 h-3.5 text-[var(--text-primary)]/80" />
+                <Scan className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>Capture</span>
               </button>
             </div>
@@ -1066,91 +1073,91 @@ export default function Chat() {
             </div>
 
             {/* Bottom HUD Controls on Mobile (5 circular buttons + Status Pill) */}
-            <div className="z-20 w-full flex flex-col items-center gap-2 pb-2.5 pointer-events-none">
+            <div className="z-20 w-full flex flex-col items-center gap-2 pb-2 pointer-events-none">
               {/* Row of 5 Circular Control Buttons */}
-              <div className="flex items-center justify-center gap-4 sm:gap-6 px-3 w-full">
+              <div className="flex items-center justify-around px-2.5 w-full max-w-xs sm:max-w-sm mx-auto">
                 {/* 1. Camera */}
-                <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
                     onClick={handleCapture}
                     title="Capture Screen / Portrait"
-                    className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/80 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <Camera className="w-5 h-5 text-[var(--text-primary)]/90" />
+                    <Camera className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
                   </button>
-                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Camera</span>
+                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Camera</span>
                 </div>
 
                 {/* 2. Mute */}
-                <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
                     onClick={toggleMute}
                     title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
-                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer ${
                       isMuted 
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
-                        : 'bg-[var(--bg-elevated)]/80 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
+                        : 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
                     }`}
                   >
-                    <MicOff className={`w-5 h-5 ${isMuted ? 'text-rose-400' : 'text-[var(--text-primary)]/90'}`} />
+                    <MicOff className={`w-4.5 h-4.5 ${isMuted ? 'text-rose-400' : 'text-[var(--text-primary)]/90'}`} />
                   </button>
-                  <span className={`text-[11px] font-normal ${isMuted ? 'text-rose-400' : 'text-[var(--text-muted)]'}`}>
+                  <span className={`text-[10px] sm:text-[11px] font-normal ${isMuted ? 'text-rose-400' : 'text-[var(--text-muted)]'}`}>
                     Mute
                   </span>
                 </div>
 
                 {/* 3. Talk (Center Pink Action) */}
-                <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
                     onClick={toggleMic}
                     title={isListening ? "Listening... Tap to stop" : "Tap to Speak"}
                     style={{ 
                       backgroundColor: activeAccent,
                       boxShadow: isListening 
-                        ? `0 0 25px ${activeAccent}88` 
-                        : `0 0 16px ${activeAccent}44`
+                        ? `0 0 24px ${activeAccent}88` 
+                        : `0 0 14px ${activeAccent}44`
                     }}
-                    className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer ${
+                    className={`w-12.5 h-12.5 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer ${
                       isListening ? 'ring-4 ring-[var(--accent-primary)]/40 animate-pulse' : 'hover:brightness-110'
                     }`}
                   >
-                    <Mic className="w-6 h-6 text-white" />
+                    <Mic className="w-5.5 h-5.5 text-white" />
                   </button>
-                  <span className="text-[11px] text-[var(--text-primary)]/80 font-normal">Talk</span>
+                  <span className="text-[10px] sm:text-[11px] text-[var(--text-primary)]/90 font-medium">Talk</span>
                 </div>
 
                 {/* 4. Speaker */}
-                <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
                     onClick={toggleSpeaker}
                     title={isSpeakerOn ? "Speakerphone (Loud)" : "Private Earpiece"}
-                    className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
                       isSpeakerOn 
-                        ? 'bg-[var(--bg-elevated)]/80 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
+                        ? 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
                         : 'bg-[var(--bg-base)]/40 border-[var(--text-primary)]/10 text-[var(--text-muted)]'
                     }`}
                   >
-                    <Volume2 className="w-5 h-5 text-[var(--text-primary)]/90" />
+                    <Volume2 className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
                   </button>
-                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Speaker</span>
+                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Speaker</span>
                 </div>
 
                 {/* 5. Stop */}
-                <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
                     onClick={handleStopSession}
                     title="End Session & Save Progress"
-                    className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/80 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
-                    <Square className="w-4 h-4 fill-[var(--text-primary)] text-[var(--text-primary)]" />
+                    <Square className="w-3.5 h-3.5 fill-[var(--text-primary)] text-[var(--text-primary)]" />
                   </button>
-                  <span className="text-[11px] text-[var(--text-muted)] font-normal">Stop</span>
+                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Stop</span>
                 </div>
               </div>
 
               {/* Status Waveform Pill */}
-              <div className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-panel)]/90 backdrop-blur-md border border-[var(--text-primary)]/15 flex items-center gap-3 shadow-lg max-w-[85%]">
-                <span className="text-xs text-[var(--text-primary)]/85 font-medium truncate">
+              <div className="pointer-events-auto px-3.5 py-1 rounded-full bg-[var(--bg-panel)]/85 backdrop-blur-xl border border-[var(--text-primary)]/15 flex items-center gap-2.5 shadow-lg max-w-[85%]">
+                <span className="text-[11px] sm:text-xs text-[var(--text-primary)]/90 font-medium truncate">
                   {isListening ? "Lyra is listening..." : isLoading ? "Lyra is thinking..." : isLyraSpeaking ? "Lyra is speaking..." : isMuted ? "Microphone is muted" : "Lyra is ready"}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
@@ -1161,33 +1168,31 @@ export default function Chat() {
                   <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-2 animate-pulse delay-200' : 'h-1.5 opacity-60'}`} />
                   <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-40 ml-0.5" />
                   <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-30" />
-                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-20" />
-                  <span style={{ backgroundColor: activeAccent }} className="w-1 h-1 rounded-full opacity-10" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom Half: Chat & About Container (~48% height) */}
-          <div className="flex-1 min-h-0 bg-[var(--bg-panel)] rounded-t-[28px] border-t border-[var(--text-primary)]/10 flex flex-col relative shadow-2xl overflow-hidden">
+          {/* Bottom Half: Chat & About Container */}
+          <div className="flex-1 min-h-0 bg-[var(--bg-panel)] rounded-t-[24px] sm:rounded-t-[28px] border-t border-[var(--text-primary)]/15 flex flex-col relative shadow-2xl overflow-hidden">
             {/* Tabs Bar */}
-            <div className="flex px-6 pt-3 pb-0 border-b border-[var(--text-primary)]/5 gap-8 shrink-0 bg-[var(--bg-panel)]">
+            <div className="flex px-5 pt-2.5 pb-0 border-b border-[var(--text-primary)]/10 gap-6 shrink-0 bg-[var(--bg-panel)]">
               <button 
                 onClick={() => setActiveTab('chat')} 
-                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'chat' ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`pb-2 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'chat' ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
-                Chat
+                <span>Chat</span>
                 {activeTab === 'chat' && (
-                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
                 )}
               </button>
               <button 
                 onClick={() => setActiveTab('about')} 
-                className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer ${activeTab === 'about' ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                className={`pb-2 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'about' ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
               >
-                About
+                <span>About</span>
                 {activeTab === 'about' && (
-                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                  <motion.div layoutId="mobile-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
                 )}
               </button>
             </div>
@@ -1196,39 +1201,39 @@ export default function Chat() {
             {activeTab === 'chat' ? (
               <>
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3.5 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-3 flex flex-col gap-3 custom-scrollbar no-scrollbar scrollbar-hide">
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
-                      <div key={msg.id} className="self-end max-w-[82%] flex flex-col items-end">
-                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-sm border border-white/5">
-                          <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
+                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-3.5 py-2.5 border border-[var(--accent-primary)]/30 shadow-xs">
+                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                         </div>
-                        <span className="text-[10px] text-[var(--text-muted)] mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]/70 mt-1 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[90%] flex gap-2.5 items-start">
+                      <div key={msg.id} className="self-start max-w-[92%] flex gap-2.5 items-start">
                         <img 
                           src="/images/Logo.png" 
                           alt="Lyra" 
-                          className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[var(--accent-primary)]/60" 
+                          className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 shadow-xs" 
                         />
-                        <div className="flex flex-col items-start">
-                          <div className="bg-[var(--bg-elevated)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-sm border border-[var(--text-primary)]/5">
-                            <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        <div className="flex flex-col items-start min-w-0">
+                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-xs border border-[var(--text-primary)]/10">
+                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           </div>
-                          <span className="text-[10px] text-[var(--text-muted)] mt-1 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-[10px] text-[var(--text-muted)]/70 mt-1 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )
                   ))}
                   {isLoading && (
-                    <div className="self-start max-w-[90%] flex gap-2.5 items-start">
+                    <div className="self-start max-w-[92%] flex gap-2.5 items-start">
                       <img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
-                        className="w-8 h-8 rounded-[9px] object-cover shrink-0 mt-0.5 border-[1.5px] border-[var(--accent-primary)]/60 animate-pulse" 
+                        className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 animate-pulse" 
                       />
-                      <div className="bg-[var(--bg-elevated)] rounded-2xl rounded-tl-xs px-4 py-3 border border-[var(--text-primary)]/5 flex items-center gap-2">
+                      <div className="bg-[var(--bg-elevated)]/90 rounded-2xl rounded-tl-xs px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex items-center gap-2">
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full animate-bounce" />
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
@@ -1240,7 +1245,7 @@ export default function Chat() {
                 </div>
 
                 {/* Suggestions / Quick Prompt Chips */}
-                <div className="flex gap-2 overflow-x-auto pb-2 px-4 pt-1 scrollbar-hide shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <div className="flex gap-2 overflow-x-auto pb-2 px-3.5 sm:px-4 pt-1 scrollbar-hide shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
                     <button 
                       key={text}
@@ -1248,7 +1253,7 @@ export default function Chat() {
                         setInputText(text);
                         handleSend(text);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 text-xs text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
+                      className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/15 border border-[var(--text-primary)]/15 text-xs text-[var(--text-primary)]/85 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
                     >
                       {text}
                     </button>
@@ -1256,8 +1261,8 @@ export default function Chat() {
                 </div>
 
                 {/* Input Bar */}
-                <div className="p-3 pt-0 pb-3 bg-[var(--bg-panel)] shrink-0">
-                  <div className="relative bg-[var(--bg-elevated)] rounded-full flex items-center p-1 pl-4 border border-[var(--text-primary)]/10 shadow-inner">
+                <div className="p-2.5 sm:p-3 pt-0 pb-2.5 sm:pb-3 bg-[var(--bg-panel)] shrink-0">
+                  <div className="relative bg-[var(--bg-elevated)]/90 backdrop-blur-md rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/15 focus-within:border-[var(--accent-primary)]/50 focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/20 shadow-inner">
                     <input 
                       type="text" 
                       value={inputText}
@@ -1268,8 +1273,8 @@ export default function Chat() {
                           if (!isLoading && inputText.trim()) handleSend();
                         }
                       }}
-                      className="flex-1 bg-transparent border-none text-[var(--text-primary)] text-sm focus:outline-none placeholder:text-[var(--text-muted)]/50 h-9 w-full" 
-                      placeholder={isListening ? "Listening..." : "Ask Anything..."}
+                      className="flex-1 bg-transparent border-none text-[var(--text-primary)] text-sm focus:outline-none placeholder:text-[var(--text-muted)]/60 h-9 w-full" 
+                      placeholder={isListening ? "Listening..." : "Ask Lyra anything..."}
                       disabled={isListening || isLoading}
                     />
                     <button 
@@ -1278,17 +1283,17 @@ export default function Chat() {
                       style={{ 
                         backgroundColor: inputText.trim() && !isLoading ? activeAccent : undefined 
                       }}
-                      className="w-9 h-9 rounded-full bg-[var(--accent-primary)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-[var(--bg-base)] transition-all shrink-0 cursor-pointer shadow-md"
+                      className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-[var(--bg-base)] transition-all shrink-0 cursor-pointer shadow-md ml-1"
                     >
                       <Send className="w-4 h-4 text-white ml-0.5" />
                     </button>
                   </div>
                   {/* Home Indicator Bar */}
-                  <div className="w-32 h-1 bg-[var(--text-primary)]/20 rounded-full mx-auto mt-2.5" />
+                  <div className="w-28 h-1 bg-[var(--text-primary)]/20 rounded-full mx-auto mt-2" />
                 </div>
               </>
             ) : (
-              <div className="flex-1 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4">
+              <div className="flex-1 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4 no-scrollbar scrollbar-hide">
                 <h3 className="text-[var(--text-primary)] font-medium text-lg">About Lyra</h3>
                 <p className="leading-relaxed">Lyra is a warm, empathetic, and intellectually curious AI companion designed to bring positivity, thoughtful conversation, and genuine companionship to your day.</p>
                 <div className="bg-[var(--bg-elevated)] p-4 rounded-2xl border border-[var(--text-primary)]/5 space-y-2">
@@ -1471,7 +1476,7 @@ export default function Chat() {
             {activeTab === 'chat' ? (
               <>
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar no-scrollbar scrollbar-hide">
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
                       <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
@@ -1590,7 +1595,7 @@ export default function Chat() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 overflow-y-auto p-8 text-[var(--text-primary)]/60 text-sm">
+              <div className="flex-1 overflow-y-auto p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide">
                  <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
                  <p className="mb-4 leading-relaxed">Lyra is a warm, intellectually curious, and deeply empathetic companion. She loves exploring abstract concepts, finding beauty in the little things, and making you feel seen and heard.</p>
                  <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>
@@ -1631,7 +1636,7 @@ export default function Chat() {
               </div>
 
               {/* Menu Links */}
-              <div className="flex-1 py-4 space-y-1 overflow-y-auto">
+              <div className="flex-1 py-4 space-y-1 overflow-y-auto no-scrollbar scrollbar-hide">
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
@@ -1742,7 +1747,7 @@ export default function Chat() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar scrollbar-hide">
                 {/* Voice Settings */}
                 <div>
                   <Heading2 className="text-xs font-heading font-medium text-[var(--text-primary)]/40 uppercase tracking-wider mb-3">Voice</Heading2>
@@ -1809,7 +1814,7 @@ export default function Chat() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 no-scrollbar scrollbar-hide">
                 {!isOutfitsReady ? (
                   <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-[var(--text-primary)]/5 overflow-hidden bg-black/20">
                     <div className="w-8 h-8 rounded-full border-2 border-[var(--text-primary)]/10 border-t-white/50 animate-spin mb-3 z-10" />

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { loadCompanionModel } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateMatrixWorld } from '../lib/companionRenderer';
 import { applyRestPose, applyRelaxedHandPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
@@ -115,7 +115,6 @@ export function VRMPreviewCanvas({
 
         // Ensure proper skinning and no premature culling
         vrm.scene.traverse((child) => {
-          if (!child.parent) child.parent = null;
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             mesh.frustumCulled = false;
@@ -123,7 +122,7 @@ export function VRMPreviewCanvas({
             mesh.receiveShadow = false;
           }
         });
-        vrm.scene.updateMatrixWorld(true);
+        safeUpdateMatrixWorld(vrm.scene);
 
         // Calculate bounding box and center/ground the model precisely
         const box = new THREE.Box3().setFromObject(vrm.scene);
@@ -133,7 +132,7 @@ export function VRMPreviewCanvas({
         vrm.scene.position.x -= center.x;
         vrm.scene.position.z -= center.z;
         vrm.scene.position.y -= box.min.y; // Ground feet at Y = 0
-        vrm.scene.updateMatrixWorld(true);
+        safeUpdateMatrixWorld(vrm.scene);
 
         // Mount model inside an interactive turntable rotation group
         modelGroup = new THREE.Group();
@@ -223,7 +222,11 @@ export function VRMPreviewCanvas({
               spine.rotation.x = Math.sin(elapsed * 1.8) * 0.018;
             }
 
-            vrmInstance.update(delta);
+            try {
+              vrmInstance.update(delta);
+            } catch (vrmErr) {
+              console.warn('[VRMPreviewCanvas frame] Handled update exception:', vrmErr);
+            }
           }
 
           if (renderer) {

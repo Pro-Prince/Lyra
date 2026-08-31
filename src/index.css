@@ -46,15 +46,22 @@ html, body {
 }
 
 /* Smooth hidden scrollbar without UI cutoff or layout shift */
-html, body, #root, .no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+html, body, #root, .no-scrollbar, .scrollbar-hide, .custom-scrollbar, .account-section-grid, .account-panel {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
-html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar, 
+#root::-webkit-scrollbar, 
+.no-scrollbar::-webkit-scrollbar, 
+.scrollbar-hide::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar,
+.account-section-grid::-webkit-scrollbar,
+.account-panel::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 :root {
@@ -397,15 +404,21 @@ h3, .heading-3 {
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 0 var(--space-md);
+  padding: 0 16px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--bg-surface);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-bottom: 1px solid rgba(255, 182, 213, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 182, 213, 0.12);
+}
+
+@media (min-width: 640px) {
+  .app-header {
+    padding: 0 var(--space-md);
+  }
 }
 
 .nav-dropdown-backdrop {

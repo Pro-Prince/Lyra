@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 import { createThumbnailRenderer } from './thumbnailUtils';
-import { loadCompanionModel, renderStaticPortrait, MODEL_FILES } from './companionRenderer';
+import { loadCompanionModel, renderStaticPortrait, MODEL_FILES, safeUpdateMatrixWorld } from './companionRenderer';
 import { loadMixamoAnimation } from './retargetMixamo';
 
 export interface CachedOutfitEntry {
@@ -49,7 +49,7 @@ export async function renderPosedOutfit(
   camera.aspect = size / height;
   camera.updateProjectionMatrix();
 
-  vrm.scene.updateMatrixWorld(true);
+  safeUpdateMatrixWorld(vrm.scene);
 
   if (frame === 'full-body') {
     frameFullBody(vrm.scene, camera, height, 0, 0);
@@ -59,7 +59,7 @@ export async function renderPosedOutfit(
     framePortrait(vrm.scene, camera, size);
   }
 
-  vrm.scene.updateMatrixWorld(true);
+  safeUpdateMatrixWorld(vrm.scene);
 
   const shouldDispose = !renderer;
   const r = renderer || createThumbnailRenderer(size, height);
