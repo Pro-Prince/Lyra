@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
-import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, Download, User as UserIcon } from "lucide-react";
+import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, User as UserIcon, RefreshCw } from "lucide-react";
 import { OutfitThumbnail } from "../components/Thumbnails";
 import { WardrobeCard } from "../components/WardrobeCard";
 import { VoicePicker } from "../components/VoicePicker";
@@ -14,9 +14,24 @@ import Button from "../components/Button";
 import { useMockAuthState } from "../context/AuthContext";
 
 const OUTFITS = [
-  { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
-  { id: '/models/lyra_casual.vrm', label: 'Casual', tag: 'Hoodie' },
-  { id: '/models/lyra_dress.vrm', label: 'Dress', tag: 'Dress' }
+  { 
+    id: '/models/lyra.vrm', 
+    label: 'Default', 
+    tag: 'Standard',
+    desc: 'The signature look. Clean, minimal, and timeless for everyday presence.'
+  },
+  { 
+    id: '/models/lyra_casual.vrm', 
+    label: 'Casual', 
+    tag: 'Everyday',
+    desc: 'Relaxed and approachable. Perfect for informal conversations and chill vibes.'
+  },
+  { 
+    id: '/models/lyra_dress.vrm', 
+    label: 'Dress', 
+    tag: 'Evening',
+    desc: 'Sophisticated and elegant. Best for formal thoughts and deep reflections.'
+  },
 ];
 
 export default function Settings() {
@@ -24,7 +39,6 @@ export default function Settings() {
   const { showInfo, showError } = useToast();
   const { isMockAuthed, mockUser } = useMockAuthState();
   const [memories, setMemories] = useState<any[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
@@ -36,50 +50,6 @@ export default function Settings() {
   // Destructive Action Confirmation strings
   const [resetConfirm, setResetConfirm] = useState("");
   const [clearConfirm, setClearConfirm] = useState("");
-  const [importFile, setImportFile] = useState<File | null>(null);
-
-  const handleExportData = async () => {
-    try {
-      const jsonStr = await exportAllData();
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `lyra-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showInfo("Data exported successfully");
-    } catch (err: any) {
-      showError("Failed to export data: " + err.message);
-    }
-  };
-
-  const handleImportData = async (fileToImport?: File) => {
-    const targetFile = fileToImport || importFile;
-    if (!targetFile) {
-      showError("Please select a backup file first");
-      return;
-    }
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const content = e.target?.result as string;
-          await importAllData(content);
-          showInfo("Data imported successfully. Reloading...");
-          setTimeout(() => window.location.reload(), 1200);
-        } catch (err: any) {
-          showError("Invalid backup file: " + err.message);
-        }
-      };
-      reader.readAsText(targetFile);
-      setImportFile(null);
-    } catch (err: any) {
-      showError("Failed to import data: " + err.message);
-    }
-  };
 
   useEffect(() => {
     async function load() {
@@ -172,7 +142,7 @@ export default function Settings() {
         {/* PROFILE INFORMATION (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={UserIcon} size={48} />
@@ -182,39 +152,67 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="profile-avatar-row">
-            <div className="profile-avatar">
+          <div className="bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 rounded-2xl p-4 sm:p-5 mb-6 flex items-center gap-4">
+            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] flex items-center justify-center font-heading text-lg sm:text-xl font-medium shrink-0 shadow-inner">
               {mockUser?.name ? mockUser.name[0].toUpperCase() : <UserIcon size={24} />}
             </div>
-            <div>
-              <strong className="block text-[var(--text-primary)]">{mockUser?.name || 'Not signed in'}</strong>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{mockUser?.email || 'Sign in to personalize your profile'}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <strong className="block text-[var(--text-primary)] font-heading font-semibold text-base truncate">
+                  {mockUser?.name || 'Guest User'}
+                </strong>
+                {isMockAuthed ? (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    Signed In
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30">
+                    Local Session
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                {mockUser?.email || 'Sign in to personalize your profile across sessions'}
+              </p>
             </div>
           </div>
 
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div>
-              <label>Full Name</label>
-              <input type="text" defaultValue={mockUser?.name} placeholder="What should she call you?" disabled={!isMockAuthed} />
+          <form onSubmit={handleSaveProfile} className="space-y-4 font-body">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Full Name</label>
+                <input 
+                  type="text" 
+                  defaultValue={mockUser?.name} 
+                  placeholder="What should she call you?" 
+                  disabled={!isMockAuthed} 
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 focus:border-[var(--accent-primary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Email Address</label>
+                <input 
+                  type="email" 
+                  defaultValue={mockUser?.email} 
+                  disabled 
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
             </div>
 
-            <div>
-              <label>Email Address</label>
-              <input type="email" defaultValue={mockUser?.email} disabled />
-            </div>
-
-            <div className="pt-2">
-              <Button variant="primary" size="lg" type="submit" disabled={!isMockAuthed}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+              <Button variant="primary" size="lg" type="submit" disabled={!isMockAuthed} className="w-full sm:w-auto">
                 Save Changes
               </Button>
+
+              {!isMockAuthed && (
+                <p className="text-xs text-[var(--text-muted)] text-left sm:text-right">
+                  <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Log in</Link> to save a profile across sessions.
+                </p>
+              )}
             </div>
           </form>
-
-          {!isMockAuthed && (
-            <p className="profile-signin-note">
-              <Link to="/auth">Log in</Link> to save a profile across sessions.
-            </p>
-          )}
         </motion.section>
 
         {/* CARD 1: Voice Configuration (Span 7) */}
@@ -396,7 +394,7 @@ export default function Settings() {
               memories.map(mem => (
                 <div 
                   key={mem.id} 
-                  className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-xl hover:bg-[rgba(255,143,192,0.03)] active:bg-[rgba(255,143,192,0.06)] transition-colors group"
+                  className="interactive-surface flex items-center justify-between gap-4 p-3 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-xl group"
                 >
                   <p className="text-sm text-[var(--text-primary)] leading-relaxed">{mem.content}</p>
                   <button 
@@ -413,131 +411,100 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* CARD 5: Account & Data Portability (Span 12) */}
+        {/* DANGER ZONE (Minimalistic Destructive Controls) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl font-body"
+          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--text-danger)]/20 rounded-3xl p-6 sm:p-8 shadow-2xl font-body"
         >
-          <div className="flex items-center gap-4 mb-6">
-            <IconBadge icon={Download} size={48} />
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-6 sm:mb-8 pb-5 border-b border-[var(--text-primary)]/10">
+            <IconBadge 
+              icon={AlertTriangle} 
+              size={48} 
+              className="bg-[var(--text-danger)]/10 text-[var(--text-danger)] border-[var(--text-danger)]/20" 
+            />
             <div>
-              <Heading2>Account & Data Portability</Heading2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">Direct export and import of your local data</p>
+              <Heading2>Danger Zone</Heading2>
+              <p className="text-xs font-body text-[var(--text-muted)] mt-0.5">
+                Irreversible local reset and complete data wipe controls.
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
-            {/* Export Section */}
-            <div className="p-6 bg-[var(--bg-base)]/50 border border-[var(--accent-primary)]/10 rounded-2xl flex flex-col justify-between gap-6">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-1.5">Export My Data</h3>
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed">Download all local messages, memories, and settings as a JSON backup file.</p>
-              </div>
-              <Button
-                variant="primary"
-                size="lg"
-                type="button"
-                onClick={handleExportData}
-                className="w-full"
-              >
-                Export JSON
-              </Button>
-            </div>
-
-            {/* Import Section */}
-            <div className="p-6 bg-[var(--bg-base)]/50 border border-[var(--accent-primary)]/10 rounded-2xl flex flex-col justify-between gap-6">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-1.5">Import Data</h3>
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed mb-4">Restore state from a previously exported JSON backup file.</p>
-                
-                {/* Hidden Real File Input */}
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  accept=".json"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setImportFile(file);
-                  }}
-                  className="hidden"
-                />
-
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full truncate"
-                >
-                  {importFile ? importFile.name : "Choose File"}
-                </Button>
-              </div>
-
-              <Button
-                variant="secondary"
-                size="lg"
-                type="button"
-                onClick={() => handleImportData()}
-                disabled={!importFile}
-                className="w-full"
-              >
-                Import JSON
-              </Button>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* DANGER ZONE (Canonical Destructive Buttons) */}
-        <motion.section 
-          variants={entranceVariants}
-          className="md:col-span-12 mt-4 pt-8 border-t border-[var(--accent-primary)]/10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 text-xs font-body text-[var(--text-muted)]"
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-5 h-5 text-[var(--text-danger)]" />
-            <span className="text-sm text-[var(--text-muted)] font-medium">Destructive reset controls:</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+          {/* Controls Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* Soft Reset */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 sm:flex-initial">
-              <input 
-                type="text" 
-                value={resetConfirm}
-                onChange={(e) => setResetConfirm(e.target.value)}
-                placeholder="Type RESET"
-                className="sm:w-28 placeholder:text-[var(--text-muted)]/50"
-              />
-              <Button
-                variant="destructive"
-                size="lg"
-                type="button"
-                onClick={handleResetCompanion}
-                disabled={resetConfirm !== "RESET"}
-                className="w-full sm:w-auto"
-              >
-                Reset Chat & Memory
-              </Button>
+            <div className="flex flex-col justify-between space-y-4">
+              <div className="space-y-1">
+                <h3 className="font-heading font-medium text-base text-[var(--text-primary)]">
+                  Reset Chat & Memory
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  Erases active conversation history, rapport metrics, and recorded memories. Preserves companion outfit and voice presets.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="block text-[11px] font-medium text-[var(--text-muted)]">
+                  Type <span className="font-mono font-bold text-[var(--text-danger)]">RESET</span> to confirm:
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input 
+                    type="text" 
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    placeholder="RESET"
+                    className="px-3.5 py-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--text-primary)]/15 focus:border-[var(--text-danger)]/50 text-xs sm:text-sm font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all uppercase tracking-wider w-full sm:w-32"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    type="button"
+                    onClick={handleResetCompanion}
+                    disabled={resetConfirm !== "RESET"}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    Reset Chat
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            {/* Full Wipe */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 sm:flex-initial">
-              <input 
-                type="text" 
-                value={clearConfirm}
-                onChange={(e) => setClearConfirm(e.target.value)}
-                placeholder="Type CLEAR"
-                className="sm:w-28 placeholder:text-[var(--text-muted)]/50"
-              />
-              <Button
-                variant="destructive"
-                size="lg"
-                type="button"
-                onClick={handleClear}
-                disabled={clearConfirm !== "CLEAR"}
-                className="w-full sm:w-auto"
-              >
-                Wipe All App Data
-              </Button>
+            {/* Hard Wipe */}
+            <div className="flex flex-col justify-between space-y-4 md:border-l md:border-[var(--text-primary)]/10 md:pl-8">
+              <div className="space-y-1">
+                <h3 className="font-heading font-medium text-base text-[var(--text-primary)]">
+                  Wipe All Application Data
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  Permanently deletes all stored messages, memories, wardrobe preferences, and settings. Restores initial launch state.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="block text-[11px] font-medium text-[var(--text-muted)]">
+                  Type <span className="font-mono font-bold text-[var(--text-danger)]">CLEAR</span> to confirm:
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input 
+                    type="text" 
+                    value={clearConfirm}
+                    onChange={(e) => setClearConfirm(e.target.value)}
+                    placeholder="CLEAR"
+                    className="px-3.5 py-2.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--text-primary)]/15 focus:border-[var(--text-danger)]/50 text-xs sm:text-sm font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all uppercase tracking-wider w-full sm:w-32"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    type="button"
+                    onClick={handleClear}
+                    disabled={clearConfirm !== "CLEAR"}
+                    className="w-full sm:w-auto shrink-0"
+                  >
+                    Wipe All Data
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </motion.section>
@@ -545,11 +512,13 @@ export default function Settings() {
       </motion.div>
 
       {/* Local Storage Privacy Note */}
-      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-6 text-center font-body">
-        <p className="text-xs text-[var(--text-muted)] flex items-center justify-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-          Your data stays on this device. Fully private and locally stored.
-        </p>
+      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-6 font-body">
+        <div className="flex items-start sm:items-center justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0 mt-1.5 sm:mt-0" />
+          <p className="text-xs text-[var(--text-muted)] text-left sm:text-center leading-normal">
+            Your data stays on this device. Fully private and locally stored.
+          </p>
+        </div>
       </footer>
     </motion.div>
   );

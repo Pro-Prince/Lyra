@@ -561,17 +561,20 @@ h3, .heading-3 {
 }
 
 .btn-destructive {
-  background: transparent;
-  color: var(--text-danger);
-  border: 1px solid rgba(242, 168, 184, 0.3);
+  background: rgba(220, 38, 38, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 .btn-destructive:hover:not(:disabled) {
-  background: rgba(242, 168, 184, 0.08);
-  border-color: rgba(242, 168, 184, 0.5);
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
   transform: translateY(-1px);
 }
 .btn-destructive:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
+  background: #b91c1c;
 }
 
 .btn:focus-visible {
@@ -617,24 +620,42 @@ h3, .heading-3 {
 .content-card,
 .email-box,
 .outfit-card,
+.faq-row,
 .interactive-surface {
-  transition: transform var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
+  transition: transform var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal), background var(--transition-normal);
 }
+
 .card-standard:hover,
 .feature-card:hover,
 .content-card:hover,
 .email-box:hover,
 .outfit-card:hover,
+.faq-row:hover,
 .interactive-surface:hover {
   transform: translateY(-3px);
   border-color: rgba(255, 143, 192, 0.4);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(255, 143, 192, 0.15), 0 0 0 1px rgba(255, 143, 192, 0.05);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 
+              0 0 20px -5px rgba(255, 143, 192, 0.15), 
+              0 0 0 1px rgba(255, 143, 192, 0.05);
 }
+
+.outfit-card.selected,
+.faq-row.selected,
+.interactive-surface.selected {
+  transform: translateY(-3px);
+  border-color: rgba(255, 143, 192, 0.6);
+  background: rgba(255, 143, 192, 0.08);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), 
+              0 0 24px -4px rgba(255, 143, 192, 0.35), 
+              0 0 0 1px rgba(255, 143, 192, 0.1);
+}
+
 .card-standard:active,
 .feature-card:active,
 .content-card:active,
 .email-box:active,
 .outfit-card:active,
+.faq-row:active,
 .interactive-surface:active {
   transform: translateY(0) scale(0.99);
   box-shadow: none;
@@ -672,17 +693,12 @@ h3, .heading-3 {
 
 /* Legacy overrides removed - handled by Button component */
 
+/* FAQ Styling */
 .faq-row {
-  border-bottom: 1px solid rgba(255, 182, 213, 0.06);
-  padding: var(--space-md) var(--space-xs);
-  border-radius: 12px;
-  transition: background var(--transition-normal);
+  transition: all var(--transition-normal);
 }
-.faq-row:hover {
-  background: rgba(255, 143, 192, 0.03);
-}
-.faq-row:active {
-  background: rgba(255, 143, 192, 0.06);
+.faq-question {
+  font-family: var(--font-heading);
 }
 
 /* Outfit Showcase Section */
@@ -701,9 +717,9 @@ h3, .heading-3 {
 }
 .outfit-card {
   background: var(--bg-surface);
-  border: 1px solid rgba(255, 182, 213, 0.16);
-  border-radius: 20px;
-  padding: 16px;
+  border: 1px solid rgba(255, 182, 213, 0.10);
+  border-radius: 24px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -714,9 +730,7 @@ h3, .heading-3 {
   cursor: grabbing;
 }
 .outfit-card.selected {
-  border-color: var(--accent-primary);
-  background: rgba(255, 143, 192, 0.08);
-  box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 24px -6px rgba(255, 143, 192, 0.2);
+  /* Inherits from unified .outfit-card.selected in Standard Card section */
 }
 .outfit-card-canvas {
   width: 100%;
@@ -736,28 +750,7 @@ h3, .heading-3 {
   color: var(--text-primary);
   font-weight: 500;
 }
-.faq-row-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.faq-question {
-  flex: 1;
-  font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: 18px;
-  color: var(--text-primary);
-}
-.faq-row-header svg.rotated {
-  transform: rotate(180deg);
-  transition: transform var(--transition-normal);
-}
-.faq-answer {
-  margin-top: 12px;
-  margin-left: 48px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
+/* Legacy FAQ classes replaced by Tailwind in Landing.tsx */
 
 #features, #faq, #wardrobe {
   scroll-margin-top: 80px; /* 56px header + margin */

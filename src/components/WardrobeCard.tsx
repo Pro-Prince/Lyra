@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
+import { ArrowRight, Check } from 'lucide-react';
 import { loadCompanionModel } from '../lib/companionRenderer';
 import { frameOutfit } from '../lib/poseUtils';
+import { useOutfitThumbnail } from '../lib/outfitCache';
 
 export function useDragRotate(onDrag: (deltaX: number) => void) {
   const isDragging = useRef(false);
@@ -218,9 +220,9 @@ export function WardrobeCard({
 
   return (
     <div
-      className={`outfit-card group relative cursor-pointer select-none transition-all duration-200 ${
-        isSelected ? 'selected ring-2 ring-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-lg shadow-[var(--accent-primary)]/10' : 'hover:border-[var(--accent-primary)]/30 hover:bg-[var(--bg-elevated)]/20'
-      } ${className}`}
+      className={`outfit-card group relative cursor-pointer select-none transition-all duration-300 ${
+        isSelected ? "selected" : ""
+      } p-4 ${className}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

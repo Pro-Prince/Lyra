@@ -136,7 +136,7 @@ function OutfitShowcase() {
           <motion.div
             key={id}
             variants={entranceVariants}
-            className="group relative bg-[var(--bg-surface)]/80 backdrop-blur-xl border border-[var(--text-muted)]/15 hover:border-[var(--accent-primary)]/30 rounded-3xl p-5 sm:p-6 flex flex-col justify-between shadow-lg transition-all duration-300 hover:-translate-y-1"
+            className="feature-card group relative p-5 sm:p-6 flex flex-col justify-between"
           >
             {/* 3D Canvas Container */}
             <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/40 to-[var(--bg-surface)] relative border border-[var(--text-primary)]/5 z-10">
@@ -304,7 +304,7 @@ export default function Landing() {
             {/* Card 1: Voice & Vibe */}
             <motion.div 
               variants={entranceVariants}
-              className="feature-card flex flex-col justify-between shadow-sm"
+              className="feature-card flex flex-col justify-between"
             >
               <div>
                 <IconBadge icon={Volume2} size={48} />
@@ -320,7 +320,7 @@ export default function Landing() {
             {/* Card 2: 3D Live Companion Stage */}
             <motion.div 
               variants={entranceVariants}
-              className="feature-card flex flex-col justify-between shadow-sm"
+              className="feature-card flex flex-col justify-between"
             >
               <div>
                 <IconBadge icon={Sparkles} size={48} />
@@ -336,7 +336,7 @@ export default function Landing() {
             {/* Card 3: Reflective Memory */}
             <motion.div 
               variants={entranceVariants}
-              className="feature-card flex flex-col justify-between shadow-sm"
+              className="feature-card flex flex-col justify-between"
             >
               <div>
                 <IconBadge icon={BookOpen} size={48} />
@@ -378,10 +378,10 @@ export default function Landing() {
                   <motion.div 
                     key={faq.id} 
                     variants={entranceVariants}
-                    className={`faq-row cursor-pointer rounded-xl sm:rounded-2xl border transition-all duration-300 p-3.5 sm:p-5 ${
+                    className={`faq-row cursor-pointer rounded-2xl border p-4 sm:p-5 ${
                       isOpen
-                        ? "bg-[var(--bg-surface)] border-[var(--accent-primary)]/40 shadow-lg shadow-black/10"
-                        : "bg-[var(--bg-surface)]/70 hover:bg-[var(--bg-surface)] border-[var(--text-primary)]/12 hover:border-[var(--accent-primary)]/30"
+                        ? "selected bg-[var(--bg-surface)]"
+                        : "bg-[var(--bg-surface)] border-[var(--accent-primary)]/20"
                     }`}
                     onClick={() => toggleFaq(faq.id)}
                     role="button"
@@ -394,46 +394,43 @@ export default function Landing() {
                     }}
                     aria-expanded={isOpen}
                   >
-                    <div className="faq-row-header flex items-center justify-between gap-2.5 sm:gap-4 select-none">
-                      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-                        <div className="shrink-0">
-                          <IconBadge icon={faq.icon} size={34} className="hidden sm:flex" />
-                          <IconBadge icon={faq.icon} size={30} className="flex sm:hidden" />
+                    <div className="flex items-start gap-3.5 sm:gap-4 select-none">
+                      <IconBadge icon={faq.icon} size={36} className="shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2.5">
+                          <h3 className={`faq-question font-heading font-medium text-sm sm:text-base md:text-[17px] leading-snug transition-colors pt-0.5 ${
+                            isOpen ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]"
+                          }`}>
+                            {faq.question}
+                          </h3>
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors mt-0.5 ${
+                            isOpen ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-black/20 text-[var(--text-muted)]"
+                          }`}>
+                            <ChevronDown
+                              className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-300 ${
+                                isOpen ? "rotate-180" : ""
+                              }`}
+                            />
+                          </div>
                         </div>
-                        <span className={`faq-question font-heading font-medium text-sm sm:text-base md:text-[17px] leading-snug transition-colors ${
-                          isOpen ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]"
-                        }`}>
-                          {faq.question}
-                        </span>
-                      </div>
-                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                        isOpen ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-black/20 text-[var(--text-muted)]"
-                      }`}>
-                        <ChevronDown
-                          className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-300 ${
-                            isOpen ? "rotate-180" : ""
-                          }`}
-                        />
+
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25, ease: SIGNATURE_EASE }}
+                              className="overflow-hidden"
+                            >
+                              <p className="faq-answer mt-2.5 sm:mt-3 text-xs sm:text-sm md:text-[15px] text-[var(--text-muted)] leading-relaxed font-body">
+                                {faq.answer}
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-
-                    <AnimatePresence initial={false}>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.25, ease: SIGNATURE_EASE }}
-                          className="overflow-hidden"
-                        >
-                          <div className="border-t border-[var(--text-primary)]/10 mt-3 pt-3 sm:mt-3.5 sm:pt-3.5">
-                            <p className="faq-answer sm:pl-[44px] pr-1 text-xs sm:text-sm md:text-[15px] text-[var(--text-muted)] leading-relaxed font-body">
-                              {faq.answer}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </motion.div>
                 );
               })}
