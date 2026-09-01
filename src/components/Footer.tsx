@@ -30,7 +30,6 @@ export default function Footer() {
       window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } else {
       navigate("/");
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
   };
 
@@ -47,7 +46,7 @@ export default function Footer() {
               onClick={handleBrandClick}
               aria-label="Lyra Home"
             >
-              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform" />
+              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform" />
               <span className="wordmark font-heading font-medium text-lg sm:text-[20px] text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight">Lyra</span>
             </Link>
             <p className="text-[var(--text-muted)] text-xs sm:text-[14px] leading-relaxed max-w-sm">

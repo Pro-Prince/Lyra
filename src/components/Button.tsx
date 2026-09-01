@@ -5,6 +5,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: 'primary' | 'secondary' | 'destructive';
   size?: 'lg' | 'sm';
   icon?: React.ComponentType<{ size?: number; className?: string }>;
+  iconPlacement?: 'left' | 'right';
   to?: string;
   href?: string;
   target?: string;
@@ -17,6 +18,7 @@ export function Button({
   variant = 'primary',
   size = 'lg',
   icon: Icon,
+  iconPlacement = 'right',
   children,
   to,
   href,
@@ -29,10 +31,11 @@ export function Button({
   const iconSize = size === 'lg' ? 20 : 16;
 
   const content = (
-    <>
+    <div className="flex items-center gap-2">
+      {Icon && iconPlacement === 'left' && <Icon size={iconSize} />}
       <span>{children}</span>
-      {Icon && <Icon size={iconSize} />}
-    </>
+      {Icon && iconPlacement === 'right' && <Icon size={iconSize} />}
+    </div>
   );
 
   if (to && !disabled) {

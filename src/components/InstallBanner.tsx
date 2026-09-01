@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { X, Share } from 'lucide-react';
+import { X, Share, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './Button';
 import { useToast } from '../hooks/useToast';
@@ -106,31 +106,21 @@ export function InstallBanner() {
           
           <div className="install-banner-text">
             <strong>Install Lyra</strong>
-            <span>{isIOSDevice ? 'Tap Share, then Add to Home Screen' : 'Add to home screen'}</span>
+            <span>Add to home screen for quick access</span>
           </div>
           
           <div className="install-banner-actions">
-            {isIOSDevice ? (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={triggerInstall}
-                aria-label="How to install on iOS"
-                className="gap-1.5 shadow-sm"
-              >
-                <Share size={14} className="shrink-0" />
-                <span>Install</span>
-              </Button>
-            ) : (
-              <Button 
-                variant="primary"
-                size="sm"
-                onClick={triggerInstall}
-                className="shadow-sm"
-              >
-                Install
-              </Button>
-            )}
+            <Button 
+              variant="primary"
+              size="sm"
+              onClick={triggerInstall}
+              icon={isIOSDevice ? Share : Plus}
+              iconPlacement="left"
+              className="shadow-sm min-w-[90px]"
+              aria-label={isIOSDevice ? "How to install on iOS" : "Install Lyra"}
+            >
+              Install
+            </Button>
 
             <button 
               type="button"
