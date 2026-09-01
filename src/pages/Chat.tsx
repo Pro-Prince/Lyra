@@ -8,7 +8,6 @@ import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import { OutfitThumbnail } from "../components/Thumbnails";
 import { WardrobeCard } from "../components/WardrobeCard";
-import SubtitleAndSpectrum from "../components/SubtitleAndSpectrum";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { PresenceTopBar } from "../components/PresenceTopBar";
@@ -42,27 +41,109 @@ const logoWatermarkImg = new Image();
 logoWatermarkImg.crossOrigin = 'anonymous';
 logoWatermarkImg.src = '/images/Logo.png';
 
+const ensureLogoLoaded = (): Promise<HTMLImageElement> => {
+  return new Promise((resolve) => {
+    if (logoWatermarkImg.complete && logoWatermarkImg.naturalWidth > 0) {
+      resolve(logoWatermarkImg);
+      return;
+    }
+    const handleLoad = () => resolve(logoWatermarkImg);
+    logoWatermarkImg.addEventListener('load', handleLoad, { once: true });
+    logoWatermarkImg.addEventListener('error', handleLoad, { once: true });
+    if (!logoWatermarkImg.src) {
+      logoWatermarkImg.src = '/images/Logo.png';
+    }
+  });
+};
+
 const drawLyraLogoWatermark = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  logoImg: HTMLImageElement
+  logoImg: HTMLImageElement | null
 ) => {
-  if (!logoImg || !logoImg.complete || logoImg.naturalWidth === 0) return;
+  ctx.save();
+
+  const margin = Math.round(width * 0.035); // ~38px on 1080px
+  const logoSize = Math.round(width * 0.052); // ~56px on 1080px
+  const cornerRadius = Math.round(logoSize * 0.28); // ~16px
+  const pillPaddingX = Math.round(logoSize * 0.25); // ~14px
+  const pillPaddingY = Math.round(logoSize * 0.22); // ~12px
+  const gap = Math.round(logoSize * 0.24); // ~13px
+
+  // Configure text style
+  const fontSize = Math.round(logoSize * 0.58); // ~32px
+  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = 'middle';
+  
+  const textMetrics = ctx.measureText('Lyra');
+  const textWidth = textMetrics.width;
+
+  const pillWidth = pillPaddingX + logoSize + gap + textWidth + pillPaddingX + 6;
+  const pillHeight = logoSize + pillPaddingY * 2;
+  const pillCornerRadius = Math.round(pillHeight * 0.32);
+
+  const pillX = width - pillWidth - margin;
+  const pillY = height - pillHeight - margin;
+
+  // 1. Draw Glassmorphism Pill Backdrop
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 12, 24, 0.75)';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+  ctx.shadowBlur = Math.round(width * 0.015);
+  ctx.shadowOffsetY = Math.round(width * 0.005);
+
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillCornerRadius);
+  ctx.fill();
+  ctx.restore();
+
+  // Pill Border Stroke
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 143, 192, 0.35)';
+  ctx.lineWidth = Math.max(1.5, Math.round(width * 0.002));
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillCornerRadius);
+  ctx.stroke();
+  ctx.restore();
+
+  // 2. Draw Logo Icon Badge
+  const logoX = pillX + pillPaddingX;
+  const logoY = pillY + pillPaddingY;
+
+  if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(logoX, logoY, logoSize, logoSize, cornerRadius);
+    ctx.clip();
+    ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+    ctx.restore();
+
+    // Logo Icon Outline matching .logo-badge-img
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 143, 192, 0.75)';
+    ctx.lineWidth = Math.max(1.5, Math.round(logoSize * 0.06));
+    ctx.beginPath();
+    ctx.roundRect(logoX, logoY, logoSize, logoSize, cornerRadius);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 3. Draw "Lyra" Brand Text
+  const textX = logoX + logoSize + gap;
+  const textY = pillY + pillHeight / 2;
 
   ctx.save();
-  // Clean logo watermark positioned at bottom-right of 1080x1080 canvas
-  const logoSize = Math.round(width * 0.085); // ~92px at 1080px
-  const margin = Math.round(width * 0.035);   // ~38px margin
-  const x = width - logoSize - margin;
-  const y = height - logoSize - margin;
+  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = 'middle';
+  
+  // Text glow and color
+  ctx.shadowColor = 'rgba(255, 143, 192, 0.5)';
+  ctx.shadowBlur = Math.round(fontSize * 0.3);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText('Lyra', textX, textY);
+  ctx.restore();
 
-  // Add subtle drop shadow to logo
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = Math.round(12 * (width / 1000));
-  ctx.shadowOffsetY = Math.round(3 * (width / 1000));
-
-  ctx.drawImage(logoImg, x, y, logoSize, logoSize);
   ctx.restore();
 };
 
@@ -71,6 +152,8 @@ export default function Chat() {
   const { showError, showInfo } = useToast();
   const { isMockAuthed } = useMockAuthState();
   const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
+  const [tooManyRequestsCount, setTooManyRequestsCount] = useState(0);
+  const rateLimitCountRef = useRef<number>(0);
 
   useEffect(() => {
     if (!isMockAuthed) {
@@ -253,46 +336,13 @@ export default function Chat() {
   useEffect(() => {
     async function loadData() {
       const msgs = await getMessages();
-      const sorted = msgs.sort((a, b) => a.timestamp - b.timestamp);
-      if (sorted.length === 0) {
-        const initialSampleMsgs = [
-          {
-            id: "sample-1",
-            role: "user",
-            content: "How are you today, Lyra?",
-            timestamp: Date.now() - 1000 * 60 * 2
-          },
-          {
-            id: "sample-2",
-            role: "model",
-            content: "I'm doing great, Aryan! ✨\nReady to keep you company and make your day better.",
-            timestamp: Date.now() - 1000 * 60 * 2 + 5000
-          },
-          {
-            id: "sample-3",
-            role: "user",
-            content: "Tell me something interesting.",
-            timestamp: Date.now() - 1000 * 60 * 1
-          },
-          {
-            id: "sample-4",
-            role: "model",
-            content: "Did you know? The deepest part of the ocean is the Mariana Trench, about 36,070 feet deep! 🌊",
-            timestamp: Date.now() - 1000 * 60 * 1 + 5000
-          }
-        ];
-        setMessages(initialSampleMsgs);
-        for (const sample of initialSampleMsgs) {
-          await saveMessage(sample);
-        }
-      } else {
-        setMessages(sorted);
-      }
+      const sorted = msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      setMessages(sorted);
       
       // If there is a recent conversation message, show as live initial subtitle
       if (sorted.length > 0) {
         const last = sorted[sorted.length - 1];
-        if (Date.now() - last.timestamp < 1000 * 60 * 15) {
+        if (Date.now() - (last.timestamp || 0) < 1000 * 60 * 15) {
           triggerSubtitle(last.role as any, last.content);
         }
       }
@@ -672,6 +722,38 @@ export default function Chat() {
     }
   };
 
+  const handleRateLimitFallback = (targetMsgId?: string | null) => {
+    rateLimitCountRef.current += 1;
+    const count = rateLimitCountRef.current;
+    const fallbackText = count === 1
+      ? "I'm taking a little breather right now! Feel free to come back in a moment and we can chat more."
+      : "I'm feeling a little sleepy right now. We can catch up in a little while";
+
+    const msgId = targetMsgId || crypto.randomUUID();
+    const existingIndex = messagesRef.current.findIndex(m => m.id === msgId);
+
+    const fallbackMsg = {
+      id: msgId,
+      role: 'model' as const,
+      content: fallbackText,
+      timestamp: Date.now()
+    };
+
+    if (existingIndex >= 0) {
+      messagesRef.current = messagesRef.current.map(m => m.id === msgId ? fallbackMsg : m);
+    } else {
+      messagesRef.current = [...messagesRef.current, fallbackMsg];
+    }
+
+    setMessages([...messagesRef.current]);
+    saveMessage(fallbackMsg);
+    setCurrentEmotion('thoughtful');
+    triggerSubtitle('model', fallbackText);
+    speakTextChunk(fallbackText);
+    setAppState(AppState.IDLE);
+    setIsStreaming(false);
+  };
+
   const executeSend = async (textToSend: string) => {
     if (!textToSend.trim() || isSubmittingRef.current || appStateRef.current === AppState.PROCESSING) return;
     isSubmittingRef.current = true;
@@ -692,7 +774,6 @@ export default function Chat() {
 
     const currentMessages = messagesRef.current;
     setMessages(prev => [...prev, userMsg]);
-    triggerSubtitle('user', textToSend.trim());
     setAppState(AppState.PROCESSING);
     await saveMessage(userMsg);
     
@@ -749,14 +830,8 @@ export default function Chat() {
             if (line.startsWith('data: ')) {
                const data = JSON.parse(line.slice(6));
                if (data.error) {
-                 console.error('[ChatAPI Stream Error]', data.error);
-                 if (modelMsgId) {
-                   setMessages(prev => prev.filter(m => m.id !== modelMsgId));
-                   messagesRef.current = messagesRef.current.filter(m => m.id !== modelMsgId);
-                 }
-                 showError(data.error.replace(/\[.*?\]/g, '').trim());
-                 setAppState(AppState.IDLE);
-                 setIsStreaming(false);
+                 console.warn('[ChatAPI Stream Error / Rate limit]:', data.error);
+                 handleRateLimitFallback(modelMsgId);
                  return;
                }
                if (data.text) {
@@ -856,12 +931,8 @@ export default function Chat() {
       if (error.name === 'AbortError') {
          console.log('Fetch aborted');
       } else {
-        console.error('[ChatAPI] Chat request failed:', error);
-        if (modelMsgId) {
-          setMessages(prev => prev.filter(m => m.id !== modelMsgId));
-        }
-        showError("Lost connection for a second. Please try sending that again.");
-        setAppState(AppState.IDLE);
+        console.warn('[ChatAPI] Chat request hit error / rate limit:', error);
+        handleRateLimitFallback(modelMsgId);
       }
     } finally {
       isSubmittingRef.current = false;
@@ -886,7 +957,7 @@ export default function Chat() {
 
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     const canvas = document.querySelector('canvas');
     if (!canvas) {
       showError('No active stage found to capture');
@@ -919,8 +990,9 @@ export default function Chat() {
 
     ctx.drawImage(canvas, sx, sy, minDim, minDim, 0, 0, exportSize, exportSize);
 
-    // Draw watermark logo ONLY (exact logo image in bottom-right corner)
-    drawLyraLogoWatermark(ctx, exportSize, exportSize, logoWatermarkImg);
+    // Ensure logo image is loaded & draw exact brand logo lockup watermark
+    const logoImg = await ensureLogoLoaded();
+    drawLyraLogoWatermark(ctx, exportSize, exportSize, logoImg);
 
     // Download instantly with short, clean filename (no timestamps or underscores)
     try {
@@ -1000,10 +1072,6 @@ export default function Chat() {
 
   return (
     <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#0b0a12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
-        {/* Camera Shutter Flash Effect */}
-        {isCapturingFlash && (
-          <div className="fixed inset-0 bg-white z-[99999] pointer-events-none transition-opacity duration-200 opacity-90 animate-pulse" />
-        )}
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
         {(isSettingsOpen || isWardrobeOpen || isMobileMenuOpen) && (
@@ -1058,6 +1126,10 @@ export default function Chat() {
 
             {/* Centered 3D VRM Model Canvas */}
             <div className="absolute inset-0 z-0 pointer-events-auto">
+              {/* Camera Shutter Flash Effect */}
+              {isCapturingFlash && (
+                <div className="absolute inset-0 bg-white z-[99999] pointer-events-none transition-opacity duration-200 opacity-30" />
+              )}
               <CompanionStage 
                 accentColor={activeAccent} 
                 isCallMode={isCallMode} 
@@ -1080,7 +1152,7 @@ export default function Chat() {
             {/* Bottom HUD Controls on Mobile (5 circular buttons + Status Pill) */}
             <div className="z-20 w-full flex flex-col items-center gap-2 pb-2 pointer-events-none">
               {/* Row of 5 Circular Control Buttons */}
-              <div className="flex items-center justify-around px-2.5 w-full max-w-xs sm:max-w-sm mx-auto">
+              <div className="flex items-center justify-between gap-1.5 px-3 w-full max-w-sm mx-auto">
                 {/* 1. Camera */}
                 <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
                   <button 
@@ -1123,7 +1195,7 @@ export default function Chat() {
                         : `0 0 14px ${activeAccent}44`
                     }}
                     className={`w-12.5 h-12.5 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer border border-transparent hover:border-white/20 ${
-                      isListening ? 'ring-4 ring-[var(--accent-primary)]/40 animate-pulse' : 'hover:brightness-110'
+                      isListening ? 'bg-[var(--bg-base)] ring-2 ring-[var(--accent-primary)]/50' : 'hover:brightness-110'
                     }`}
                   >
                     <Mic className="w-5.5 h-5.5 text-white" />
@@ -1163,7 +1235,7 @@ export default function Chat() {
               {/* Status Waveform Pill */}
               <div className="pointer-events-auto px-3.5 py-1 rounded-full bg-[var(--bg-panel)]/85 backdrop-blur-xl border border-[var(--text-primary)]/15 flex items-center gap-2.5 shadow-lg max-w-[85%]">
                 <span className="text-[11px] sm:text-xs text-[var(--text-primary)]/90 font-medium truncate">
-                  {isListening ? "Lyra is listening..." : isLoading ? "Lyra is thinking..." : isLyraSpeaking ? "Lyra is speaking..." : isMuted ? "Microphone is muted" : "Lyra is ready"}
+                  {isListening ? "Lyra is listening..." : isLoading ? "Typing..." : isLyraSpeaking ? "Lyra is speaking..." : isMuted ? "Microphone is muted" : "Lyra is ready"}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <span style={{ backgroundColor: activeAccent }} className={`w-0.5 rounded-full transition-all duration-150 ${isLyraSpeaking || isListening ? 'h-3 animate-pulse' : 'h-1 opacity-40'}`} />
@@ -1242,7 +1314,6 @@ export default function Chat() {
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full animate-bounce" />
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
                         <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
-                        <span className="text-xs text-[var(--text-muted)] italic ml-1">Lyra is thinking...</span>
                       </div>
                     </div>
                   )}
@@ -1364,7 +1435,7 @@ export default function Chat() {
             </div>
 
             {/* HUD Bottom Controls */}
-            <div className="control-bar z-20 flex items-end justify-center gap-2 sm:gap-6 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
+            <div className="control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
               {/* 1. View */}
               <div className="flex flex-col items-center gap-2 pointer-events-auto">
                 <button 
@@ -1401,7 +1472,7 @@ export default function Chat() {
                    onClick={toggleMic}
                    title={isListening ? "Listening... Click to stop" : "Tap to Speak to Lyra"}
                    className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg hover:brightness-105 active:scale-95 cursor-pointer ${
-                     isListening ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] ring-2 ring-[var(--accent-primary)] animate-pulse' : 'bg-[var(--accent-primary)] text-[var(--bg-base)]'
+                     isListening ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)]' : 'bg-[var(--accent-primary)] text-[var(--bg-base)]'
                    }`}
                 >
                   <Mic className="w-7 h-7" />
@@ -1443,20 +1514,7 @@ export default function Chat() {
             </div>
 
             {/* Listening / Subtitle Pill */}
-            <AnimatePresence>
-              {subtitles.length > 0 && (
-                <motion.div 
-                   initial={{ opacity: 0, y: 10 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: -10 }}
-                   className="absolute bottom-36 z-20 pointer-events-none"
-                >
-                   <div className="px-5 py-2.5 rounded-full bg-[var(--bg-elevated)]/60 backdrop-blur-md border border-[var(--text-primary)]/10 text-sm text-[var(--text-primary)] flex items-center gap-3 shadow-xl max-w-[80vw] text-center">
-                       {subtitles[subtitles.length - 1].text}
-                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Subtitle overlay removed as requested */}
           </div>
           </div>
 
@@ -1540,7 +1598,6 @@ export default function Chat() {
                             transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.36 }}
                           />
                         </div>
-                        <span className="text-[10px] text-[var(--text-primary)]/30 px-1 font-medium italic animate-pulse">Lyra is thinking...</span>
                       </div>
                     </motion.div>
                   )}
@@ -1829,7 +1886,7 @@ export default function Chat() {
                     <span className="text-xs font-body text-[var(--text-primary)]/40 z-10">Preparing wardrobe...</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {[
                       { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
                       { id: '/models/lyra_casual.vrm', label: 'Casual', tag: 'Everyday' },

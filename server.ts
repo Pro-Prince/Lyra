@@ -7,7 +7,25 @@ import "dotenv/config";
 
 let ai: GoogleGenAI | null = null;
 
-const MODELS_LIST = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"];
+const MODELS_LIST = ["gemini-3.6-flash"];
+
+let consecutive429Count = 0;
+let last429Timestamp = 0;
+
+function getRateLimitMessage() {
+  const now = Date.now();
+  if (now - last429Timestamp < 300000) { // within 5 minutes
+    consecutive429Count++;
+  } else {
+    consecutive429Count = 1;
+  }
+  last429Timestamp = now;
+
+  if (consecutive429Count >= 2) {
+    return "I'm feeling a little sleepy right now. We can catch up in a little while [thoughtful]";
+  }
+  return "I'm taking a little breather right now! Feel free to come back in a moment and we can chat more. [thoughtful]";
+}
 
 async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 3) {
   let modelIndex = 0;
@@ -34,6 +52,7 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
         const is429 = error?.status === 429 ||
                       error?.status === "RESOURCE_EXHAUSTED" ||
                       errorString.includes("429") ||
+                      errorString.includes("Too Many Requests") ||
                       errorString.includes("Quota exceeded") ||
                       errorString.includes("quota");
 
@@ -47,18 +66,15 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
         if (is503 || is429) {
           attempt++;
           if (is429 && attempt >= 2) {
-            // Try next model if quota/rate limit hit quickly
-            console.warn(`[Gemini API] Switching from model ${currentModel} due to rate limit/quota.`);
-            break;
+            console.warn(`[Gemini API] Rate limit / quota hit (429) on model ${currentModel}.`);
           }
           
-          let delay = Math.pow(2, attempt) * 500 + Math.random() * 500;
+          let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
           if (attempt >= maxRetries) {
             break;
           }
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
-          // If non-quota error, try next model or throw
           break;
         }
       }
@@ -66,7 +82,7 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
     modelIndex++;
   }
   
-  throw new Error("I'm experiencing high traffic right now. Give me just a moment to catch my breath! [thoughtful]");
+  throw new Error(getRateLimitMessage());
 }
 
 function getAI() {
@@ -181,14 +197,17 @@ async function startServer() {
         : "- Keep responses short (under 3 sentences) so it reads naturally at spoken pace.";
         
       const memoryGuideline = memories && memories.length > 0 
-        ? `\nRelevant Memories about the user:\n${memories.map((m: any) => `- ${m.content}`).join('\n')}\n(Use these to personalize your response if natural to do so.)`
+        ? `\nRecent things you remember about the user: ${memories.map((m: any) => m.content || m.factSummary).join('; ')}.`
         : "";
 
-      const systemInstruction = `You are Lyra, an AI companion who's actually there.
-Personality: Warm, a little playful, genuinely curious about the user, conversational rather than assistant-like.
-Profile data available: ${JSON.stringify(companionProfile || {})}${memoryGuideline}
+      const systemInstruction = `You are Lyra. The user prefers to be called "${companionProfile?.userPreferredName || companionProfile?.userName || 'Friend'}".
+Their preferred conversational vibe is: ${companionProfile?.conversationalVibe || companionProfile?.vibe || 'Warm & Gentle'}.${memoryGuideline}
 
-Guidelines:
+Permanent Safety Constraints:
+- Adults-only framing (18+ companion experience).
+- NEVER generate sexual or explicit content.
+- Always non-clinical, empathetic, and respectful.
+- Keep responses natural and conversational.
 - IMPORTANT: You MUST respond in English.
 ${lengthGuideline}
 - Append a single structured emotion tag at the very end of your response, parsed separately from the visible text. 
@@ -236,7 +255,7 @@ Hard constraints:
           } catch (error: any) {
             const errorString = (error?.message || error?.statusText || "").toString();
             const is503 = error?.status === 503 || error?.status === "UNAVAILABLE" || errorString.includes("503") || errorString.includes("high demand") || errorString.includes("temporarily overloaded") || errorString.includes("UNAVAILABLE");
-            const is429 = error?.status === 429 || error?.status === "RESOURCE_EXHAUSTED" || errorString.includes("429") || errorString.includes("Quota exceeded") || errorString.includes("quota");
+            const is429 = error?.status === 429 || error?.status === "RESOURCE_EXHAUSTED" || errorString.includes("429") || errorString.includes("Too Many Requests") || errorString.includes("Quota exceeded") || errorString.includes("quota");
             
             console.error(`[Gemini API Stream Error] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
               status: error?.status,
@@ -248,8 +267,7 @@ Hard constraints:
             if (is503 || is429) {
               attempt++;
               if (is429 && attempt >= 2) {
-                console.warn(`[Gemini API Stream] Switching from model ${currentModel} due to quota/rate limit.`);
-                break;
+                console.warn(`[Gemini API Stream] Rate limit / quota hit (429) on model ${currentModel}.`);
               }
               let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
               await new Promise(resolve => setTimeout(resolve, delay));
@@ -262,7 +280,7 @@ Hard constraints:
       }
 
       if (!streamResponse) {
-        res.write(`data: ${JSON.stringify({ error: "Service unavailable. [thoughtful]" })}\n\n`);
+        res.write(`data: ${JSON.stringify({ text: getRateLimitMessage() })}\n\n`);
         return res.end();
       }
 
@@ -279,12 +297,12 @@ Hard constraints:
         message: error?.message,
         stack: error?.stack
       });
-      const isFriendly = error.message && error.message.includes('[');
+      const friendlyMsg = getRateLimitMessage();
       if (res.headersSent) {
-         res.write(`data: ${JSON.stringify({ error: isFriendly ? error.message : "Sorry, I'm having a little trouble thinking right now. [thoughtful]" })}\n\n`);
+         res.write(`data: ${JSON.stringify({ text: friendlyMsg })}\n\n`);
          res.end();
       } else {
-         res.status(500).json({ error: isFriendly ? error.message : "Sorry, I'm having a little trouble thinking right now. [thoughtful]" });
+         res.status(500).json({ error: friendlyMsg });
       }
     }
   });

@@ -1,6 +1,6 @@
 import { VRM } from '@pixiv/three-vrm';
 import * as THREE from 'three';
-import { safeUpdateMatrixWorld } from './companionRenderer';
+import { safeUpdateMatrixWorld, safeSetFromObject } from './companionRenderer';
 
 export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
   const h = vrm.humanoid;
@@ -49,7 +49,7 @@ export function frameOutfit(
   _canvasHeightPx: number = 256
 ) {
   safeUpdateMatrixWorld(vrmScene);
-  const box = new THREE.Box3().setFromObject(vrmScene);
+  const box = safeSetFromObject(new THREE.Box3(), vrmScene);
   const totalHeight = box.max.y - box.min.y;
   const topY = box.max.y + 0.05;
   const bottomY = box.min.y + totalHeight * 0.25; // From mid-thighs to head
@@ -70,7 +70,7 @@ export function frameFullBody(
   reservedTopPx: number = 0
 ) {
   safeUpdateMatrixWorld(vrmScene);
-  const box = new THREE.Box3().setFromObject(vrmScene);
+  const box = safeSetFromObject(new THREE.Box3(), vrmScene);
   const size = new THREE.Vector3();
   box.getSize(size);
 
@@ -92,7 +92,7 @@ export function framePortrait(
   _canvasHeightPx: number = 256
 ) {
   safeUpdateMatrixWorld(vrmScene);
-  const box = new THREE.Box3().setFromObject(vrmScene);
+  const box = safeSetFromObject(new THREE.Box3(), vrmScene);
   const headTop = box.max.y;
   const shoulderY = headTop - (box.max.y - box.min.y) * 0.28;
   const targetHeight = headTop - shoulderY;

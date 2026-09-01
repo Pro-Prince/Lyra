@@ -124,7 +124,7 @@ function OutfitShowcase() {
 
             {/* Info & Action CTA */}
             <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center z-10">
-              <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-5">
+              <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-3">
                 {label}
               </h3>
 

@@ -5,7 +5,8 @@ import { Volume2, Sparkles, ArrowRight, Heart, MessageSquare, Compass, ShieldChe
 import CompanionStage from "../components/CompanionStage";
 import { Heading2, BodyText } from "../components/Typography";
 import Button from "../components/Button";
-import { getLocalProfile, saveLocalProfile, saveCompanion, saveMemory } from "../lib/storage";
+import { getLocalProfile, saveLocalProfile, getCompanion, saveCompanion, saveMemory, saveMessage } from "../lib/storage";
+import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
@@ -31,6 +32,7 @@ export default function Onboarding() {
   const { setMockAuthed } = useMockAuthState();
   const [adultConfirmed, setAdultConfirmed] = useState<boolean | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [_modelLoaded, setModelLoaded] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -183,51 +185,99 @@ export default function Onboarding() {
   };
 
   const handleFinish = async () => {
+    setIsFinishing(true);
     const finalName = userName.trim() || "Friend";
-    
-    const existingProfile = await import('../lib/storage').then(m => m.getLocalProfile());
-    await import('../lib/storage').then(m => m.saveLocalProfile({
-      ...existingProfile,
-      name: finalName,
-      initialized: true,
-      adultConfirmed: true
-    }));
 
-    const existingCompanion = await import('../lib/storage').then(m => m.getCompanion());
-    await import('../lib/storage').then(m => m.saveCompanion({
-      ...existingCompanion,
-      name: "Lyra",
-      userName: finalName,
-      vibe: selectedVibe,
-      interests: selectedInterests,
-      voiceUri: selectedVoiceUri,
-      pitch: 1.05,
-      rate: 0.98,
-      language: "en-US",
-      initialized: true,
-      outfit: existingCompanion?.outfit || "/models/lyra.vrm"
-    }));
-
-    await saveMemory({
-      id: `mem-intro-${Date.now()}-1`,
-      content: `User prefers to be called "${finalName}".`,
-      timestamp: Date.now()
-    });
-
-    if (selectedInterests.length > 0) {
+    async function saveOnboardingContext({ name, vibe, topics }: { name: string; vibe: string; topics: string[] }) {
       await saveMemory({
-        id: `mem-intro-${Date.now()}-2`,
-        content: `User enjoys topics related to: ${selectedInterests.join(", ")}. Preferred conversational vibe: ${selectedVibe}.`,
-        timestamp: Date.now()
+        factSummary: `User prefers to be called "${name}".`,
+        category: 'identity',
+      });
+      await saveMemory({
+        factSummary: `User enjoys topics related to: ${topics.join(', ')}. Preferred conversational vibe: ${vibe}.`,
+        category: 'preferences',
+      });
+      
+      const existingCompanion = await getCompanion();
+      await saveCompanion({
+        ...existingCompanion,
+        name: "Lyra",
+        userName: name,
+        userPreferredName: name, // Structured field
+        conversationalVibe: vibe, // Structured field
+        vibe: vibe,
+        interests: topics,
+        voiceUri: selectedVoiceUri,
+        pitch: 1.05,
+        rate: 0.98,
+        language: "en-US",
+        initialized: true,
+        outfit: existingCompanion?.outfit || "/models/lyra.vrm"
       });
     }
 
-    if ((window as any).playGesture) {
-      (window as any).playGesture("nod");
+    async function generateFirstMessage({ name, vibe, topics }: { name: string; vibe: string; topics: string[] }) {
+      const specialPrompt = `
+This is the very first message to a brand new user, right after they finished onboarding.
+Their name is "${name}". Their preferred vibe is "${vibe}".
+They said they're interested in: ${topics.join(', ')}.
+Greet them warmly for the very first time, in a tone that genuinely matches their chosen vibe.
+If it fits naturally, you can reference one of their interests, don't list all of them mechanically.
+Keep it to 2-3 sentences. This should feel like an actual first hello, not a form letter.
+      `.trim();
+
+      // Use the real AI pipeline
+      const response = await sendMessage([], specialPrompt);
+      return response;
     }
 
-    setMockAuthed(true);
-    navigate("/chat");
+    try {
+      // 1. Update local profile
+      const existingProfile = await getLocalProfile();
+      await saveLocalProfile({
+        ...existingProfile,
+        name: finalName,
+        initialized: true,
+        adultConfirmed: true
+      });
+
+      // 2. Save onboarding context
+      await saveOnboardingContext({
+        name: finalName,
+        vibe: selectedVibe,
+        topics: selectedInterests
+      });
+
+      // 3. Generate first message through AI
+      const aiResponse = await generateFirstMessage({
+        name: finalName,
+        vibe: selectedVibe,
+        topics: selectedInterests
+      });
+
+      // 4. Save the AI message to history
+      await saveMessage({
+        id: crypto.randomUUID(),
+        role: 'model',
+        content: aiResponse.text,
+        emotionTag: aiResponse.emotionTag,
+        actionTag: aiResponse.actionTag,
+        timestamp: Date.now()
+      });
+
+      if ((window as any).playGesture) {
+        (window as any).playGesture("nod");
+      }
+
+      setMockAuthed(true);
+      navigate("/chat");
+    } catch (error) {
+      console.error("Onboarding finish error:", error);
+      setMockAuthed(true);
+      navigate("/chat");
+    } finally {
+      setIsFinishing(false);
+    }
   };
 
   const currentEmotion = step === 1 ? "warm" : step === 3 ? "playful" : "thoughtful";
@@ -582,8 +632,9 @@ export default function Onboarding() {
                       icon={ArrowRight}
                       onClick={handleNext}
                       className="w-full"
+                      disabled={isFinishing}
                     >
-                      Begin
+                      {isFinishing ? "Preparing Lyra..." : "Begin"}
                     </Button>
                   </div>
                 </motion.div>

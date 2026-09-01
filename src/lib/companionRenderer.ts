@@ -3,6 +3,27 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin } from '@pixiv/three-vrm';
 import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 
+// Global safety guard for Three.js Object3D matrixWorld updates across all VRM/Canvas scenes
+if (typeof window !== 'undefined' && THREE.Object3D) {
+  const originalUpdateMatrixWorld = THREE.Object3D.prototype.updateMatrixWorld;
+  THREE.Object3D.prototype.updateMatrixWorld = function (force?: boolean) {
+    if (this.parent === undefined) {
+      this.parent = null;
+    }
+    if (!this.matrixWorld) {
+      this.matrixWorld = new THREE.Matrix4();
+    }
+    if (!this.matrix) {
+      this.matrix = new THREE.Matrix4();
+    }
+    try {
+      originalUpdateMatrixWorld.call(this, force);
+    } catch (err) {
+      console.warn('[THREE.Object3D.updateMatrixWorld] Handled matrix exception:', err);
+    }
+  };
+}
+
 export const MODEL_FILES: Record<string, string> = {
   lyra: '/models/lyra.vrm',
   lyra_casual: '/models/lyra_casual.vrm',
@@ -28,13 +49,86 @@ function createLoader() {
   return loader;
 }
 
+export function safeUpdateVRM(vrm: VRM | null | undefined, delta: number): void {
+  if (!vrm || !vrm.scene) return;
+  try {
+    // Sanitize node parent references: replace undefined with null
+    vrm.scene.traverse((child: THREE.Object3D) => {
+      if (child.parent === undefined) {
+        child.parent = null;
+      }
+      if (!child.matrixWorld) {
+        child.matrixWorld = new THREE.Matrix4();
+      }
+      if (!child.matrix) {
+        child.matrix = new THREE.Matrix4();
+      }
+    });
+
+    if (vrm.lookAt?.target) {
+      if (vrm.lookAt.target.parent === undefined) {
+        vrm.lookAt.target.parent = null;
+      }
+      if (!vrm.lookAt.target.matrixWorld) {
+        vrm.lookAt.target.matrixWorld = new THREE.Matrix4();
+      }
+      if (!vrm.lookAt.target.matrix) {
+        vrm.lookAt.target.matrix = new THREE.Matrix4();
+      }
+    }
+
+    vrm.update(delta);
+  } catch (err) {
+    console.warn('[safeUpdateVRM] Handled VRM update exception:', err);
+  }
+}
+
 export function safeUpdateMatrixWorld(obj: THREE.Object3D | null | undefined): void {
   if (!obj) return;
   try {
+    obj.traverse((child: THREE.Object3D) => {
+      if (child.parent === undefined) {
+        child.parent = null;
+      }
+      if (!child.matrixWorld) {
+        child.matrixWorld = new THREE.Matrix4();
+      }
+      if (!child.matrix) {
+        child.matrix = new THREE.Matrix4();
+      }
+    });
+
+    let tempScene: THREE.Scene | null = null;
+    if (!obj.parent) {
+      tempScene = new THREE.Scene();
+      tempScene.add(obj);
+    }
     obj.updateMatrixWorld(true);
+    if (tempScene) {
+      tempScene.remove(obj);
+    }
   } catch (err) {
     console.warn('[safeUpdateMatrixWorld] Handled non-fatal matrix update exception:', err);
   }
+}
+
+export function safeSetFromObject(box: THREE.Box3, object: THREE.Object3D): THREE.Box3 {
+  try {
+    let tempScene: THREE.Scene | null = null;
+    if (!object.parent) {
+      tempScene = new THREE.Scene();
+      tempScene.add(object);
+    }
+    safeUpdateMatrixWorld(object);
+    box.setFromObject(object);
+    if (tempScene) {
+      tempScene.remove(object);
+    }
+  } catch (err) {
+    console.warn('[safeSetFromObject] Handled setFromObject exception, using fallback box:', err);
+    box.set(new THREE.Vector3(-0.5, 0, -0.5), new THREE.Vector3(0.5, 1.8, 0.5));
+  }
+  return box;
 }
 
 async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
@@ -136,8 +230,17 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     const vrm = gltf.userData.vrm as VRM;
     if (!vrm) throw new Error(`No VRM instance found in loaded model at: ${url}`);
 
-    // Prevent premature frustum culling on animated skinned meshes
-    vrm.scene.traverse((child) => {
+    // Prevent premature frustum culling on animated skinned meshes & sanitize matrix parents
+    vrm.scene.traverse((child: THREE.Object3D) => {
+      if (child.parent === undefined) {
+        child.parent = null;
+      }
+      if (!child.matrixWorld) {
+        child.matrixWorld = new THREE.Matrix4();
+      }
+      if (!child.matrix) {
+        child.matrix = new THREE.Matrix4();
+      }
       if ((child as THREE.Mesh).isMesh) {
         (child as THREE.Mesh).frustumCulled = false;
       }
@@ -146,7 +249,7 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     applyRestPose(vrm);
     applyRelaxedHandPose(vrm, 'left');
     applyRelaxedHandPose(vrm, 'right');
-    vrm.humanoid?.update();
+    safeUpdateVRM(vrm, 0);
 
     return vrm;
   })();
@@ -187,7 +290,8 @@ export async function renderStaticPortrait(
   const shouldDispose = !renderer;
   const r = renderer || new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setSize(size, size);
-  vrm.update(0);
+  safeUpdateVRM(vrm, 0);
+  r.render(scene, camera);
   r.render(scene, camera);
   const dataUrl = r.domElement.toDataURL('image/png');
   scene.remove(vrm.scene);

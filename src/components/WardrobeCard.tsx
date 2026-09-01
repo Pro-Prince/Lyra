@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { ArrowRight, Check } from 'lucide-react';
-import { loadCompanionModel } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateVRM } from '../lib/companionRenderer';
 import { frameOutfit } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
@@ -135,10 +135,14 @@ export function WardrobeCard({
   const [isHovered, setIsHovered] = useState(false);
 
   function renderFrame() {
-    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !modelRef.current) return;
-    modelRef.current.scene.rotation.y = rotationRef.current;
-    modelRef.current.update(0);
-    rendererRef.current.render(sceneRef.current, cameraRef.current);
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !modelRef.current || !modelRef.current.scene) return;
+    try {
+      modelRef.current.scene.rotation.y = rotationRef.current;
+      safeUpdateVRM(modelRef.current, 0);
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+    } catch (e) {
+      console.warn('[WardrobeCard renderFrame] Exception:', e);
+    }
   }
 
   function handleDrag(deltaX: number) {
@@ -213,8 +217,10 @@ export function WardrobeCard({
     };
   }, [modelId]);
 
+  const { hasDragged, ...pointerHandlers } = dragHandlers;
+
   const handleClick = () => {
-    if (dragHandlers.hasDragged()) return; // Don't trigger select if user was dragging to rotate
+    if (hasDragged()) return; // Don't trigger select if user was dragging to rotate
     if (onSelect) onSelect();
   };
 
@@ -228,7 +234,7 @@ export function WardrobeCard({
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      {...dragHandlers}
+      {...pointerHandlers}
     >
       {/* 3D Canvas Container */}
       <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/20 border border-[var(--text-primary)]/5">
@@ -262,15 +268,24 @@ export function WardrobeCard({
       </div>
 
       {/* Label and Info */}
-      <div className="mt-4 flex flex-col items-center text-center w-full">
-        <span className={`outfit-label font-heading text-lg sm:text-xl truncate w-full transition-colors ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)] font-semibold group-hover:text-[var(--accent-primary)]'}`}>
+      <div className="mt-5 flex flex-col items-center text-center w-full">
+        <span className={`outfit-label font-heading text-lg sm:text-xl truncate w-full transition-colors mb-3 ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)] font-semibold group-hover:text-[var(--accent-primary)]'}`}>
           {label}
         </span>
-        {tag && (
-          <span className="text-[10px] font-body text-[var(--text-muted)] mt-0.5 uppercase tracking-wider">
-            {tag}
+        
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.();
+          }}
+          className="btn btn-primary btn-sm w-full group/btn"
+        >
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            <span>Wear this look</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
           </span>
-        )}
+        </button>
       </div>
     </div>
   );

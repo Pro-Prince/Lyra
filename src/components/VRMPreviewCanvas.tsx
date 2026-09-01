@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { loadCompanionModel, safeUpdateMatrixWorld } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM } from '../lib/companionRenderer';
 import { applyRestPose, applyRelaxedHandPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
@@ -125,7 +125,7 @@ export function VRMPreviewCanvas({
         safeUpdateMatrixWorld(vrm.scene);
 
         // Calculate bounding box and center/ground the model precisely
-        const box = new THREE.Box3().setFromObject(vrm.scene);
+        const box = safeSetFromObject(new THREE.Box3(), vrm.scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
@@ -223,13 +223,13 @@ export function VRMPreviewCanvas({
             }
 
             try {
-              vrmInstance.update(delta);
+              safeUpdateVRM(vrmInstance, delta);
             } catch (vrmErr) {
               console.warn('[VRMPreviewCanvas frame] Handled update exception:', vrmErr);
             }
           }
 
-          if (renderer) {
+          if (renderer && scene && camera) {
             renderer.render(scene, camera);
           }
         };
@@ -244,7 +244,7 @@ export function VRMPreviewCanvas({
           camera.aspect = newW / newH;
           camera.updateProjectionMatrix();
           renderer.setSize(newW, newH);
-          if (vrmInstance) vrmInstance.update(0);
+          safeUpdateVRM(vrmInstance, 0);
           renderer.render(scene, camera);
         };
 

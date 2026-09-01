@@ -8,7 +8,7 @@ import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
 import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
-import { loadCompanionModel, safeUpdateMatrixWorld } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
 import { InteractionManager } from './InteractionManager';
 
@@ -250,7 +250,7 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
   const updateFraming = () => {
     if (!vrmScene) return;
     safeUpdateMatrixWorld(vrmScene);
-    const box = new THREE.Box3().setFromObject(vrmScene);
+    const box = safeSetFromObject(new THREE.Box3(), vrmScene);
     const headTop = box.max.y;
     const shoulderY = headTop - (box.max.y - box.min.y) * 0.25;
     const targetHeight = Math.max(0.2, headTop - shoulderY);
@@ -332,11 +332,12 @@ interface VRMModelProps {
   isProcessing?: boolean;
   onProgress?: (percent: number) => void;
   onLoaded?: (scene: THREE.Group) => void;
+  onReset?: () => void;
   onError?: (error: string) => void;
   retryKey?: number;
 }
 
-function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onLoaded, onError, retryKey = 0 }: VRMModelProps) {
+function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
 
@@ -368,11 +369,11 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         console.log('[VRM Diagnostic] Model loaded:', url);
         console.log('[VRM Diagnostic] Position before centering:', vrmInstance.scene.position.clone());
         console.log('[VRM Diagnostic] Scale:', vrmInstance.scene.scale.clone());
-        console.log('[VRM Diagnostic] Initial Bounding Box:', new THREE.Box3().setFromObject(vrmInstance.scene));
+        console.log('[VRM Diagnostic] Initial Bounding Box:', safeSetFromObject(new THREE.Box3(), vrmInstance.scene));
 
         // Center & floor VRM
         safeUpdateMatrixWorld(vrmInstance.scene);
-        const box = new THREE.Box3().setFromObject(vrmInstance.scene);
+        const box = safeSetFromObject(new THREE.Box3(), vrmInstance.scene);
         const center = new THREE.Vector3();
         box.getCenter(center);
         vrmInstance.scene.position.x -= center.x;
@@ -380,7 +381,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         vrmInstance.scene.position.y -= box.min.y;
 
         console.log('[VRM Diagnostic] Position after centering/grounding:', vrmInstance.scene.position.clone());
-        console.log('[VRM Diagnostic] Bounding Box after grounding:', new THREE.Box3().setFromObject(vrmInstance.scene));
+        console.log('[VRM Diagnostic] Bounding Box after grounding:', safeSetFromObject(new THREE.Box3(), vrmInstance.scene));
 
         // Check materials & textures
         vrmInstance.scene.traverse((obj: any) => {
@@ -503,6 +504,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
     return () => {
       isCancelled = true;
       setVrm(null);
+      if (onReset) onReset();
       if (mixer.current) {
         mixer.current.stopAllAction();
       }
@@ -581,145 +583,145 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   const elapsedTimeRef = useRef(0);
 
   useFrame((_, delta) => {
-    if (vrm && vrm.scene && vrm.scene.parent) {
-      try {
-        const safeDelta = Math.min(delta, 0.04);
-        elapsedTimeRef.current += safeDelta;
-        const time = elapsedTimeRef.current;
+    if (!vrm || !vrm.scene || !vrm.scene.parent) return;
+    
+    try {
+      const safeDelta = Math.min(delta, 0.04);
+      elapsedTimeRef.current += safeDelta;
+      const time = elapsedTimeRef.current;
 
-        movement.update(safeDelta);
+      movement.update(safeDelta);
 
-        // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
-        let targetGaze = targetLookAt.current.clone();
-        if (isProcessing) {
-           targetGaze.set(0, 1.15, 2.8);
-        }
-        lookTarget.current.position.lerp(targetGaze, 0.08);
-
-        // Blink oscillator (expression blendshape)
-        const state = blinkState.current;
-        if (time > state.nextBlinkTime && !state.isBlinking) {
-          state.isBlinking = true;
-          state.blinkStartTime = time;
-        }
-
-        if (state.isBlinking) {
-          const blinkProgress = (time - state.blinkStartTime) / state.blinkDuration;
-          let blinkValue = 0;
-          if (blinkProgress >= 1) {
-            state.isBlinking = false;
-            state.nextBlinkTime = time + 2 + Math.random() * 4;
-          } else {
-            blinkValue = Math.sin(blinkProgress * Math.PI);
-          }
-          if (vrm.expressionManager) {
-            vrm.expressionManager.setValue('blink', blinkValue);
-          }
-        }
-
-        // Emotion & Lip Sync (expression blendshapes)
-        if (vrm.expressionManager) {
-          const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
-          const happyVal = vrm.expressionManager.getValue('happy') || 0;
-          const relaxedVal = vrm.expressionManager.getValue('relaxed') || 0;
-          const surprisedVal = vrm.expressionManager.getValue('surprised') || 0;
-
-          vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3));
-          vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3));
-          vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3));
-
-          const isBlush = emotion === 'affectionate' || emotion === 'shy';
-          const currentBlush = vrm.expressionManager.getValue('blush') || 0;
-          const targetBlush = isBlush ? 1.0 : 0.0;
-          if (Math.abs(currentBlush - targetBlush) > 0.01) {
-              vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
-          }
-
-          // Real-time Web Audio API frequency analysis
-          const analyser = analyserRef.current;
-          let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
-          let hasAudio = false;
-
-          if (analyser) {
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
-            // Calculate average amplitude across the entire spectrum
-            let totalAmp = 0;
-            for (let i = 0; i < bufferLength; i++) {
-              totalAmp += dataArray[i];
-            }
-            const averageAmp = totalAmp / bufferLength;
-            // Normalize the amplitude based on expected maximum levels (usually peaks around 120-140)
-            const normalizedAmp = Math.min(1.0, averageAmp / 110);
-
-            if (normalizedAmp > 0.01) {
-              hasAudio = true;
-              let lowSum = 0;
-              let midSum = 0;
-              let highSum = 0;
-
-              const lowEnd = Math.floor(bufferLength * 0.15);
-              const midEnd = Math.floor(bufferLength * 0.45);
-
-              for (let i = 0; i < bufferLength; i++) {
-                if (i < lowEnd) {
-                  lowSum += dataArray[i];
-                } else if (i < midEnd) {
-                  midSum += dataArray[i];
-                } else {
-                  highSum += dataArray[i];
-                }
-              }
-
-              const lowAvg = lowSum / lowEnd || 0;
-              const midAvg = midSum / (midEnd - lowEnd) || 0;
-              const highAvg = highSum / (bufferLength - midEnd) || 0;
-
-              const totalAvg = lowAvg + midAvg + highAvg || 1;
-
-              // Classify FFT spectrum content to map to human-like vowels
-              visemeWeights.aa = Math.max(0, (lowAvg * 1.5) / totalAvg);
-              visemeWeights.oh = Math.max(0, (midAvg * 1.2) / totalAvg);
-              visemeWeights.ee = Math.max(0, (highAvg * 1.6) / totalAvg);
-              visemeWeights.ih = Math.max(0, (midAvg * 0.8 + highAvg * 0.8) / totalAvg);
-              visemeWeights.ou = Math.max(0, (lowAvg * 0.8 + midAvg * 0.4) / totalAvg);
-
-              // Scale all weights relative to the measured audio volume envelope
-              const sumWeights = visemeWeights.aa + visemeWeights.ih + visemeWeights.ou + visemeWeights.ee + visemeWeights.oh || 1;
-              visemeWeights.aa = (visemeWeights.aa / sumWeights) * normalizedAmp;
-              visemeWeights.ih = (visemeWeights.ih / sumWeights) * normalizedAmp;
-              visemeWeights.ou = (visemeWeights.ou / sumWeights) * normalizedAmp;
-              visemeWeights.ee = (visemeWeights.ee / sumWeights) * normalizedAmp;
-              visemeWeights.oh = (visemeWeights.oh / sumWeights) * normalizedAmp;
-            }
-          }
-
-          // Apply weights smoothly to VRM expression blendshapes
-          for (let i = 0; i < VISEMES.length; i++) {
-            const v = VISEMES[i];
-            const currentWeight = vrm.expressionManager.getValue(v) || 0;
-            // Fall back gracefully to standard timed visemes if user has not interacted with page to resume audio ctx yet
-            const targetWeight = hasAudio 
-              ? (visemeWeights[v] || 0) 
-              : (currentViseme.current === v ? 1.0 : 0.0);
-
-            if (Math.abs(currentWeight - targetWeight) > 0.01) {
-              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
-            }
-          }
-        }
-
-        // Exactly ONE authority drives skeletal body pose: AnimationMixer
-        if (mixer.current) {
-          mixer.current.update(safeDelta);
-        }
-
-        vrm.update(safeDelta);
-      } catch (frameErr) {
-        console.warn('[CompanionStage useFrame] Handled frame update exception:', frameErr);
+      // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
+      let targetGaze = targetLookAt.current.clone();
+      if (isProcessing) {
+         targetGaze.set(0, 1.15, 2.8);
       }
+      lookTarget.current.position.lerp(targetGaze, 0.08);
+
+      // Blink oscillator (expression blendshape)
+      const state = blinkState.current;
+      if (time > state.nextBlinkTime && !state.isBlinking) {
+        state.isBlinking = true;
+        state.blinkStartTime = time;
+      }
+
+      if (state.isBlinking) {
+        const blinkProgress = (time - state.blinkStartTime) / state.blinkDuration;
+        let blinkValue = 0;
+        if (blinkProgress >= 1) {
+          state.isBlinking = false;
+          state.nextBlinkTime = time + 2 + Math.random() * 4;
+        } else {
+          blinkValue = Math.sin(blinkProgress * Math.PI);
+        }
+        if (vrm.expressionManager) {
+          vrm.expressionManager.setValue('blink', blinkValue);
+        }
+      }
+
+      // Emotion & Lip Sync (expression blendshapes)
+      if (vrm.expressionManager) {
+        const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
+        const happyVal = vrm.expressionManager.getValue('happy') || 0;
+        const relaxedVal = vrm.expressionManager.getValue('relaxed') || 0;
+        const surprisedVal = vrm.expressionManager.getValue('surprised') || 0;
+
+        vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3));
+        vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3));
+        vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3));
+
+        const isBlush = emotion === 'affectionate' || emotion === 'shy';
+        const currentBlush = vrm.expressionManager.getValue('blush') || 0;
+        const targetBlush = isBlush ? 1.0 : 0.0;
+        if (Math.abs(currentBlush - targetBlush) > 0.01) {
+            vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
+        }
+
+        // Real-time Web Audio API frequency analysis
+        const analyser = analyserRef.current;
+        let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+        let hasAudio = false;
+
+        if (analyser) {
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyser.getByteFrequencyData(dataArray);
+
+          // Calculate average amplitude across the entire spectrum
+          let totalAmp = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            totalAmp += dataArray[i];
+          }
+          const averageAmp = totalAmp / bufferLength;
+          // Normalize the amplitude based on expected maximum levels (usually peaks around 120-140)
+          const normalizedAmp = Math.min(1.0, averageAmp / 110);
+
+          if (normalizedAmp > 0.01) {
+            hasAudio = true;
+            let lowSum = 0;
+            let midSum = 0;
+            let highSum = 0;
+
+            const lowEnd = Math.floor(bufferLength * 0.15);
+            const midEnd = Math.floor(bufferLength * 0.45);
+
+            for (let i = 0; i < bufferLength; i++) {
+              if (i < lowEnd) {
+                lowSum += dataArray[i];
+              } else if (i < midEnd) {
+                midSum += dataArray[i];
+              } else {
+                highSum += dataArray[i];
+              }
+            }
+
+            const lowAvg = lowSum / lowEnd || 0;
+            const midAvg = midSum / (midEnd - lowEnd) || 0;
+            const highAvg = highSum / (bufferLength - midEnd) || 0;
+
+            const totalAvg = lowAvg + midAvg + highAvg || 1;
+
+            // Classify FFT spectrum content to map to human-like vowels
+            visemeWeights.aa = Math.max(0, (lowAvg * 1.5) / totalAvg);
+            visemeWeights.oh = Math.max(0, (midAvg * 1.2) / totalAvg);
+            visemeWeights.ee = Math.max(0, (highAvg * 1.6) / totalAvg);
+            visemeWeights.ih = Math.max(0, (midAvg * 0.8 + highAvg * 0.8) / totalAvg);
+            visemeWeights.ou = Math.max(0, (lowAvg * 0.8 + midAvg * 0.4) / totalAvg);
+
+            // Scale all weights relative to the measured audio volume envelope
+            const sumWeights = visemeWeights.aa + visemeWeights.ih + visemeWeights.ou + visemeWeights.ee + visemeWeights.oh || 1;
+            visemeWeights.aa = (visemeWeights.aa / sumWeights) * normalizedAmp;
+            visemeWeights.ih = (visemeWeights.ih / sumWeights) * normalizedAmp;
+            visemeWeights.ou = (visemeWeights.ou / sumWeights) * normalizedAmp;
+            visemeWeights.ee = (visemeWeights.ee / sumWeights) * normalizedAmp;
+            visemeWeights.oh = (visemeWeights.oh / sumWeights) * normalizedAmp;
+          }
+        }
+
+        // Apply weights smoothly to VRM expression blendshapes
+        for (let i = 0; i < VISEMES.length; i++) {
+          const v = VISEMES[i];
+          const currentWeight = vrm.expressionManager.getValue(v) || 0;
+          // Fall back gracefully to standard timed visemes if user has not interacted with page to resume audio ctx yet
+          const targetWeight = hasAudio 
+            ? (visemeWeights[v] || 0) 
+            : (currentViseme.current === v ? 1.0 : 0.0);
+
+          if (Math.abs(currentWeight - targetWeight) > 0.01) {
+            vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
+          }
+        }
+      }
+
+      // Exactly ONE authority drives skeletal body pose: AnimationMixer
+      if (mixer.current) {
+        mixer.current.update(safeDelta);
+      }
+
+      safeUpdateVRM(vrm, safeDelta);
+    } catch (frameErr) {
+      console.warn('[CompanionStage useFrame] Handled frame update exception:', frameErr);
     }
   });
 
@@ -846,27 +848,6 @@ function CompanionStageComponent({
       {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />}
       
       <AnimatePresence>
-        {isProcessing && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            className="absolute bottom-32 w-16 h-16 rounded-full border-[3px] border-[var(--accent-primary)] z-20 pointer-events-none"
-            style={{ 
-              boxShadow: '0 0 20px var(--accent-primary), inset 0 0 20px var(--accent-primary)'
-            }}
-          >
-            <motion.div 
-              animate={{ scale: [1, 1.5], opacity: [0.6, 0] }} 
-              transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
-              className="absolute inset-0 rounded-full border-[2px] border-[var(--accent-primary)]"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* While loading: show ONLY ambient presence glow */}
-      <AnimatePresence>
         {!isLoaded && !hasFailed && (
           <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
             <div className="presence-glow" />
@@ -913,6 +894,10 @@ function CompanionStageComponent({
                 setIsLoaded(true);
                 onModelLoaded?.();
               }} 
+              onReset={() => {
+                setVrmSceneRef(null);
+                setIsLoaded(false);
+              }}
               onError={handleError}
               retryKey={retryKey}
             />

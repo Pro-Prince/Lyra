@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { safeUpdateMatrixWorld } from '../lib/companionRenderer';
+import { safeUpdateMatrixWorld, safeSetFromObject } from '../lib/companionRenderer';
 
 export type GestureType = 'wave' | 'nod' | 'laugh' | 'think' | 'cheer' | 'lookAround';
 export type IdleAnimationType = 'blink' | 'headTilt' | 'lookAround' | 'shySmile' | 'curiousNod' | 'sigh';
@@ -217,7 +217,7 @@ export class InteractionManager {
     if (hitPoint && this.targetObject) {
       // Determine vertical region of the model
       safeUpdateMatrixWorld(this.targetObject);
-      const box = new THREE.Box3().setFromObject(this.targetObject);
+      const box = safeSetFromObject(new THREE.Box3(), this.targetObject);
       const height = box.max.y - box.min.y;
       const relativeY = (hitPoint.y - box.min.y) / (height || 1);
 
