@@ -12,10 +12,10 @@ import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import { useMockAuthState } from "../context/AuthContext";
 
 const VIBE_OPTIONS = [
-  { id: "Warm & Gentle", label: "Warm & Gentle", desc: "Cozy & empathetic", icon: Heart },
-  { id: "Playful & Witty", label: "Playful & Witty", desc: "Fun banter & spark", icon: Sparkles },
-  { id: "Deep & Curious", label: "Deep & Curious", desc: "Ideas & wonder", icon: Compass },
-  { id: "Calm & Grounded", label: "Calm & Grounded", desc: "Peaceful presence", icon: MessageSquare }
+  { id: "Warm & Gentle", label: "Warm & Gentle", icon: Heart },
+  { id: "Playful & Witty", label: "Playful & Witty", icon: Sparkles },
+  { id: "Deep & Curious", label: "Deep & Curious", icon: Compass },
+  { id: "Calm & Grounded", label: "Calm & Grounded", icon: MessageSquare }
 ];
 
 const INTEREST_TAGS = [
@@ -269,15 +269,15 @@ export default function Onboarding() {
               key={idx}
               className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
                 idx < step
-                  ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]"
-                  : "bg-[var(--text-primary)]/15"
+                  ? "bg-[var(--accent-primary)]"
+                  : "bg-[var(--text-primary)]/10"
               }`}
             />
           ))}
         </div>
         <button
           onClick={() => navigate("/")}
-          className="absolute right-6 top-6 p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10 transition-all cursor-pointer"
+          className="absolute right-6 top-6 p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all cursor-pointer"
           title="Skip to home"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -326,8 +326,8 @@ export default function Onboarding() {
       </AnimatePresence>
 
       {/* Main Grid: Same 55/45 split across all 4 steps */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto px-6 py-8 sm:py-12 flex-1 flex flex-col justify-center my-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center w-full">
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-28 pb-12 sm:pt-36 sm:pb-20 flex-1 flex flex-col justify-start lg:justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
           
           {/* Her Presence: Alternates Left/Right depending on step */}
           <motion.div 
@@ -336,12 +336,12 @@ export default function Onboarding() {
             className={`order-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} lg:col-span-5 flex items-center justify-center relative w-full`}
           >
             {/* Ambient Presence Glow anchored directly behind her silhouette */}
-            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--accent-primary)]/24 shadow-xl flex items-center justify-center">
+            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 shadow-lg flex items-center justify-center">
               <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
                 <div 
-                  className="w-full h-full max-w-[500px] max-h-[500px] rounded-full opacity-50" 
+                  className="w-full h-full max-w-[500px] max-h-[500px] rounded-full opacity-30" 
                   style={{ 
-                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.15) 0%, rgba(201,166,255,0.08) 45%, transparent 70%)',
+                    background: 'radial-gradient(circle at 50% 50%, rgba(255,143,192,0.1) 0%, rgba(201,166,255,0.05) 45%, transparent 70%)',
                   }} 
                 />
               </div>
@@ -374,12 +374,12 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="inline-flex items-center gap-2 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 px-3.5 py-1.5 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-                      <span className="text-xs font-body text-[var(--accent-primary)] uppercase tracking-wider font-semibold">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="inline-flex items-center gap-2 bg-[var(--text-primary)]/5 border border-[var(--text-primary)]/10 px-3.5 py-1.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                      <span className="text-[10px] font-body text-[var(--text-primary)] uppercase tracking-widest font-semibold">
                         First Meeting
                       </span>
                     </div>
@@ -427,9 +427,9 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
                 >
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
                       What should I call you?
                     </Heading2>
@@ -477,9 +477,9 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
                 >
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
                       Choose her conversational vibe
                     </Heading2>
@@ -498,25 +498,22 @@ export default function Onboarding() {
                           key={vibe.id}
                           type="button"
                           onClick={() => setSelectedVibe(vibe.id)}
-                          className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left ${
+                          className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left transition-all ${
                             isSelected
-                              ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]  ring-1 ring-[var(--accent-primary)]/50"
-                              : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/30 hover:bg-[var(--text-primary)]/[0.04]"
+                              ? "bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/40"
+                              : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/20 hover:bg-[var(--text-primary)]/[0.02]"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-muted)]"}`}>
-                              <Icon className="w-4 h-4" />
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-muted)]"}`}>
+                              <Icon className="w-5 h-5" />
                             </div>
-                            <div>
-                              <span className={`block text-sm font-body font-medium ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
-                                {vibe.label}
-                              </span>
-                              <span className="text-xs font-body text-[var(--text-muted)]">{vibe.desc}</span>
-                            </div>
+                            <span className={`block text-base font-heading font-medium transition-colors ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"}`}>
+                              {vibe.label}
+                            </span>
                           </div>
                           {isSelected && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
+                            <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] shadow-[0_0_10px_var(--accent-primary)]/40" />
                           )}
                         </button>
                       );
@@ -546,9 +543,9 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
                 >
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
                       What topics interest you most?
                     </Heading2>

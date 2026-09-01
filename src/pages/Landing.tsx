@@ -74,24 +74,9 @@ function OutfitShowcase() {
   const { user, isGuestMode, continueAsGuest } = useAuth();
 
   const outfits = [
-    {
-      id: 'lyra',
-      url: '/models/lyra.vrm',
-      label: 'Default',
-      desc: 'Classic school uniform with crisp sailor collar, pink ribbon & pleated skirt.',
-    },
-    {
-      id: 'lyra_casual',
-      url: '/models/lyra_casual.vrm',
-      label: 'Casual',
-      desc: 'Relaxed pastel hoodie paired with comfortable sporty casual wear.',
-    },
-    {
-      id: 'lyra_dress',
-      url: '/models/lyra_dress.vrm',
-      label: 'Dress',
-      desc: 'Sophisticated dark formal attire with structured tailoring & sleek accents.',
-    },
+    { id: 'lyra', url: '/models/lyra.vrm', label: 'Default' },
+    { id: 'lyra_casual', url: '/models/lyra_casual.vrm', label: 'Casual' },
+    { id: 'lyra_dress', url: '/models/lyra_dress.vrm', label: 'Dress' },
   ];
 
   const handleSelectOutfit = async (url: string) => {
@@ -126,7 +111,7 @@ function OutfitShowcase() {
       </motion.div>
 
       <motion.div variants={groupVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {outfits.map(({ id, url, label, desc }) => (
+        {outfits.map(({ id, url, label }) => (
           <motion.div
             key={id}
             variants={entranceVariants}
@@ -139,14 +124,9 @@ function OutfitShowcase() {
 
             {/* Info & Action CTA */}
             <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center z-10">
-              <div>
-                <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-1.5">
-                  {label}
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mb-5 px-1 leading-relaxed min-h-[2.5rem] flex items-center justify-center">
-                  {desc}
-                </p>
-              </div>
+              <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-5">
+                {label}
+              </h3>
 
               <button
                 type="button"

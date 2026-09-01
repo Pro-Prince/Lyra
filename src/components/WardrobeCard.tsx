@@ -106,7 +106,6 @@ export interface WardrobeCardProps {
   modelId: string;
   label: string;
   tag?: string;
-  desc?: string;
   isSelected?: boolean;
   onSelect?: () => void;
   className?: string;
@@ -118,7 +117,6 @@ export function WardrobeCard({
   modelId,
   label,
   tag,
-  desc,
   isSelected = false,
   onSelect,
   className = '',
@@ -223,8 +221,10 @@ export function WardrobeCard({
   return (
     <div
       className={`outfit-card group relative cursor-pointer select-none transition-all duration-300 ${
-        isSelected ? "selected" : ""
-      } ${useFeatureStyle ? 'feature-card-glow' : ''} p-4 ${className}`}
+        isSelected 
+          ? "bg-[var(--accent-primary)]/[0.05] border-[var(--accent-primary)]/40" 
+          : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10"
+      } p-4 rounded-2xl border ${className}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -236,7 +236,7 @@ export function WardrobeCard({
 
         {/* Loading placeholder */}
         {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/80 backdrop-blur-sm z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] z-10">
             <div className="w-6 h-6 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin mb-2" />
             <span className="text-[10px] font-body text-[var(--text-muted)]">Loading 3D…</span>
           </div>
@@ -244,7 +244,7 @@ export function WardrobeCard({
 
         {/* Error Fallback */}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 p-2 text-center z-10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] p-2 text-center z-10">
             <span className="text-[10px] text-[var(--text-muted)]">Model unavailable</span>
           </div>
         )}
@@ -252,7 +252,7 @@ export function WardrobeCard({
         {/* Drag to rotate hint badge */}
         {!loading && !error && showRotateHint && (
           <div
-            className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[var(--bg-base)]/80 backdrop-blur-md border border-[var(--text-primary)]/10 text-[9px] font-body text-[var(--text-primary)]/70 pointer-events-none transition-opacity duration-200 ${
+            className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[9px] font-body text-[var(--text-primary)]/70 pointer-events-none transition-opacity duration-200 ${
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -262,19 +262,14 @@ export function WardrobeCard({
       </div>
 
       {/* Label and Info */}
-      <div className="mt-2.5 flex flex-col items-center text-center w-full">
-        <span className={`outfit-label text-xs sm:text-sm font-medium truncate w-full transition-colors ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)]/80 group-hover:text-[var(--text-primary)]'}`}>
+      <div className="mt-4 flex flex-col items-center text-center w-full">
+        <span className={`outfit-label font-heading text-lg sm:text-xl truncate w-full transition-colors ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)] font-semibold group-hover:text-[var(--accent-primary)]'}`}>
           {label}
         </span>
         {tag && (
-          <span className="text-[10px] font-body text-[var(--text-muted)] mt-0.5">
+          <span className="text-[10px] font-body text-[var(--text-muted)] mt-0.5 uppercase tracking-wider">
             {tag}
           </span>
-        )}
-        {desc && (
-          <p className="text-[11px] font-body text-[var(--text-muted)] mt-1 line-clamp-2 px-1">
-            {desc}
-          </p>
         )}
       </div>
     </div>

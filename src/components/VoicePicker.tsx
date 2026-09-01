@@ -96,10 +96,10 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
           <div
             key={preset.id}
             onClick={() => handleSelectPreset(preset.id)}
-            className={`interactive-surface flex items-center justify-between p-4 rounded-xl border cursor-pointer ${
+            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
               isSelected 
-                ? 'selected' 
-                : 'bg-[var(--bg-base)]/60 border-[var(--accent-primary)]/10'
+                ? 'bg-[var(--accent-primary)]/[0.05] border-[var(--accent-primary)]/40' 
+                : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20'
             }`}
           >
             <div className="flex items-center gap-3">
