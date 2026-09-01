@@ -37,10 +37,10 @@ export default function Footer() {
   return (
     <footer className="app-footer w-full bg-[var(--bg-surface)] pt-10 sm:pt-16 pb-8 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Responsive Grid: 1 column on mobile, 12 on desktop */}
-        <div className="footer-columns grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-8 mb-8 sm:mb-12">
-          {/* Column 1: Logo badge, wordmark, description (Spans full width on desktop) */}
-          <div className="footer-column col-span-1 md:col-span-6 flex flex-col items-start pr-2">
+        {/* Responsive Grid: Stacks on mobile, 12-column grid on desktop */}
+        <div className="footer-columns md:grid md:grid-cols-12 gap-8 sm:gap-8 mb-8 sm:mb-12">
+          {/* Column 1: Logo badge, wordmark, description (Spans full width on mobile) */}
+          <div className="footer-column md:col-span-6 flex flex-col items-start pr-2">
             <Link 
               to="/" 
               className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-3.5 group cursor-pointer"
@@ -56,11 +56,11 @@ export default function Footer() {
           </div>
 
           {/* Column 2: PRODUCT */}
-          <div className="footer-column col-span-1 md:col-span-3 flex flex-col items-start">
+          <div className="footer-column md:col-span-3 flex flex-col items-start">
             <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
               PRODUCT
             </span>
-            <ul className="space-y-2.5 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
               <li>
                 <FooterAnchorLink
                   to="features"
@@ -89,11 +89,11 @@ export default function Footer() {
           </div>
 
           {/* Column 3: SUPPORT */}
-          <div className="footer-column col-span-1 md:col-span-3 flex flex-col items-start">
+          <div className="footer-column md:col-span-3 flex flex-col items-start">
             <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
               SUPPORT
             </span>
-            <ul className="space-y-2.5 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
               <li>
                 <Link
                   to="/contact"

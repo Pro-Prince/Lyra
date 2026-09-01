@@ -361,6 +361,17 @@ function DesktopNav() {
 export default function AppHeader() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleBrandClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname === "/") {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    } else {
+      navigate("/");
+      // ScrollToTop in App.tsx handles the scroll on route change
+    }
+  };
 
   if (location.pathname === "/onboarding") {
     return null;
@@ -377,6 +388,7 @@ export default function AppHeader() {
         {/* BRAND / LOGO */}
         <Link
           to="/"
+          onClick={handleBrandClick}
           className="header-logo min-h-[38px] md:min-h-[34px] flex items-center gap-2 sm:gap-2.5 group transition-transform active:scale-95"
           aria-label="Lyra Home"
         >
