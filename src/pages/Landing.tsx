@@ -56,12 +56,6 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: "Your conversations are stored locally on your device. Only the message text itself is sent to Google's Gemini API to generate her responses."
   },
   {
-    id: "browser-data",
-    icon: RefreshCw,
-    question: "What happens if I clear my browser data or switch devices?",
-    answer: "Your conversation history and memories live only on this device, in this browser. Clearing site data, switching browsers, or moving to a new device means starting fresh, there's no account to sync from yet."
-  },
-  {
     id: "delete",
     icon: Trash2,
     question: "Can I delete my data?",
@@ -394,16 +388,16 @@ export default function Landing() {
                     }}
                     aria-expanded={isOpen}
                   >
-                    <div className="flex items-start gap-3.5 sm:gap-4 select-none">
-                      <IconBadge icon={faq.icon} size={36} className="shrink-0 mt-0.5" />
+                    <div className="flex items-center gap-4 sm:gap-5 select-none">
+                      <IconBadge icon={faq.icon} size={36} className="shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2.5">
-                          <h3 className={`faq-question font-heading font-medium text-sm sm:text-base md:text-[17px] leading-snug transition-colors pt-0.5 ${
+                        <div className="flex items-center justify-between gap-2.5">
+                          <h3 className={`faq-question font-heading font-medium text-sm sm:text-base md:text-[17px] leading-snug transition-colors ${
                             isOpen ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]"
                           }`}>
                             {faq.question}
                           </h3>
-                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors mt-0.5 ${
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                             isOpen ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]" : "bg-black/20 text-[var(--text-muted)]"
                           }`}>
                             <ChevronDown
