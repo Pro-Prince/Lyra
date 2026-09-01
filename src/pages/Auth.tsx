@@ -130,7 +130,7 @@ export default function Auth() {
         </div>
 
         {/* Auth Glass Container */}
-        <div className="bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.85)]">
+        <div className="feature-card bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl">
           {/* Mode Switch Tabs */}
           <div className="flex bg-[var(--bg-base)]/50 border border-[var(--text-primary)]/[0.08] p-1 rounded-xl mb-6">
             <button

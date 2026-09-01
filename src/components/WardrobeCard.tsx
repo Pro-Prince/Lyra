@@ -111,6 +111,7 @@ export interface WardrobeCardProps {
   onSelect?: () => void;
   className?: string;
   showRotateHint?: boolean;
+  useFeatureStyle?: boolean;
 }
 
 export function WardrobeCard({
@@ -121,7 +122,8 @@ export function WardrobeCard({
   isSelected = false,
   onSelect,
   className = '',
-  showRotateHint = true
+  showRotateHint = true,
+  useFeatureStyle = false
 }: WardrobeCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -222,7 +224,7 @@ export function WardrobeCard({
     <div
       className={`outfit-card group relative cursor-pointer select-none transition-all duration-300 ${
         isSelected ? "selected" : ""
-      } p-4 ${className}`}
+      } ${useFeatureStyle ? 'feature-card-glow' : ''} p-4 ${className}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

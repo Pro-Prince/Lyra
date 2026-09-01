@@ -106,7 +106,7 @@ export function InstallBanner() {
           
           <div className="install-banner-text">
             <strong>Install Lyra</strong>
-            <span>Add to home screen for quick access</span>
+            <span>Add to home screen</span>
           </div>
           
           <div className="install-banner-actions">
@@ -114,8 +114,6 @@ export function InstallBanner() {
               variant="primary"
               size="sm"
               onClick={triggerInstall}
-              icon={isIOSDevice ? Share : Plus}
-              iconPlacement="left"
               className="shadow-sm min-w-[90px]"
               aria-label={isIOSDevice ? "How to install on iOS" : "Install Lyra"}
             >

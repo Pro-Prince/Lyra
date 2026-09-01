@@ -30,6 +30,7 @@ export default function Footer() {
       window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } else {
       navigate("/");
+      window.scrollTo(0, 0);
     }
   };
 
@@ -56,7 +57,7 @@ export default function Footer() {
 
           {/* Column 2: PRODUCT */}
           <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
               PRODUCT
             </span>
             <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
@@ -89,7 +90,7 @@ export default function Footer() {
 
           {/* Column 3: SUPPORT */}
           <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
               SUPPORT
             </span>
             <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">

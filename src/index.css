@@ -632,22 +632,22 @@ h3, .heading-3 {
 .outfit-card:hover,
 .faq-row:hover,
 .interactive-surface:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 143, 192, 0.4);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 
-              0 0 20px -5px rgba(255, 143, 192, 0.15), 
-              0 0 0 1px rgba(255, 143, 192, 0.05);
+  transform: translateY(-2px);
+  border-color: rgba(255, 143, 192, 0.35);
+  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.4), 
+              0 0 20px -2px rgba(255, 143, 192, 0.12), 
+              0 0 0 1px rgba(255, 143, 192, 0.08);
 }
 
 .outfit-card.selected,
 .faq-row.selected,
 .interactive-surface.selected {
-  transform: translateY(-3px);
-  border-color: rgba(255, 143, 192, 0.6);
-  background: rgba(255, 143, 192, 0.08);
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), 
-              0 0 24px -4px rgba(255, 143, 192, 0.35), 
-              0 0 0 1px rgba(255, 143, 192, 0.1);
+  transform: translateY(-2px);
+  border-color: rgba(255, 143, 192, 0.55);
+  background: rgba(255, 143, 192, 0.06);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.5), 
+              0 0 25px -3px rgba(255, 143, 192, 0.25), 
+              0 0 0 1px rgba(255, 143, 192, 0.12);
 }
 
 .card-standard:active,
@@ -657,7 +657,7 @@ h3, .heading-3 {
 .outfit-card:active,
 .faq-row:active,
 .interactive-surface:active {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(0) scale(0.995);
   box-shadow: none;
 }
 .card-standard {

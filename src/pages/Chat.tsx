@@ -1026,25 +1026,30 @@ export default function Chat() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
-                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer rounded-lg hover:bg-white/10"
+                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 active:scale-95 transition-all cursor-pointer rounded-lg hover:bg-white/10"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
-                <img 
-                  src="/images/Logo.png" 
-                  alt="Lyra" 
-                  className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" 
-                />
-                <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">
-                  Lyra
-                </span>
+                <div 
+                  className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
+                  onClick={() => navigate('/')}
+                >
+                  <img 
+                    src="/images/Logo.png" 
+                    alt="Lyra" 
+                    className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" 
+                  />
+                  <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">
+                    Lyra
+                  </span>
+                </div>
               </div>
 
               {/* Right: Capture Pill Button */}
               <button 
                 onClick={handleCapture} 
-                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-[var(--text-primary)]/20 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
+                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
               >
                 <Scan className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>Capture</span>
@@ -1081,7 +1086,7 @@ export default function Chat() {
                   <button 
                     onClick={handleCapture}
                     title="Capture Screen / Portrait"
-                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
                     <Camera className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
                   </button>
@@ -1093,10 +1098,10 @@ export default function Chat() {
                   <button 
                     onClick={toggleMute}
                     title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center ${
                       isMuted 
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
-                        : 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
+                        : 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
                     }`}
                   >
                     <MicOff className={`w-4.5 h-4.5 ${isMuted ? 'text-rose-400' : 'text-[var(--text-primary)]/90'}`} />
@@ -1117,7 +1122,7 @@ export default function Chat() {
                         ? `0 0 24px ${activeAccent}88` 
                         : `0 0 14px ${activeAccent}44`
                     }}
-                    className={`w-12.5 h-12.5 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer ${
+                    className={`w-12.5 h-12.5 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer border border-transparent hover:border-white/20 ${
                       isListening ? 'ring-4 ring-[var(--accent-primary)]/40 animate-pulse' : 'hover:brightness-110'
                     }`}
                   >
@@ -1133,8 +1138,8 @@ export default function Chat() {
                     title={isSpeakerOn ? "Speakerphone (Loud)" : "Private Earpiece"}
                     className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
                       isSpeakerOn 
-                        ? 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
-                        : 'bg-[var(--bg-base)]/40 border-[var(--text-primary)]/10 text-[var(--text-muted)]'
+                        ? 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
+                        : 'bg-[var(--bg-base)]/40 border-transparent hover:border-[var(--accent-primary)]/30 text-[var(--text-muted)]'
                     }`}
                   >
                     <Volume2 className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
@@ -1147,7 +1152,7 @@ export default function Chat() {
                   <button 
                     onClick={handleStopSession}
                     title="End Session & Save Progress"
-                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-[var(--text-primary)]/15 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-transparent hover:border-rose-500/40 active:border-rose-500/60 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
                     <Square className="w-3.5 h-3.5 fill-[var(--text-primary)] text-[var(--text-primary)]" />
                   </button>
@@ -1623,11 +1628,14 @@ export default function Chat() {
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[var(--text-primary)]/10">
-                <div className="flex items-center gap-3">
-                  <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-[10px] object-cover border-[1.5px] border-[var(--accent-primary)]/60" />
+                <div 
+                  className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
+                  onClick={() => navigate('/')}
+                >
+                  <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-[10px] object-cover border-[1.5px] border-[var(--accent-primary)]/60 group-hover:border-[var(--accent-primary)] transition-colors" />
                   <div>
-                    <h3 className="font-heading font-medium text-[var(--text-primary)] text-base">Lyra</h3>
-                    <p className="text-[11px] font-medium" style={{ color: activeAccent }}>AI Companion</p>
+                    <h3 className="font-heading font-medium text-[var(--text-primary)] text-base group-hover:text-[var(--accent-primary)] transition-colors">Lyra</h3>
+                    <p className="text-[11px] font-medium text-[var(--accent-primary)]">AI Companion</p>
                   </div>
                 </div>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--text-primary)]/5 cursor-pointer">
@@ -1834,6 +1842,7 @@ export default function Chat() {
                         tag={item.tag}
                         isSelected={outfit === item.id}
                         onSelect={() => handleOutfitChange(item.id)}
+                        useFeatureStyle={true}
                       />
                     ))}
                   </div>

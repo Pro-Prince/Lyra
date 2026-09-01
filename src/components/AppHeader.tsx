@@ -369,7 +369,8 @@ export default function AppHeader() {
       window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } else {
       navigate("/");
-      // ScrollToTop in App.tsx handles the scroll on route change
+      // Ensure scroll to top happens on navigation
+      window.scrollTo(0, 0);
     }
   };
 

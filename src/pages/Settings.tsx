@@ -142,75 +142,65 @@ export default function Settings() {
         {/* PROFILE INFORMATION (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-8 shadow-2xl"
+          className="account-panel feature-card-glow md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-6 sm:p-10 shadow-2xl"
         >
-          <div className="flex items-center gap-4 mb-6">
-            <IconBadge icon={UserIcon} size={48} />
+          {/* Header Section */}
+          <div className="flex items-center gap-5 mb-8">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">
+              <UserIcon size={24} />
+            </div>
             <div>
-              <Heading2>Profile Information</Heading2>
-              <p className="text-xs font-body text-[var(--text-muted)] mt-0.5">Update your details and how she knows you.</p>
+              <h2 className="font-heading font-medium text-xl sm:text-2xl text-[var(--text-primary)]">Profile Information</h2>
+              <p className="text-sm font-body text-[var(--text-muted)] mt-1">Update your details and how she knows you.</p>
             </div>
           </div>
 
-          <div className="bg-[var(--bg-base)]/60 border border-[var(--accent-primary)]/10 rounded-2xl p-4 sm:p-5 mb-6 flex items-center gap-4">
-            <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] flex items-center justify-center font-heading text-lg sm:text-xl font-medium shrink-0 shadow-inner">
-              {mockUser?.name ? mockUser.name[0].toUpperCase() : <UserIcon size={24} />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <strong className="block text-[var(--text-primary)] font-heading font-semibold text-base truncate">
-                  {mockUser?.name || 'Guest User'}
-                </strong>
-                {isMockAuthed ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    Signed In
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30">
-                    Local Session
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
-                {mockUser?.email || 'Sign in to personalize your profile across sessions'}
-              </p>
-            </div>
-          </div>
+          <div className="w-full h-px bg-[var(--text-primary)]/[0.08] mb-10" />
 
-          <form onSubmit={handleSaveProfile} className="space-y-4 font-body">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Full Name</label>
+          <form onSubmit={handleSaveProfile} className="font-body">
+            {/* Input Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-10">
+              <div className="space-y-2">
+                <label className="block text-[13px] font-semibold text-[var(--text-primary)]/80 ml-1">Full Name</label>
                 <input 
                   type="text" 
                   defaultValue={mockUser?.name} 
                   placeholder="What should she call you?" 
                   disabled={!isMockAuthed} 
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 focus:border-[var(--accent-primary)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-5 py-3 rounded-xl bg-[var(--bg-base)]/50 border border-[var(--text-primary)]/[0.08] focus:border-[var(--accent-primary)]/40 focus:bg-[var(--bg-base)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/30 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">Email Address</label>
+              <div className="space-y-2">
+                <label className="block text-[13px] font-semibold text-[var(--text-primary)]/80 ml-1">Email Address</label>
                 <input 
                   type="email" 
                   defaultValue={mockUser?.email} 
                   disabled 
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-base)] border border-[var(--accent-primary)]/15 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-5 py-3 rounded-xl bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] text-sm text-[var(--text-primary)]/60 placeholder:text-[var(--text-muted)]/30 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
-              <Button variant="primary" size="lg" type="submit" disabled={!isMockAuthed} className="w-full sm:w-auto">
+            {/* Bottom Section */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--text-primary)]/[0.06]">
+              <div className="hidden sm:block">
+                {!isMockAuthed && (
+                  <p className="text-xs text-[var(--text-muted)] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+                    <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Log in</Link> to sync your profile across devices
+                  </p>
+                )}
+              </div>
+              <Button 
+                variant="primary" 
+                size="lg" 
+                type="submit" 
+                disabled={!isMockAuthed} 
+                className="w-full sm:w-auto px-10 shadow-lg shadow-[var(--accent-primary)]/10"
+              >
                 Save Changes
               </Button>
-
-              {!isMockAuthed && (
-                <p className="text-xs text-[var(--text-muted)] text-left sm:text-right">
-                  <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Log in</Link> to save a profile across sessions.
-                </p>
-              )}
             </div>
           </form>
         </motion.section>
@@ -218,7 +208,7 @@ export default function Settings() {
         {/* CARD 1: Voice Configuration (Span 7) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel feature-card-glow md:col-span-7 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -259,7 +249,7 @@ export default function Settings() {
         {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
+          className="account-panel feature-card-glow md:col-span-5 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center gap-4 mb-6">
@@ -340,7 +330,7 @@ export default function Settings() {
         {/* CARD 3: Wardrobe (Span 12 - Full Width Bento Tile) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+          className="account-panel feature-card-glow md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
         >
           <div className="flex items-center gap-4 mb-6">
             <IconBadge icon={Sparkles} size={48} />
@@ -361,6 +351,7 @@ export default function Settings() {
                   tag={outfit.tag}
                   isSelected={isSelected}
                   onSelect={() => handleSelectOutfit(outfit.id)}
+                  useFeatureStyle={true}
                 />
               );
             })}
@@ -370,7 +361,7 @@ export default function Settings() {
         {/* CARD 4: Remembered Context (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
+          className="account-panel feature-card-glow md:col-span-12 bg-[var(--bg-surface)] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -414,7 +405,7 @@ export default function Settings() {
         {/* DANGER ZONE (Minimalistic Destructive Controls) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 bg-[var(--bg-surface)] border border-[var(--text-danger)]/20 rounded-3xl p-6 sm:p-8 shadow-2xl font-body"
+          className="account-panel feature-card-glow md:col-span-12 bg-[var(--bg-surface)] border border-[var(--text-danger)]/20 rounded-3xl p-6 sm:p-8 shadow-2xl font-body"
         >
           {/* Header */}
           <div className="flex items-center gap-4 mb-6 sm:mb-8 pb-5 border-b border-[var(--text-primary)]/10">

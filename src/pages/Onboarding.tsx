@@ -374,7 +374,7 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-6">
                     <div className="inline-flex items-center gap-2 bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 px-3.5 py-1.5 rounded-full">
@@ -427,7 +427,7 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
                 >
                   <div className="mb-6">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
@@ -477,7 +477,7 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
                 >
                   <div className="mb-6">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
@@ -546,7 +546,7 @@ export default function Onboarding() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)]/90 backdrop-blur-[24px] border border-[var(--accent-primary)]/15 rounded-3xl p-8 shadow-2xl flex flex-col"
                 >
                   <div className="mb-6">
                     <Heading2 className="text-2xl sm:text-3xl mb-2">

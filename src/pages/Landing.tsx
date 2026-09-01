@@ -114,7 +114,7 @@ function OutfitShowcase() {
       className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
       <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
-        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2 inline-block">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)] mb-2 inline-block">
           Wardrobe
         </span>
         <h2 className="font-heading font-medium text-2xl sm:text-4xl text-[var(--text-primary)] mb-2 sm:mb-3">
@@ -246,7 +246,7 @@ export default function Landing() {
               className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 inline-block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 inline-block">
                 {t("landing_eyebrow")}
               </span>
 
