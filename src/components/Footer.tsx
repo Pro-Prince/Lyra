@@ -35,15 +35,15 @@ export default function Footer() {
   };
 
   return (
-    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-8 sm:pt-16 pb-6 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
+    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-10 sm:pt-16 pb-8 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Responsive Grid: 2 columns on mobile, 12 on desktop */}
-        <div className="grid grid-cols-2 md:grid-cols-12 gap-5 sm:gap-8 mb-6 sm:mb-12">
-          {/* Column 1: Logo badge, wordmark, description (Spans full width on mobile) */}
-          <div className="col-span-2 md:col-span-6 flex flex-col items-start pr-2 mb-2 sm:mb-0">
+        {/* Responsive Grid: 1 column on mobile, 12 on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-8 mb-8 sm:mb-12">
+          {/* Column 1: Logo badge, wordmark, description (Spans full width on desktop) */}
+          <div className="col-span-1 md:col-span-6 flex flex-col items-start pr-2">
             <Link 
               to="/" 
-              className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-2 sm:mb-3.5 group cursor-pointer"
+              className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-3.5 group cursor-pointer"
               onClick={handleBrandClick}
               aria-label="Lyra Home"
             >
@@ -57,10 +57,10 @@ export default function Footer() {
 
           {/* Column 2: PRODUCT */}
           <div className="col-span-1 md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
               PRODUCT
             </span>
-            <ul className="space-y-2 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-2.5 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
               <li>
                 <FooterAnchorLink
                   to="features"
@@ -90,10 +90,10 @@ export default function Footer() {
 
           {/* Column 3: SUPPORT */}
           <div className="col-span-1 md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3 sm:mb-3.5 block">
               SUPPORT
             </span>
-            <ul className="space-y-2 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-2.5 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
               <li>
                 <Link
                   to="/contact"
@@ -123,29 +123,29 @@ export default function Footer() {
         </div>
 
         {/* Full-width 1px divider */}
-        <div className="w-full h-px bg-[var(--text-muted)]/15 mb-5 sm:mb-8" />
+        <div className="w-full h-px bg-[var(--text-muted)]/15 mb-6 sm:mb-8" />
 
         {/* Bottom bar: space-between copyright & repeated inline links */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4 text-xs sm:text-[13px] text-[var(--text-muted)] text-center sm:text-left">
+        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between text-xs sm:text-[13px] text-[var(--text-muted)] text-center sm:text-left">
           <div>
             © 2026 Lyra. All rights reserved.
           </div>
 
-          <nav aria-label="Footer legal links" className="flex flex-wrap items-center justify-center gap-3 sm:gap-3">
+          <nav aria-label="Footer legal links" className="flex items-center justify-center gap-6 sm:gap-3">
             <Link
               to="/privacy"
               className="hover:text-[var(--text-primary)] transition-colors"
             >
               Privacy
             </Link>
-            <span className="inline-block opacity-40">·</span>
+            <span className="hidden sm:inline-block opacity-40">·</span>
             <Link
               to="/terms"
               className="hover:text-[var(--text-primary)] transition-colors"
             >
               Terms
             </Link>
-            <span className="inline-block opacity-40">·</span>
+            <span className="hidden sm:inline-block opacity-40">·</span>
             <Link
               to="/contact"
               className="hover:text-[var(--text-primary)] transition-colors"
