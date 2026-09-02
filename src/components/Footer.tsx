@@ -35,36 +35,36 @@ export default function Footer() {
   };
 
   return (
-    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-10 sm:pt-16 pb-8 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Responsive Grid: Stacks on mobile, 12-column grid on desktop */}
-        <div className="footer-columns md:grid md:grid-cols-12 gap-8 sm:gap-8 mb-8 sm:mb-12">
-          {/* Column 1: Logo badge, wordmark, description (Spans full width on mobile) */}
-          <div className="footer-column md:col-span-6 flex flex-col items-start pr-2">
+    <footer className="app-footer w-full bg-[var(--bg-surface)] pt-12 sm:pt-16 pb-10 sm:pb-12 font-body mt-auto relative z-10 border-t border-[var(--text-muted)]/15">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6">
+        {/* Responsive Grid: Vertical stacked flow on mobile, 12-column grid on desktop */}
+        <div className="flex flex-col md:grid md:grid-cols-12 gap-8 sm:gap-8 mb-10 sm:mb-12">
+          {/* Column 1: Logo badge, wordmark, description */}
+          <div className="md:col-span-6 flex flex-col items-start pr-0 md:pr-4">
             <Link 
               to="/" 
-              className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-3.5 group cursor-pointer"
+              className="footer-brand flex items-center gap-3 mb-4 group cursor-pointer"
               onClick={handleBrandClick}
               aria-label="Lyra Home"
             >
-              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform" />
-              <span className="wordmark font-heading font-medium text-lg sm:text-[20px] text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight">Lyra</span>
+              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-8 h-8 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform shrink-0" />
+              <span className="wordmark font-heading font-semibold text-xl sm:text-[22px] text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight">Lyra</span>
             </Link>
-            <p className="text-[var(--text-muted)] text-xs sm:text-[14px] leading-relaxed max-w-sm">
+            <p className="text-[var(--text-muted)] text-[14px] sm:text-[15px] leading-relaxed max-w-md">
               A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
             </p>
           </div>
 
           {/* Column 2: PRODUCT */}
-          <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
+          <div className="md:col-span-3 flex flex-col items-start">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
               PRODUCT
             </span>
-            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-3.5 text-[15px] sm:text-[14px] w-full text-[var(--text-muted)]">
               <li>
                 <FooterAnchorLink
                   to="features"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
                 >
                   Features
                 </FooterAnchorLink>
@@ -72,7 +72,7 @@ export default function Footer() {
               <li>
                 <FooterAnchorLink
                   to="wardrobe"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
                 >
                   Wardrobe
                 </FooterAnchorLink>
@@ -80,7 +80,7 @@ export default function Footer() {
               <li>
                 <FooterAnchorLink
                   to="faq"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
                 >
                   FAQ
                 </FooterAnchorLink>
@@ -89,15 +89,15 @@ export default function Footer() {
           </div>
 
           {/* Column 3: SUPPORT */}
-          <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
+          <div className="md:col-span-3 flex flex-col items-start">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3.5 block">
               SUPPORT
             </span>
-            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-3.5 text-[15px] sm:text-[14px] w-full text-[var(--text-muted)]">
               <li>
                 <Link
                   to="/contact"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
                 >
                   Contact Us
                 </Link>
@@ -105,7 +105,7 @@ export default function Footer() {
               <li>
                 <Link
                   to="/privacy"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
                 >
                   Privacy Policy
                 </Link>
@@ -113,7 +113,7 @@ export default function Footer() {
               <li>
                 <Link
                   to="/terms"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
                 >
                   Terms of Service
                 </Link>
@@ -123,32 +123,32 @@ export default function Footer() {
         </div>
 
         {/* Full-width 1px divider */}
-        <div className="w-full h-px bg-[var(--text-muted)]/15 mb-6 sm:mb-8" />
+        <div className="w-full h-px bg-[var(--text-muted)]/15 mb-8 sm:mb-8" />
 
-        {/* Bottom bar: space-between copyright & repeated inline links */}
-        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:justify-between text-xs sm:text-[13px] text-[var(--text-muted)] text-center sm:text-left">
+        {/* Bottom bar: centered on mobile matching screenshot, space-between on desktop */}
+        <div className="flex flex-col items-center justify-center gap-3.5 sm:flex-row sm:justify-between text-xs sm:text-[13px] text-[var(--text-muted)] text-center sm:text-left">
           <div>
             © 2026 Lyra. All rights reserved.
           </div>
 
-          <nav aria-label="Footer legal links" className="flex items-center justify-center gap-6 sm:gap-3">
+          <nav aria-label="Footer legal links" className="flex items-center justify-center gap-6 sm:gap-4">
             <Link
               to="/privacy"
-              className="hover:text-[var(--text-primary)] transition-colors"
+              className="hover:text-[var(--text-primary)] transition-colors py-1"
             >
               Privacy
             </Link>
             <span className="hidden sm:inline-block opacity-40">·</span>
             <Link
               to="/terms"
-              className="hover:text-[var(--text-primary)] transition-colors"
+              className="hover:text-[var(--text-primary)] transition-colors py-1"
             >
               Terms
             </Link>
             <span className="hidden sm:inline-block opacity-40">·</span>
             <Link
               to="/contact"
-              className="hover:text-[var(--text-primary)] transition-colors"
+              className="hover:text-[var(--text-primary)] transition-colors py-1"
             >
               Contact
             </Link>
