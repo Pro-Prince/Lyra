@@ -1154,7 +1154,12 @@ h3, .heading-3 {
 
 @media (max-width: 768px) {
   .footer-columns {
-    gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+  .footer-column {
+    width: 100%;
   }
 }
 
