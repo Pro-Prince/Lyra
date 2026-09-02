@@ -28,7 +28,7 @@ export function Button({
 }: ButtonProps) {
   const combinedClassName = `btn btn-${variant} btn-${size} ${className}`.trim();
 
-  const iconSize = size === 'lg' ? 20 : 16;
+  const iconSize = size === 'lg' ? 20 : 14;
 
   const content = (
     <span className="inline-flex items-center justify-center gap-2">

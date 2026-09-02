@@ -173,10 +173,10 @@ export default function Settings() {
               </div>
               <Button 
                 variant="primary" 
-                size="lg" 
+                size="sm" 
                 type="submit" 
                 disabled={!isMockAuthed} 
-                className="w-full sm:w-auto px-8"
+                className="h-10 text-sm whitespace-nowrap px-5 w-full sm:w-auto"
               >
                 Save Changes
               </Button>
@@ -250,23 +250,25 @@ export default function Settings() {
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-4 pt-6 mt-6 border-t border-[var(--text-primary)]/[0.06]">
             <Button
               variant="secondary"
-              size="lg"
+              size="sm"
               type="button"
               onClick={handleTestSample}
-              className="w-full sm:w-auto px-6"
+              className="h-10 text-sm whitespace-nowrap px-5 w-full sm:w-auto"
+              icon={Volume2}
+              iconPlacement="left"
             >
-              <Volume2 className="w-4 h-4 shrink-0" />
-              <span>Test Sample</span>
+              Test Sample
             </Button>
             <Button
               variant="primary"
-              size="lg"
+              size="sm"
               type="button"
               onClick={handleSaveVoice}
-              className="w-full sm:w-auto px-6"
+              className="h-10 text-sm whitespace-nowrap px-5 w-full sm:w-auto"
+              icon={Sparkles}
+              iconPlacement="left"
             >
-              <Sparkles className="w-4 h-4 shrink-0" />
-              <span>Save Voice</span>
+              Save Voice
             </Button>
           </div>
         </motion.section>
@@ -387,10 +389,11 @@ export default function Settings() {
                   size="sm"
                   onClick={handleResetCompanion}
                   disabled={resetConfirm !== "RESET"}
-                  className="h-10 text-sm flex items-center justify-center gap-2 whitespace-nowrap px-5"
+                  className="h-10 text-sm whitespace-nowrap px-5"
+                  icon={RotateCcw}
+                  iconPlacement="left"
                 >
-                  <RotateCcw className="w-4 h-4 shrink-0" />
-                  <span>Reset Chat & Memory</span>
+                  Reset Chat & Memory
                 </Button>
               </div>
             </div>
@@ -419,10 +422,11 @@ export default function Settings() {
                   size="sm"
                   onClick={handleClear}
                   disabled={clearConfirm !== "CLEAR"}
-                  className="h-10 text-sm flex items-center justify-center gap-2 whitespace-nowrap px-5"
+                  className="h-10 text-sm whitespace-nowrap px-5"
+                  icon={Trash2}
+                  iconPlacement="left"
                 >
-                  <Trash2 className="w-4 h-4 shrink-0" />
-                  <span>Wipe All App Data</span>
+                  Wipe All App Data
                 </Button>
               </div>
             </div>

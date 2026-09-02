@@ -366,11 +366,9 @@ export default function AppHeader() {
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (location.pathname === "/") {
-      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      document.getElementById("root")?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } else {
       navigate("/");
-      // Ensure scroll to top happens on navigation
-      window.scrollTo(0, 0);
     }
   };
 

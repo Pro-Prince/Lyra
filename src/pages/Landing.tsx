@@ -172,7 +172,7 @@ export default function Landing() {
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 
       {/* Hero & Feature Cards Section: --bg-base */}
-      <section className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">
+      <section id="hero" className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">
         <div className="w-full max-w-6xl mx-auto px-6">
           {/* Centered Hero Text Layout */}
           <div className="hero hero-single-column">

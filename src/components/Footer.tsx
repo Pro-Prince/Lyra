@@ -27,10 +27,9 @@ export default function Footer() {
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (location.pathname === "/") {
-      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      document.getElementById("root")?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     } else {
       navigate("/");
-      window.scrollTo(0, 0);
     }
   };
 
@@ -43,12 +42,12 @@ export default function Footer() {
           <div className="footer-column md:col-span-6 flex flex-col items-start pr-2">
             <Link 
               to="/" 
-              className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-3.5 group cursor-pointer"
+              className="footer-brand flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-3.5 group cursor-pointer transition-transform active:scale-95"
               onClick={handleBrandClick}
               aria-label="Lyra Home"
             >
-              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40 group-hover:scale-105 transition-transform" />
-              <span className="wordmark font-heading font-medium text-lg sm:text-[20px] text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight">Lyra</span>
+              <img src="/images/Logo.png" alt="Lyra" className="logo-badge-img w-7 h-7 sm:w-7 sm:h-7 rounded-lg object-cover border border-[var(--accent-primary)]/40" />
+              <span className="wordmark font-heading font-medium text-lg sm:text-[20px] text-[var(--text-primary)] tracking-tight">Lyra</span>
             </Link>
             <p className="text-[var(--text-muted)] text-xs sm:text-[14px] leading-relaxed max-w-sm">
               A quiet AI companion that listens, remembers, and responds when you need to talk. An AI presence, not a real person, for adults 18+.
