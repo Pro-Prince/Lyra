@@ -125,12 +125,12 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header Section */}
-          <div className="flex items-center gap-6 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-              <UserIcon size={28} />
+          <div className="flex items-center gap-5 sm:gap-6 mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+              <UserIcon size={28} className="shrink-0" />
             </div>
-            <div>
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Profile Information</h2>
+            <div className="flex flex-col justify-center min-w-0">
+              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Profile Information</h2>
               <p className="section-subtitle">Your name and account details</p>
             </div>
           </div>
@@ -166,8 +166,8 @@ export default function Settings() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-[var(--text-primary)]/[0.06]">
               <div className="hidden sm:block">
                 {!isMockAuthed && (
-                  <p className="text-sm text-[var(--text-muted)] flex items-center gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+                  <p className="text-sm text-[var(--text-muted)] flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
                     <span>
                       <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-bold">Log in</Link> to synchronize your profile.
                     </span>
@@ -193,12 +193,12 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm flex flex-col"
         >
           <div>
-            <div className="flex items-center gap-6 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-                <Volume2 size={28} />
+            <div className="flex items-center gap-5 sm:gap-6 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                <Volume2 size={28} className="shrink-0" />
               </div>
-              <div>
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Voice</h2>
+              <div className="flex flex-col justify-center min-w-0">
+                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Voice</h2>
                 <p className="section-subtitle">Choose how Lyra sounds when speaking with you</p>
               </div>
             </div>
@@ -258,7 +258,8 @@ export default function Settings() {
               onClick={handleTestSample}
               className="w-full sm:w-auto px-8"
             >
-              Test Sample
+              <Volume2 className="w-4 h-4 shrink-0" />
+              <span>Test Sample</span>
             </Button>
             <Button
               variant="primary"
@@ -267,7 +268,8 @@ export default function Settings() {
               onClick={handleSaveVoice}
               className="w-full sm:w-auto px-8"
             >
-              Save Voice
+              <Sparkles className="w-4 h-4 shrink-0" />
+              <span>Save Voice</span>
             </Button>
           </div>
         </motion.section>
@@ -277,13 +279,13 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex items-center gap-6 mb-10">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-              <Sparkles size={28} />
+          <div className="flex items-center gap-5 sm:gap-6 mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+              <Sparkles size={28} className="shrink-0" />
             </div>
-            <div>
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Wardrobe Style</h2>
-              <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Live 3D avatar aesthetic selection</p>
+            <div className="flex flex-col justify-center min-w-0">
+              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Wardrobe Style</h2>
+              <p className="section-subtitle">Live 3D avatar aesthetic selection</p>
             </div>
           </div>
 
@@ -310,19 +312,20 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-                <BookOpen size={28} />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-8">
+            <div className="flex items-center gap-5 sm:gap-6">
+              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                <BookOpen size={28} className="shrink-0" />
               </div>
-              <div>
-                <h3 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">What She Remembers</h3>
+              <div className="flex flex-col justify-center min-w-0">
+                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
                 <p className="section-subtitle">A few things she's picked up on so far</p>
               </div>
             </div>
             {memories.length > 0 && (
-              <span className="text-[12px] font-medium text-[var(--accent-primary)] bg-[var(--accent-primary)]/5 px-4 py-1.5 rounded-full border border-[var(--accent-primary)]/10">
-                {memories.length} item{memories.length === 1 ? '' : 's'}
+              <span className="text-[12px] font-medium text-[var(--accent-primary)] bg-[var(--accent-primary)]/5 px-3.5 py-1.5 rounded-full border border-[var(--accent-primary)]/10 self-start sm:self-auto flex items-center gap-1.5 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+                <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
               </span>
             )}
           </div>
@@ -336,16 +339,19 @@ export default function Settings() {
               memories.map(mem => (
                 <div 
                   key={mem.id} 
-                  className="flex items-center justify-between gap-6 p-5 sm:p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.04] rounded-2xl group hover:border-[var(--accent-primary)]/20 transition-all"
+                  className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.04] rounded-2xl group hover:border-[var(--accent-primary)]/20 transition-all"
                 >
-                  <p className="text-[15px] text-[var(--text-primary)]/90 leading-relaxed font-body">{mem.content}</p>
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]/50 shrink-0" />
+                    <p className="text-[15px] text-[var(--text-primary)]/90 leading-relaxed font-body break-words">{mem.content}</p>
+                  </div>
                   <button 
                     type="button"
                     onClick={() => handleDeleteMemory(mem.id)}
-                    className="p-2 text-[var(--text-muted)] hover:text-rose-500 transition-colors shrink-0"
+                    className="w-8 h-8 rounded-lg text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all shrink-0 flex items-center justify-center"
                     title="Delete memory"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 shrink-0" />
                   </button>
                 </div>
               ))
@@ -359,12 +365,12 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm border-rose-500/20 bg-[var(--bg-surface)]"
         >
           {/* Header */}
-          <div className="flex items-center gap-6 mb-8">
+          <div className="flex items-center gap-5 sm:gap-6 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-              <AlertTriangle size={28} />
+              <AlertTriangle size={28} className="shrink-0" />
             </div>
-            <div>
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Danger Zone</h2>
+            <div className="flex flex-col justify-center min-w-0">
+              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
               <p className="section-subtitle">Permanent actions and irreversible local data resets</p>
             </div>
           </div>
@@ -372,17 +378,17 @@ export default function Settings() {
           {/* Action List */}
           <div className="space-y-6">
             {/* Action 1: Reset Chat & Memory */}
-            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
-                  <RotateCcw className="w-5 h-5" />
+            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                  <RotateCcw className="w-5 h-5 shrink-0" />
                 </div>
-                <div>
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Reset Chat & Memory</h4>
-                  <p className="section-subtitle mt-0.5">Erases conversation history and memories while keeping your preferences.</p>
+                <div className="min-w-0">
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h4>
+                  <p className="section-subtitle mt-1">Erases conversation history and memories while keeping your preferences.</p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 pt-2 lg:pt-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                 <input 
                   type="text" 
                   value={resetConfirm}
@@ -397,24 +403,24 @@ export default function Settings() {
                   disabled={resetConfirm !== "RESET"}
                   className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 shrink-0" />
                   <span>Reset Chat & Memory</span>
                 </Button>
               </div>
             </div>
 
             {/* Action 2: Wipe All App Data */}
-            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
-                  <Trash2 className="w-5 h-5" />
+            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                  <Trash2 className="w-5 h-5 shrink-0" />
                 </div>
-                <div>
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Wipe All App Data</h4>
-                  <p className="section-subtitle mt-0.5">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
+                <div className="min-w-0">
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h4>
+                  <p className="section-subtitle mt-1">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 pt-2 lg:pt-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                 <input 
                   type="text" 
                   value={clearConfirm}
@@ -429,7 +435,7 @@ export default function Settings() {
                   disabled={clearConfirm !== "CLEAR"}
                   className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 shrink-0" />
                   <span>Wipe All App Data</span>
                 </Button>
               </div>
@@ -441,9 +447,9 @@ export default function Settings() {
 
       {/* Local Storage Privacy Note */}
       <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-6 font-body">
-        <div className="flex items-start sm:items-center justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0 mt-1.5 sm:mt-0" />
-          <p className="text-xs text-[var(--text-muted)] text-left sm:text-center leading-normal">
+        <div className="flex items-center justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+          <p className="text-xs text-[var(--text-muted)] text-center leading-normal">
             Your data stays on this device. Fully private and locally stored.
           </p>
         </div>

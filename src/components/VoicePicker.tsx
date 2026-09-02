@@ -102,32 +102,32 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
                 : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full border-2 transition-all flex items-center justify-center ${
+            <div className="flex items-center gap-3.5">
+              <div className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center shrink-0 ${
                 isSelected 
                   ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]' 
                   : 'border-[var(--text-primary)]/20 bg-transparent'
               }`}>
                 {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#2D0A1E]" />}
               </div>
-              <div>
-                <div className={`text-sm font-heading font-medium ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
+              <div className="flex flex-col justify-center">
+                <div className={`text-sm font-heading font-medium leading-snug ${isSelected ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)]'}`}>
                   {preset.label}
                 </div>
-                <div className="text-xs font-body text-[var(--text-muted)]/80 mt-0.5">{preset.desc}</div>
+                <div className="text-xs font-body text-[var(--text-muted)]/80 mt-0.5 leading-snug">{preset.desc}</div>
               </div>
             </div>
             <button
               type="button"
               onClick={(e) => handlePreview(preset, e)}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+              className={`w-9 h-9 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                 isThisPlaying 
                   ? 'bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] animate-pulse' 
                   : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]/30'
               }`}
               title="Preview Voice Preset"
             >
-              <Play className={`w-4 h-4 ${isThisPlaying ? 'fill-current' : 'fill-current opacity-70'}`} />
+              <Play className={`w-4 h-4 ml-0.5 ${isThisPlaying ? 'fill-current' : 'fill-current opacity-70'}`} />
             </button>
           </div>
         );

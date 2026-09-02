@@ -31,11 +31,11 @@ export function Button({
   const iconSize = size === 'lg' ? 20 : 16;
 
   const content = (
-    <div className="flex items-center gap-2">
-      {Icon && iconPlacement === 'left' && <Icon size={iconSize} />}
+    <span className="inline-flex items-center justify-center gap-2">
+      {Icon && iconPlacement === 'left' && <Icon size={iconSize} className="shrink-0" />}
       <span>{children}</span>
-      {Icon && iconPlacement === 'right' && <Icon size={iconSize} />}
-    </div>
+      {Icon && iconPlacement === 'right' && <Icon size={iconSize} className="shrink-0" />}
+    </span>
   );
 
   if (to && !disabled) {

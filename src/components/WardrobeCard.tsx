@@ -279,11 +279,20 @@ export function WardrobeCard({
             e.stopPropagation();
             onSelect?.();
           }}
-          className="btn btn-primary btn-sm w-full group/btn"
+          className={`btn ${isSelected ? 'btn-secondary' : 'btn-primary'} btn-sm w-full group/btn`}
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
-            <span>Wear this look</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+            {isSelected ? (
+              <>
+                <Check className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                <span>Currently wearing</span>
+              </>
+            ) : (
+              <>
+                <span>Wear this look</span>
+                <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover/btn:translate-x-1" />
+              </>
+            )}
           </span>
         </button>
       </div>
