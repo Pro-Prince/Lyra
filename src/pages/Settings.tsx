@@ -4,17 +4,12 @@ import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory } from "../lib/storage";
 import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
-import { WardrobeCard } from "../components/WardrobeCard";
+import WardrobeGrid from "../components/WardrobeGrid";
+import { MODEL_FILES } from "../lib/companionRenderer";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import Button from "../components/Button";
 import { useMockAuthState } from "../context/AuthContext";
-
-const OUTFITS = [
-  { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
-  { id: '/models/lyra_casual.vrm', label: 'Casual', tag: 'Everyday' },
-  { id: '/models/lyra_dress.vrm', label: 'Dress', tag: 'Evening' },
-];
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -69,10 +64,12 @@ export default function Settings() {
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
+    const modelUrl = MODEL_FILES[outfitId] || outfitId;
     const comp = await getCompanion() || {};
-    comp.outfit = outfitId;
+    comp.outfit = modelUrl;
     await saveCompanion(comp);
-    setCurrentOutfit(outfitId);
+    setCurrentOutfit(modelUrl);
+    showInfo("Wardrobe style updated!");
   };
 
   const handleTestSample = () => {
@@ -104,19 +101,19 @@ export default function Settings() {
       className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body overflow-y-auto no-scrollbar scrollbar-hide"
     >
       {/* Top Title */}
-      <div className="mb-12 max-w-6xl mx-auto w-full pt-8">
-        <h1 className="text-4xl font-heading font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
-        <p className="text-lg text-[var(--text-muted)] mt-3 font-body max-w-2xl leading-relaxed">
+      <div className="mb-8 sm:mb-10 max-w-6xl mx-auto w-full pt-4 sm:pt-6">
+        <h1 className="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
+        <p className="text-sm sm:text-base text-[var(--text-muted)] mt-2 font-body max-w-2xl leading-relaxed">
           Everything stays on your device. Manage your preferences anytime.
         </p>
       </div>
 
-      {/* Bento Grid Layout with 48px (--space-xl) Spacing */}
+      {/* Bento Grid Layout */}
       <motion.div 
         initial="hidden"
         animate="visible"
         variants={groupVariants}
-        className="grid grid-cols-1 md:grid-cols-12 gap-12 max-w-6xl mx-auto w-full pb-20"
+        className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10 max-w-6xl mx-auto w-full pb-16"
       >
         
         {/* PROFILE INFORMATION (Span 12) */}
@@ -125,23 +122,23 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header Section */}
-          <div className="flex items-center gap-5 sm:gap-6 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
-              <UserIcon size={28} className="shrink-0" />
+          <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+              <UserIcon className="w-6 h-6 shrink-0" />
             </div>
             <div className="flex flex-col justify-center min-w-0">
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Profile Information</h2>
-              <p className="section-subtitle">Your name and account details</p>
+              <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Profile Information</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Your name and account details</p>
             </div>
           </div>
 
-          <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-8" />
+          <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-6 sm:mb-8" />
 
           <form onSubmit={handleSaveProfile} className="font-body">
             {/* Input Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
               <div className="space-y-2">
-                <label>Full Name</label>
+                <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Full Name</label>
                 <input 
                   type="text" 
                   defaultValue={mockUser?.name} 
@@ -152,7 +149,7 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
-                <label>Email Address</label>
+                <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Email Address</label>
                 <input 
                   type="email" 
                   defaultValue={mockUser?.email} 
@@ -163,13 +160,13 @@ export default function Settings() {
             </div>
 
             {/* Bottom Section */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-[var(--text-primary)]/[0.06]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[var(--text-primary)]/[0.06]">
               <div className="hidden sm:block">
                 {!isMockAuthed && (
-                  <p className="text-sm text-[var(--text-muted)] flex items-center gap-2.5">
+                  <p className="text-sm text-[var(--text-muted)] flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
                     <span>
-                      <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-bold">Log in</Link> to synchronize your profile.
+                      <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Log in</Link> to synchronize your profile.
                     </span>
                   </p>
                 )}
@@ -179,7 +176,7 @@ export default function Settings() {
                 size="lg" 
                 type="submit" 
                 disabled={!isMockAuthed} 
-                className="w-full sm:w-auto px-10"
+                className="w-full sm:w-auto px-8"
               >
                 Save Changes
               </Button>
@@ -193,26 +190,26 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm flex flex-col"
         >
           <div>
-            <div className="flex items-center gap-5 sm:gap-6 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
-                <Volume2 size={28} className="shrink-0" />
+            <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+              <div className="w-12 h-12 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                <Volume2 className="w-6 h-6 shrink-0" />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Voice</h2>
-                <p className="section-subtitle">Choose how Lyra sounds when speaking with you</p>
+                <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Voice</h2>
+                <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Choose how Lyra sounds when speaking with you</p>
               </div>
             </div>
 
             {/* Voice Presets */}
-            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-6 mb-6">
+            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-4 sm:p-6 mb-6">
               <VoicePicker onSelect={() => showInfo("Voice updated")} />
             </div>
 
             {/* Consolidated Inline Check-in Row */}
-            <div className="inline-toggle-row px-2 pt-4 pb-2">
-              <div>
-                <strong className="text-[var(--text-primary)] text-base block font-heading">Gentle check-ins</strong>
-                <p className="section-subtitle">A light greeting if you haven't spoken in a while</p>
+            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10">
+              <div className="min-w-0">
+                <strong className="text-[var(--text-primary)] text-sm sm:text-base font-semibold block font-heading leading-tight">Gentle check-ins</strong>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">A light greeting if you haven't spoken in a while</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0">
                 <input 
@@ -245,18 +242,18 @@ export default function Settings() {
                     }
                   }}
                 />
-                <div className="w-12 h-6.5 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
+                <div className="w-11 h-6 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
               </label>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-6 mt-6 border-t border-[var(--text-primary)]/[0.06]">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 sm:gap-4 pt-6 mt-6 border-t border-[var(--text-primary)]/[0.06]">
             <Button
               variant="secondary"
               size="lg"
               type="button"
               onClick={handleTestSample}
-              className="w-full sm:w-auto px-8"
+              className="w-full sm:w-auto px-6"
             >
               <Volume2 className="w-4 h-4 shrink-0" />
               <span>Test Sample</span>
@@ -266,7 +263,7 @@ export default function Settings() {
               size="lg"
               type="button"
               onClick={handleSaveVoice}
-              className="w-full sm:w-auto px-8"
+              className="w-full sm:w-auto px-6"
             >
               <Sparkles className="w-4 h-4 shrink-0" />
               <span>Save Voice</span>
@@ -279,32 +276,21 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex items-center gap-5 sm:gap-6 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
-              <Sparkles size={28} className="shrink-0" />
+          <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+              <Sparkles className="w-6 h-6 shrink-0" />
             </div>
             <div className="flex flex-col justify-center min-w-0">
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Wardrobe Style</h2>
-              <p className="section-subtitle">Live 3D avatar aesthetic selection</p>
+              <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Wardrobe Style</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Live 3D avatar aesthetic selection</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {OUTFITS.map(outfit => {
-              const isSelected = currentOutfit === outfit.id;
-              return (
-                <WardrobeCard
-                  key={outfit.id}
-                  modelId={outfit.id}
-                  label={outfit.label}
-                  tag={outfit.tag}
-                  isSelected={isSelected}
-                  onSelect={() => handleSelectOutfit(outfit.id)}
-                  useFeatureStyle={true}
-                />
-              );
-            })}
-          </div>
+          <WardrobeGrid
+            selectedOutfit={currentOutfit}
+            onSelect={handleSelectOutfit}
+            size="large"
+          />
         </motion.section>
 
         {/* WHAT SHE REMEMBERS (Span 12) */}
@@ -312,43 +298,43 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-8">
-            <div className="flex items-center gap-5 sm:gap-6">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
-                <BookOpen size={28} className="shrink-0" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <div className="w-12 h-12 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                <BookOpen className="w-6 h-6 shrink-0" />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
-                <p className="section-subtitle">A few things she's picked up on so far</p>
+                <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
+                <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">A few things she's picked up on so far</p>
               </div>
             </div>
             {memories.length > 0 && (
-              <span className="text-[12px] font-medium text-[var(--accent-primary)] bg-[var(--accent-primary)]/5 px-3.5 py-1.5 rounded-full border border-[var(--accent-primary)]/10 self-start sm:self-auto flex items-center gap-1.5 shrink-0">
+              <span className="text-xs font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-3 py-1 rounded-full border border-[var(--accent-primary)]/15 self-start sm:self-auto flex items-center gap-1.5 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
                 <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
               </span>
             )}
           </div>
 
-          <div className="space-y-3 max-h-80 overflow-y-auto pr-2 no-scrollbar">
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-1 no-scrollbar">
             {memories.length === 0 ? (
-              <div className="text-[var(--text-muted)] text-[14px] py-12 text-center bg-[var(--bg-base)]/20 rounded-2xl border border-dashed border-[var(--text-primary)]/10">
+              <div className="text-[var(--text-muted)] text-sm py-10 text-center bg-[var(--bg-base)]/20 rounded-2xl border border-dashed border-[var(--text-primary)]/10 font-body">
                 No memories recorded yet. Talk with Lyra to build shared history.
               </div>
             ) : (
               memories.map(mem => (
                 <div 
                   key={mem.id} 
-                  className="flex items-center justify-between gap-4 p-4 sm:p-5 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.04] rounded-2xl group hover:border-[var(--accent-primary)]/20 transition-all"
+                  className="flex items-center justify-between gap-4 p-3.5 sm:p-4 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-xl group hover:border-[var(--accent-primary)]/20 transition-all"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]/50 shrink-0" />
-                    <p className="text-[15px] text-[var(--text-primary)]/90 leading-relaxed font-body break-words">{mem.content}</p>
+                    <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed font-body break-words">{mem.content}</p>
                   </div>
                   <button 
                     type="button"
                     onClick={() => handleDeleteMemory(mem.id)}
-                    className="w-8 h-8 rounded-lg text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all shrink-0 flex items-center justify-center"
+                    className="w-8 h-8 rounded-lg text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all shrink-0 flex items-center justify-center cursor-pointer"
                     title="Delete memory"
                   >
                     <Trash2 className="w-4 h-4 shrink-0" />
@@ -365,27 +351,27 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm border-rose-500/20 bg-[var(--bg-surface)]"
         >
           {/* Header */}
-          <div className="flex items-center gap-5 sm:gap-6 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-              <AlertTriangle size={28} className="shrink-0" />
+          <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
             </div>
             <div className="flex flex-col justify-center min-w-0">
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
-              <p className="section-subtitle">Permanent actions and irreversible local data resets</p>
+              <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Permanent actions and irreversible local data resets</p>
             </div>
           </div>
 
           {/* Action List */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {/* Action 1: Reset Chat & Memory */}
-            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+            <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
                   <RotateCcw className="w-5 h-5 shrink-0" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h4>
-                  <p className="section-subtitle mt-1">Erases conversation history and memories while keeping your preferences.</p>
+                  <h3 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h3>
+                  <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Erases conversation history and memories while keeping your preferences.</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
@@ -394,14 +380,14 @@ export default function Settings() {
                   value={resetConfirm}
                   onChange={(e) => setResetConfirm(e.target.value)}
                   placeholder="Type RESET"
-                  className="w-full sm:w-36 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
+                  className="h-10 w-full sm:w-36 text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
                 />
                 <Button
                   variant="destructive"
-                  size="lg"
+                  size="sm"
                   onClick={handleResetCompanion}
                   disabled={resetConfirm !== "RESET"}
-                  className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
+                  className="h-10 text-sm flex items-center justify-center gap-2 whitespace-nowrap px-5"
                 >
                   <RotateCcw className="w-4 h-4 shrink-0" />
                   <span>Reset Chat & Memory</span>
@@ -410,14 +396,14 @@ export default function Settings() {
             </div>
 
             {/* Action 2: Wipe All App Data */}
-            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+            <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
                   <Trash2 className="w-5 h-5 shrink-0" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h4>
-                  <p className="section-subtitle mt-1">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
+                  <h3 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h3>
+                  <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
@@ -426,14 +412,14 @@ export default function Settings() {
                   value={clearConfirm}
                   onChange={(e) => setClearConfirm(e.target.value)}
                   placeholder="Type CLEAR"
-                  className="w-full sm:w-36 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
+                  className="h-10 w-full sm:w-36 text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
                 />
                 <Button
                   variant="destructive"
-                  size="lg"
+                  size="sm"
                   onClick={handleClear}
                   disabled={clearConfirm !== "CLEAR"}
-                  className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
+                  className="h-10 text-sm flex items-center justify-center gap-2 whitespace-nowrap px-5"
                 >
                   <Trash2 className="w-4 h-4 shrink-0" />
                   <span>Wipe All App Data</span>
@@ -446,7 +432,7 @@ export default function Settings() {
       </motion.div>
 
       {/* Local Storage Privacy Note */}
-      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-6 font-body">
+      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-8 font-body">
         <div className="flex items-center justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
           <p className="text-xs text-[var(--text-muted)] text-center leading-normal">

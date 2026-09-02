@@ -6,8 +6,7 @@ import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, saveLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
-import { OutfitThumbnail } from "../components/Thumbnails";
-import { WardrobeCard } from "../components/WardrobeCard";
+import WardrobeGrid from "../components/WardrobeGrid";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { PresenceTopBar } from "../components/PresenceTopBar";
@@ -1855,23 +1854,11 @@ export default function Chat() {
                     <span className="text-xs font-body text-[var(--text-primary)]/40 z-10">Preparing wardrobe...</span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-6">
-                    {[
-                      { id: '/models/lyra.vrm', label: 'Default', tag: 'Standard' },
-                      { id: '/models/lyra_casual.vrm', label: 'Casual', tag: 'Everyday' },
-                      { id: '/models/lyra_dress.vrm', label: 'Dress', tag: 'Evening' }
-                    ].map(item => (
-                      <WardrobeCard
-                        key={item.id}
-                        modelId={item.id}
-                        label={item.label}
-                        tag={item.tag}
-                        isSelected={outfit === item.id}
-                        onSelect={() => handleOutfitChange(item.id)}
-                        useFeatureStyle={true}
-                      />
-                    ))}
-                  </div>
+                  <WardrobeGrid
+                    selectedOutfit={outfit}
+                    onSelect={handleOutfitChange}
+                    size="default"
+                  />
                 )}
               </div>
             </motion.aside>

@@ -57,47 +57,41 @@ export default function Footer() {
 
           {/* Column 2: PRODUCT */}
           <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-2 sm:mb-3.5 block">
               PRODUCT
             </span>
-            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
-              <li>
-                <FooterAnchorLink
-                  to="features"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
-                >
-                  Features
-                </FooterAnchorLink>
-              </li>
-              <li>
-                <FooterAnchorLink
-                  to="wardrobe"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
-                >
-                  Wardrobe
-                </FooterAnchorLink>
-              </li>
-              <li>
-                <FooterAnchorLink
-                  to="faq"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer inline-block py-0.5"
-                >
-                  FAQ
-                </FooterAnchorLink>
-              </li>
-            </ul>
+            <div className="flex flex-col text-xs sm:text-[14px] w-full space-y-2.5">
+              <FooterAnchorLink
+                to="features"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer block leading-normal py-0.5"
+              >
+                Features
+              </FooterAnchorLink>
+              <FooterAnchorLink
+                to="wardrobe"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer block leading-normal py-0.5"
+              >
+                Wardrobe
+              </FooterAnchorLink>
+              <FooterAnchorLink
+                to="faq"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer block leading-normal py-0.5"
+              >
+                FAQ
+              </FooterAnchorLink>
+            </div>
           </div>
 
           {/* Column 3: SUPPORT */}
           <div className="footer-column md:col-span-3 flex flex-col items-start">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 sm:mb-3.5 block">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-1 sm:mb-3.5 block">
               SUPPORT
             </span>
-            <ul className="space-y-4 sm:space-y-2.5 text-xs sm:text-[14px] w-full">
+            <ul className="space-y-2.5 text-xs sm:text-[14px] w-full flex flex-col">
               <li>
                 <Link
                   to="/contact"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5 leading-normal"
                 >
                   Contact Us
                 </Link>
@@ -105,7 +99,7 @@ export default function Footer() {
               <li>
                 <Link
                   to="/privacy"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5 leading-normal"
                 >
                   Privacy Policy
                 </Link>
@@ -113,7 +107,7 @@ export default function Footer() {
               <li>
                 <Link
                   to="/terms"
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-block py-0.5 leading-normal"
                 >
                   Terms of Service
                 </Link>
@@ -158,4 +152,3 @@ export default function Footer() {
     </footer>
   );
 }
-

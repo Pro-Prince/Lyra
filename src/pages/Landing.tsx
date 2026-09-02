@@ -21,7 +21,7 @@ import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE 
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import IconBadge from "../components/IconBadge";
-import { VRMPreviewCanvas } from "../components/VRMPreviewCanvas";
+import WardrobeGrid from "../components/WardrobeGrid";
 
 interface FAQItem {
   id: string;
@@ -70,23 +70,10 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function OutfitShowcase() {
-  const navigate = useNavigate();
-  const { user, isGuestMode, continueAsGuest } = useAuth();
+  const [activeOutfit, setActiveOutfit] = useState('lyra');
 
-  const outfits = [
-    { id: 'lyra', url: '/models/lyra.vrm', label: 'Default' },
-    { id: 'lyra_casual', url: '/models/lyra_casual.vrm', label: 'Casual' },
-    { id: 'lyra_dress', url: '/models/lyra_dress.vrm', label: 'Dress' },
-  ];
-
-  const handleSelectOutfit = async (url: string) => {
-    const isAuthenticated = user || isGuestMode;
-    if (!isAuthenticated) {
-      await continueAsGuest();
-    }
-    const companion = await getCompanion();
-    await saveCompanion({ ...companion, outfit: url, initialized: true });
-    navigate('/chat');
+  const handleOutfitPreview = (outfitId: string) => {
+    setActiveOutfit(outfitId);
   };
 
   return (
@@ -106,40 +93,11 @@ function OutfitShowcase() {
           Three looks, one presence
         </h2>
         <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
-          Explore Lyra's outfits in 3D and select a look to start chatting.
+          Explore Lyra's outfits in 3D and select a look to preview.
         </p>
       </motion.div>
 
-      <motion.div variants={groupVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {outfits.map(({ id, url, label }) => (
-          <motion.div
-            key={id}
-            variants={entranceVariants}
-            className="feature-card group relative p-5 sm:p-6 flex flex-col justify-between"
-          >
-            {/* 3D Canvas Container */}
-            <div className="w-full h-72 sm:h-80 rounded-2xl overflow-hidden bg-gradient-to-b from-[var(--bg-base)]/40 to-[var(--bg-surface)] relative border border-[var(--text-primary)]/5 z-10">
-              <VRMPreviewCanvas url={url} className="w-full h-full" interactive={true} autoRotate={true} />
-            </div>
-
-            {/* Info & Action CTA */}
-            <div className="mt-5 flex flex-col flex-1 justify-between items-center text-center z-10">
-              <h3 className="font-heading font-semibold text-lg sm:text-xl text-[var(--text-primary)] mb-3">
-                {label}
-              </h3>
-
-              <button
-                type="button"
-                onClick={() => handleSelectOutfit(url)}
-                className="btn btn-primary btn-sm w-full"
-              >
-                <span>Wear this look</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
+      <WardrobeGrid selectedOutfit={activeOutfit} onSelect={handleOutfitPreview} size="large" />
     </motion.section>
   );
 }
