@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
-import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, Download, Upload } from "lucide-react";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory } from "../lib/storage";
+import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
 import { WardrobeCard } from "../components/WardrobeCard";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
@@ -21,7 +21,6 @@ export default function Settings() {
   const { showInfo, showError } = useToast();
   const { isMockAuthed, mockUser } = useMockAuthState();
   const [memories, setMemories] = useState<any[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
@@ -94,44 +93,6 @@ export default function Settings() {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     showInfo("Profile updated");
-  };
-
-  const handleExportBackup = async () => {
-    try {
-      const dataStr = await exportAllData();
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const dateStr = new Date().toISOString().split("T")[0];
-      link.href = url;
-      link.download = `lyra-backup-${dateStr}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      showInfo("Backup saved to your device");
-    } catch (err) {
-      showError("Failed to save backup");
-    }
-  };
-
-  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      await importAllData(text);
-      showInfo("Backup brought back successfully");
-      const mems = await getMemories();
-      setMemories(mems || []);
-      const comp = await getCompanion();
-      if (comp?.outfit) setCurrentOutfit(comp.outfit);
-      if (comp?.dailyCheckInEnabled) setCheckInEnabled(true);
-    } catch (err) {
-      showError("Could not restore backup. Please choose a valid backup file.");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
   };
 
   return (
@@ -392,122 +353,89 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* YOUR DATA (Span 12) */}
+        {/* DANGER ZONE (Span 12 - Visible Panel) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 shadow-sm"
+          className="account-panel md:col-span-12 shadow-sm border-rose-500/20 bg-[var(--bg-surface)]"
         >
+          {/* Header */}
           <div className="flex items-center gap-6 mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-              <Download size={28} />
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+              <AlertTriangle size={28} />
             </div>
             <div>
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Your Data</h2>
-              <p className="section-subtitle">Everything stays on your device. Take it with you anytime.</p>
+              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Danger Zone</h2>
+              <p className="section-subtitle">Permanent actions and irreversible local data resets</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col justify-between">
-              <div>
-                <strong className="text-[var(--text-primary)] text-base block font-heading">Save a Backup</strong>
-                <p className="section-subtitle mt-1 mb-6">Download everything she remembers, just in case.</p>
+          {/* Action List */}
+          <div className="space-y-6">
+            {/* Action 1: Reset Chat & Memory */}
+            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Reset Chat & Memory</h4>
+                  <p className="section-subtitle mt-0.5">Erases conversation history and memories while keeping your preferences.</p>
+                </div>
               </div>
-              <Button
-                variant="secondary"
-                size="lg"
-                type="button"
-                onClick={handleExportBackup}
-                className="w-full justify-center flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Save a Backup</span>
-              </Button>
-            </div>
-
-            <div className="p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col justify-between">
-              <div>
-                <strong className="text-[var(--text-primary)] text-base block font-heading">Restore a Backup</strong>
-                <p className="section-subtitle mt-1 mb-6">Bring back a previous save.</p>
-              </div>
-              <div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 pt-2 lg:pt-0">
                 <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImportBackup} 
-                  className="hidden" 
-                  accept=".json,application/json,text/plain"
+                  type="text" 
+                  value={resetConfirm}
+                  onChange={(e) => setResetConfirm(e.target.value)}
+                  placeholder="Type RESET"
+                  className="w-full sm:w-36 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
                 />
                 <Button
-                  variant="secondary"
+                  variant="destructive"
                   size="lg"
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full justify-center flex items-center gap-2"
+                  onClick={handleResetCompanion}
+                  disabled={resetConfirm !== "RESET"}
+                  className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
                 >
-                  <Upload className="w-4 h-4" />
-                  <span>Restore a Backup</span>
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Reset Chat & Memory</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Action 2: Wipe All App Data */}
+            <div className="p-5 sm:p-6 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Wipe All App Data</h4>
+                  <p className="section-subtitle mt-0.5">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 pt-2 lg:pt-0">
+                <input 
+                  type="text" 
+                  value={clearConfirm}
+                  onChange={(e) => setClearConfirm(e.target.value)}
+                  placeholder="Type CLEAR"
+                  className="w-full sm:w-36 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
+                />
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  onClick={handleClear}
+                  disabled={clearConfirm !== "CLEAR"}
+                  className="flex items-center justify-center gap-2 whitespace-nowrap px-6"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Wipe All App Data</span>
                 </Button>
               </div>
             </div>
           </div>
         </motion.section>
-
-        {/* DANGER ZONE DISCLOSURE (Span 12) */}
-        <details className="danger-zone md:col-span-12">
-          <summary>Danger Zone</summary>
-          <div className="danger-zone-content">
-            <div className="p-6 bg-[var(--bg-surface)]/80 border border-rose-500/20 rounded-2xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--text-primary)]/[0.06]">
-                <div className="space-y-1">
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Reset Chat & Memory</h4>
-                  <p className="section-subtitle">Erases conversation history and memories while keeping your preferences.</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <input 
-                    type="text" 
-                    value={resetConfirm}
-                    onChange={(e) => setResetConfirm(e.target.value)}
-                    placeholder="Type RESET"
-                    className="w-32 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)]"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    onClick={handleResetCompanion}
-                    disabled={resetConfirm !== "RESET"}
-                  >
-                    Reset Chat & Memory
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Wipe All App Data</h4>
-                  <p className="section-subtitle">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <input 
-                    type="text" 
-                    value={clearConfirm}
-                    onChange={(e) => setClearConfirm(e.target.value)}
-                    placeholder="Type CLEAR"
-                    className="w-32 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)]"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    onClick={handleClear}
-                    disabled={clearConfirm !== "CLEAR"}
-                  >
-                    Wipe All App Data
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </details>
 
       </motion.div>
 
