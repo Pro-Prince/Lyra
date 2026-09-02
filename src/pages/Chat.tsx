@@ -62,86 +62,45 @@ const drawLyraLogoWatermark = (
   height: number,
   logoImg: HTMLImageElement | null
 ) => {
+  if (!logoImg || !logoImg.complete || logoImg.naturalWidth === 0) return;
+
   ctx.save();
 
-  const margin = Math.round(width * 0.035); // ~38px on 1080px
-  const logoSize = Math.round(width * 0.052); // ~56px on 1080px
-  const cornerRadius = Math.round(logoSize * 0.28); // ~16px
-  const pillPaddingX = Math.round(logoSize * 0.25); // ~14px
-  const pillPaddingY = Math.round(logoSize * 0.22); // ~12px
-  const gap = Math.round(logoSize * 0.24); // ~13px
+  // Watermark logo parameters matching header logo badge style
+  const margin = Math.round(width * 0.035); // Margin from edge
+  const logoSize = Math.round(width * 0.08); // Responsive logo size (~86px on 1080px canvas)
+  const cornerRadius = Math.round(logoSize * 0.28); // Matches 10px radius on 36px badge
 
-  // Configure text style
-  const fontSize = Math.round(logoSize * 0.58); // ~32px
-  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  ctx.textBaseline = 'middle';
-  
-  const textMetrics = ctx.measureText('Lyra');
-  const textWidth = textMetrics.width;
+  const x = width - logoSize - margin;
+  const y = height - logoSize - margin;
 
-  const pillWidth = pillPaddingX + logoSize + gap + textWidth + pillPaddingX + 6;
-  const pillHeight = logoSize + pillPaddingY * 2;
-  const pillCornerRadius = Math.round(pillHeight * 0.32);
-
-  const pillX = width - pillWidth - margin;
-  const pillY = height - pillHeight - margin;
-
-  // 1. Draw Glassmorphism Pill Backdrop
+  // 1. Draw subtle drop shadow for depth on any background
   ctx.save();
-  ctx.fillStyle = 'rgba(15, 12, 24, 0.75)';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = Math.round(width * 0.015);
-  ctx.shadowOffsetY = Math.round(width * 0.005);
+  ctx.shadowBlur = Math.round(logoSize * 0.2);
+  ctx.shadowOffsetY = Math.round(logoSize * 0.08);
 
   ctx.beginPath();
-  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillCornerRadius);
+  ctx.roundRect(x, y, logoSize, logoSize, cornerRadius);
+  ctx.fillStyle = '#0f0c18';
   ctx.fill();
   ctx.restore();
 
-  // Pill Border Stroke
+  // 2. Clip & draw exact logo image (/images/Logo.png)
   ctx.save();
-  ctx.strokeStyle = 'rgba(255, 143, 192, 0.35)';
-  ctx.lineWidth = Math.max(1.5, Math.round(width * 0.002));
   ctx.beginPath();
-  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillCornerRadius);
-  ctx.stroke();
+  ctx.roundRect(x, y, logoSize, logoSize, cornerRadius);
+  ctx.clip();
+  ctx.drawImage(logoImg, x, y, logoSize, logoSize);
   ctx.restore();
 
-  // 2. Draw Logo Icon Badge
-  const logoX = pillX + pillPaddingX;
-  const logoY = pillY + pillPaddingY;
-
-  if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(logoX, logoY, logoSize, logoSize, cornerRadius);
-    ctx.clip();
-    ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-    ctx.restore();
-
-    // Logo Icon Outline matching .logo-badge-img
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 143, 192, 0.75)';
-    ctx.lineWidth = Math.max(1.5, Math.round(logoSize * 0.06));
-    ctx.beginPath();
-    ctx.roundRect(logoX, logoY, logoSize, logoSize, cornerRadius);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // 3. Draw "Lyra" Brand Text
-  const textX = logoX + logoSize + gap;
-  const textY = pillY + pillHeight / 2;
-
+  // 3. Draw thin matching pink border stroke
   ctx.save();
-  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  ctx.textBaseline = 'middle';
-  
-  // Text glow and color
-  ctx.shadowColor = 'rgba(255, 143, 192, 0.5)';
-  ctx.shadowBlur = Math.round(fontSize * 0.3);
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillText('Lyra', textX, textY);
+  ctx.strokeStyle = 'rgba(255, 143, 192, 0.45)';
+  ctx.lineWidth = Math.max(1, Math.round(width * 0.0015)); // Thin crisp 1.5px outline
+  ctx.beginPath();
+  ctx.roundRect(x, y, logoSize, logoSize, cornerRadius);
+  ctx.stroke();
   ctx.restore();
 
   ctx.restore();
