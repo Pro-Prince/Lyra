@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, exportAllData, importAllData } from "../lib/storage";
-import { Trash2, AlertTriangle, Volume2, Sparkles, Moon, Bell, User as UserIcon } from "lucide-react";
+import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, Download, Upload } from "lucide-react";
 import { WardrobeCard } from "../components/WardrobeCard";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
@@ -21,13 +21,13 @@ export default function Settings() {
   const { showInfo, showError } = useToast();
   const { isMockAuthed, mockUser } = useMockAuthState();
   const [memories, setMemories] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
 
   // Check-in Settings
   const [checkInEnabled, setCheckInEnabled] = useState(false);
-  const [checkInTime, setCheckInTime] = useState("");
 
   // Destructive Action Confirmation strings
   const [resetConfirm, setResetConfirm] = useState("");
@@ -42,7 +42,6 @@ export default function Settings() {
       if (comp) {
         if (comp.outfit) setCurrentOutfit(comp.outfit);
         if (comp.dailyCheckInEnabled) setCheckInEnabled(true);
-        if (comp.dailyCheckInTime) setCheckInTime(comp.dailyCheckInTime);
       }
     }
     load();
@@ -51,7 +50,7 @@ export default function Settings() {
   const handleClear = async () => {
     if (clearConfirm === "CLEAR") {
       await clearAllData();
-      showInfo("All local storage cleared");
+      showInfo("All app data wiped");
       navigate("/");
     }
   };
@@ -59,7 +58,7 @@ export default function Settings() {
   const handleResetCompanion = async () => {
     if (resetConfirm === "RESET") {
       await resetCompanionHistory();
-      showInfo("Companion memory and chat history reset");
+      showInfo("Chat history and memories reset");
       navigate("/chat");
     }
   };
@@ -67,7 +66,7 @@ export default function Settings() {
   const handleDeleteMemory = async (id: string) => {
     await deleteMemory(id);
     setMemories(memories.filter(m => m.id !== id));
-    showInfo("Memory deleted");
+    showInfo("Memory removed");
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
@@ -89,12 +88,50 @@ export default function Settings() {
   const handleSaveVoice = async () => {
     const comp = await getCompanion() || {};
     await saveCompanion({ ...comp, language: 'en-US' });
-    showInfo("Voice settings saved");
+    showInfo("Voice preferences saved");
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    showInfo("Profile information saved");
+    showInfo("Profile updated");
+  };
+
+  const handleExportBackup = async () => {
+    try {
+      const dataStr = await exportAllData();
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const dateStr = new Date().toISOString().split("T")[0];
+      link.href = url;
+      link.download = `lyra-backup-${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showInfo("Backup saved to your device");
+    } catch (err) {
+      showError("Failed to save backup");
+    }
+  };
+
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      await importAllData(text);
+      showInfo("Backup brought back successfully");
+      const mems = await getMemories();
+      setMemories(mems || []);
+      const comp = await getCompanion();
+      if (comp?.outfit) setCurrentOutfit(comp.outfit);
+      if (comp?.dailyCheckInEnabled) setCheckInEnabled(true);
+    } catch (err) {
+      showError("Could not restore backup. Please choose a valid backup file.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -109,16 +146,16 @@ export default function Settings() {
       <div className="mb-12 max-w-6xl mx-auto w-full pt-8">
         <h1 className="text-4xl font-heading font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
         <p className="text-lg text-[var(--text-muted)] mt-3 font-body max-w-2xl leading-relaxed">
-          Manage your companion preferences and secure local data.
+          Everything stays on your device. Manage your preferences anytime.
         </p>
       </div>
 
-      {/* Bento Grid Layout */}
+      {/* Bento Grid Layout with 48px (--space-xl) Spacing */}
       <motion.div 
         initial="hidden"
         animate="visible"
         variants={groupVariants}
-        className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto w-full pb-20"
+        className="grid grid-cols-1 md:grid-cols-12 gap-12 max-w-6xl mx-auto w-full pb-20"
       >
         
         {/* PROFILE INFORMATION (Span 12) */}
@@ -127,21 +164,21 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header Section */}
-          <div className="flex items-center gap-6 mb-10">
+          <div className="flex items-center gap-6 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
               <UserIcon size={28} />
             </div>
             <div>
               <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Profile Information</h2>
-              <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Update your identity and session preferences.</p>
+              <p className="section-subtitle">Your name and account details</p>
             </div>
           </div>
 
-          <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-10" />
+          <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-8" />
 
           <form onSubmit={handleSaveProfile} className="font-body">
             {/* Input Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-8">
               <div className="space-y-2">
                 <label>Full Name</label>
                 <input 
@@ -189,34 +226,76 @@ export default function Settings() {
           </form>
         </motion.section>
 
-        {/* CARD 1: Voice Configuration (Span 7) */}
+        {/* VOICE & CHECK-INS (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-7 shadow-sm flex flex-col"
+          className="account-panel md:col-span-12 shadow-sm flex flex-col"
         >
-          <div className="flex-1">
-            <div className="flex items-center gap-6 mb-10">
+          <div>
+            <div className="flex items-center gap-6 mb-8">
               <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
                 <Volume2 size={28} />
               </div>
               <div>
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Voice Configuration</h2>
-                <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Acoustic synthesis and personality tuning</p>
+                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Voice</h2>
+                <p className="section-subtitle">Choose how Lyra sounds when speaking with you</p>
               </div>
             </div>
 
-            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-6 mb-8">
-              <VoicePicker onSelect={() => showInfo("Voice preset updated")} />
+            {/* Voice Presets */}
+            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-6 mb-6">
+              <VoicePicker onSelect={() => showInfo("Voice updated")} />
+            </div>
+
+            {/* Consolidated Inline Check-in Row */}
+            <div className="inline-toggle-row px-2 pt-4 pb-2">
+              <div>
+                <strong className="text-[var(--text-primary)] text-base block font-heading">Gentle check-ins</strong>
+                <p className="section-subtitle">A light greeting if you haven't spoken in a while</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={checkInEnabled}
+                  onChange={async (e) => {
+                    const checked = e.target.checked;
+                    if (checked) {
+                      if (!('Notification' in window)) {
+                        showError("Browser notifications are not supported on this device");
+                        return;
+                      }
+                      const permission = await Notification.requestPermission();
+                      if (permission === 'granted') {
+                        setCheckInEnabled(true);
+                        const comp = await getCompanion() || {};
+                        comp.dailyCheckInEnabled = true;
+                        await saveCompanion(comp);
+                        showInfo("Gentle check-ins enabled");
+                      } else {
+                        showError("Please enable browser notifications to receive gentle check-ins");
+                      }
+                    } else {
+                      setCheckInEnabled(false);
+                      const comp = await getCompanion() || {};
+                      comp.dailyCheckInEnabled = false;
+                      await saveCompanion(comp);
+                      showInfo("Gentle check-ins disabled");
+                    }
+                  }}
+                />
+                <div className="w-12 h-6.5 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
+              </label>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 pt-8 mt-auto border-t border-[var(--text-primary)]/[0.06]">
+          <div className="flex flex-col sm:flex-row items-center gap-4 pt-6 mt-6 border-t border-[var(--text-primary)]/[0.06]">
             <Button
               variant="secondary"
               size="lg"
               type="button"
               onClick={handleTestSample}
-              className="w-full sm:flex-1"
+              className="w-full sm:w-auto px-8"
             >
               Test Sample
             </Button>
@@ -225,94 +304,10 @@ export default function Settings() {
               size="lg"
               type="button"
               onClick={handleSaveVoice}
-              className="w-full sm:flex-1"
+              className="w-full sm:w-auto px-8"
             >
-              Apply Tuning
+              Save Voice
             </Button>
-          </div>
-        </motion.section>
-
-        {/* CARD 2: Daily Check-in & Notifications (Span 5) */}
-        <motion.section 
-          variants={entranceVariants}
-          className="account-panel md:col-span-5 shadow-sm flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center gap-6 mb-10">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-                <Bell size={28} />
-              </div>
-              <div>
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Daily Check-in</h2>
-                <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Scheduled presence pings</p>
-              </div>
-            </div>
-
-            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <span className="text-base font-semibold text-[var(--text-primary)] block">Presence Signal</span>
-                  <span className="text-[13px] text-[var(--text-muted)]">A gentle greeting if inactive</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={checkInEnabled}
-                    onChange={async (e) => {
-                      const checked = e.target.checked;
-                      if (checked) {
-                        if (!('Notification' in window)) {
-                          showError("Browser notifications are not supported on this device");
-                          return;
-                        }
-                        const permission = await Notification.requestPermission();
-                        if (permission === 'granted') {
-                          setCheckInEnabled(true);
-                          const comp = await getCompanion() || {};
-                          comp.dailyCheckInEnabled = true;
-                          await saveCompanion(comp);
-                          showInfo("Presence pings enabled");
-                        } else {
-                          showError("Notifications aren't enabled, check your browser permissions to get daily check-ins");
-                        }
-                      } else {
-                        setCheckInEnabled(false);
-                        const comp = await getCompanion() || {};
-                        comp.dailyCheckInEnabled = false;
-                        await saveCompanion(comp);
-                        showInfo("Presence pings disabled");
-                      }
-                    }}
-                  />
-                  <div className="w-12 h-6.5 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-                </label>
-              </div>
-
-              {checkInEnabled && (
-                <div className="pt-6 mt-6 border-t border-[var(--text-primary)]/[0.08] animate-in slide-in-from-top-2 duration-300">
-                  <label className="block text-sm font-semibold text-[var(--text-primary)]/80 mb-3">Scheduled Time</label>
-                  <input 
-                    type="time" 
-                    value={checkInTime || "20:00"}
-                    className="w-full"
-                    onChange={async (e) => {
-                      const val = e.target.value;
-                      setCheckInTime(val);
-                      const comp = await getCompanion() || {};
-                      comp.dailyCheckInTime = val;
-                      await saveCompanion(comp);
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="p-5 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 rounded-2xl">
-            <div className="text-[13px] text-[var(--text-muted)] leading-relaxed italic">
-              "Presence is about consistency, not noise. Lyra respects your schedule."
-            </div>
           </div>
         </motion.section>
 
@@ -349,27 +344,29 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* CARD 4: Remembered Context (Span 12) */}
+        {/* WHAT SHE REMEMBERS (Span 12) */}
         <motion.section 
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
-                <Moon size={28} />
+                <BookOpen size={28} />
               </div>
               <div>
-                <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Remembered Context</h2>
-                <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Long-term companion memory persistence</p>
+                <h3 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">What She Remembers</h3>
+                <p className="section-subtitle">A few things she's picked up on so far</p>
               </div>
             </div>
-            <span className="text-[12px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/5 px-4 py-1.5 rounded-full border border-[var(--accent-primary)]/10 uppercase tracking-wider">
-              {memories.length} item{memories.length === 1 ? '' : 's'} preserved
-            </span>
+            {memories.length > 0 && (
+              <span className="text-[12px] font-medium text-[var(--accent-primary)] bg-[var(--accent-primary)]/5 px-4 py-1.5 rounded-full border border-[var(--accent-primary)]/10">
+                {memories.length} item{memories.length === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-4 max-h-72 overflow-y-auto pr-3 no-scrollbar">
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-2 no-scrollbar">
             {memories.length === 0 ? (
               <div className="text-[var(--text-muted)] text-[14px] py-12 text-center bg-[var(--bg-base)]/20 rounded-2xl border border-dashed border-[var(--text-primary)]/10">
                 No memories recorded yet. Talk with Lyra to build shared history.
@@ -378,13 +375,14 @@ export default function Settings() {
               memories.map(mem => (
                 <div 
                   key={mem.id} 
-                  className="flex items-center justify-between gap-6 p-4 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-xl group hover:border-[var(--accent-primary)]/20 transition-all"
+                  className="flex items-center justify-between gap-6 p-5 sm:p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.04] rounded-2xl group hover:border-[var(--accent-primary)]/20 transition-all"
                 >
-                  <p className="text-[15px] text-[var(--text-primary)]/80 leading-relaxed">{mem.content}</p>
+                  <p className="text-[15px] text-[var(--text-primary)]/90 leading-relaxed font-body">{mem.content}</p>
                   <button 
                     type="button"
                     onClick={() => handleDeleteMemory(mem.id)}
-                    className="p-2 text-[var(--text-muted)] hover:text-rose-500 transition-colors"
+                    className="p-2 text-[var(--text-muted)] hover:text-rose-500 transition-colors shrink-0"
+                    title="Delete memory"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -394,81 +392,122 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* DANGER ZONE */}
+        {/* YOUR DATA (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 shadow-sm border-[var(--text-danger)]/10"
+          className="account-panel md:col-span-12 shadow-sm"
         >
-          {/* Header */}
-          <div className="flex items-center gap-6 mb-10 pb-8 border-b border-[var(--text-primary)]/[0.04]">
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/5 border border-rose-500/10 flex items-center justify-center text-rose-500">
-              <AlertTriangle size={28} />
+          <div className="flex items-center gap-6 mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
+              <Download size={28} />
             </div>
             <div>
-              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">System & Data</h2>
-              <p className="text-[14px] font-body text-[var(--text-muted)] mt-1">Irreversible local reset and complete data wipe protocols.</p>
+              <h2 className="font-heading font-semibold text-2xl text-[var(--text-primary)]">Your Data</h2>
+              <p className="section-subtitle">Everything stays on your device. Take it with you anytime.</p>
             </div>
           </div>
 
-          {/* Controls Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)]">Reset Chat & Memory</h3>
-                <p className="text-[14px] text-[var(--text-muted)] leading-relaxed">Erases active conversation history and rapport metrics. Preserves settings.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col justify-between">
+              <div>
+                <strong className="text-[var(--text-primary)] text-base block font-heading">Save a Backup</strong>
+                <p className="section-subtitle mt-1 mb-6">Download everything she remembers, just in case.</p>
               </div>
-
-              <div className="space-y-4 pt-4">
-                <label className="text-[11px] font-bold uppercase tracking-widest opacity-60">Type RESET to confirm</label>
-                <div className="flex gap-4">
-                  <input 
-                    type="text" 
-                    value={resetConfirm}
-                    onChange={(e) => setResetConfirm(e.target.value)}
-                    placeholder="RESET"
-                    className="font-mono text-sm tracking-widest w-40 uppercase"
-                  />
-                  <Button
-                    variant="destructive"
-                    onClick={handleResetCompanion}
-                    disabled={resetConfirm !== "RESET"}
-                    className="px-8"
-                  >
-                    Reset Chat
-                  </Button>
-                </div>
-              </div>
+              <Button
+                variant="secondary"
+                size="lg"
+                type="button"
+                onClick={handleExportBackup}
+                className="w-full justify-center flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Save a Backup</span>
+              </Button>
             </div>
 
-            <div className="space-y-6 md:border-l md:border-[var(--text-primary)]/[0.04] md:pl-16">
-              <div className="space-y-2">
-                <h3 className="font-heading font-semibold text-lg text-[var(--text-primary)]">Wipe All Data</h3>
-                <p className="text-[14px] text-[var(--text-muted)] leading-relaxed">Permanently deletes all stored messages, wardrobe, and settings.</p>
+            <div className="p-6 bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col justify-between">
+              <div>
+                <strong className="text-[var(--text-primary)] text-base block font-heading">Restore a Backup</strong>
+                <p className="section-subtitle mt-1 mb-6">Bring back a previous save.</p>
               </div>
-
-              <div className="space-y-4 pt-4">
-                <label className="text-[11px] font-bold uppercase tracking-widest opacity-60">Type CLEAR to confirm</label>
-                <div className="flex gap-4">
-                  <input 
-                    type="text" 
-                    value={clearConfirm}
-                    onChange={(e) => setClearConfirm(e.target.value)}
-                    placeholder="CLEAR"
-                    className="font-mono text-sm tracking-widest w-40 uppercase"
-                  />
-                  <Button
-                    variant="destructive"
-                    onClick={handleClear}
-                    disabled={clearConfirm !== "CLEAR"}
-                    className="px-8"
-                  >
-                    Wipe Data
-                  </Button>
-                </div>
+              <div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImportBackup} 
+                  className="hidden" 
+                  accept=".json,application/json,text/plain"
+                />
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full justify-center flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Restore a Backup</span>
+                </Button>
               </div>
             </div>
           </div>
         </motion.section>
+
+        {/* DANGER ZONE DISCLOSURE (Span 12) */}
+        <details className="danger-zone md:col-span-12">
+          <summary>Danger Zone</summary>
+          <div className="danger-zone-content">
+            <div className="p-6 bg-[var(--bg-surface)]/80 border border-rose-500/20 rounded-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--text-primary)]/[0.06]">
+                <div className="space-y-1">
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Reset Chat & Memory</h4>
+                  <p className="section-subtitle">Erases conversation history and memories while keeping your preferences.</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <input 
+                    type="text" 
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    placeholder="Type RESET"
+                    className="w-32 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)]"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    onClick={handleResetCompanion}
+                    disabled={resetConfirm !== "RESET"}
+                  >
+                    Reset Chat & Memory
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="font-heading font-semibold text-base text-[var(--text-primary)]">Wipe All App Data</h4>
+                  <p className="section-subtitle">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <input 
+                    type="text" 
+                    value={clearConfirm}
+                    onChange={(e) => setClearConfirm(e.target.value)}
+                    placeholder="Type CLEAR"
+                    className="w-32 text-xs uppercase font-mono py-2.5 px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/10 text-[var(--text-primary)]"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    onClick={handleClear}
+                    disabled={clearConfirm !== "CLEAR"}
+                  >
+                    Wipe All App Data
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
 
       </motion.div>
 

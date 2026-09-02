@@ -923,11 +923,8 @@ export default function Chat() {
       return;
     }
 
-    // Trigger visual camera shutter flash effect
+    // Trigger visual camera shutter flash effect & temporarily hide all buttons on the 3D stage
     setIsCapturingFlash(true);
-    setTimeout(() => {
-      setIsCapturingFlash(false);
-    }, 250);
 
     // Export high quality 1080x1080 (1:1 square)
     const exportSize = 1080;
@@ -935,7 +932,10 @@ export default function Chat() {
     tempCanvas.width = exportSize;
     tempCanvas.height = exportSize;
     const ctx = tempCanvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      setIsCapturingFlash(false);
+      return;
+    }
 
     // Center crop source canvas into 1:1 square ratio
     const srcWidth = canvas.width;
@@ -966,6 +966,11 @@ export default function Chat() {
     } catch (err) {
       console.error('Failed to export capture:', err);
       showError('Failed to save image');
+    } finally {
+      // Restore UI buttons after a smooth fraction of a second
+      setTimeout(() => {
+        setIsCapturingFlash(false);
+      }, 450);
     }
   };
 
@@ -1048,7 +1053,7 @@ export default function Chat() {
           {/* Top Half: 3D Companion Stage & Floating HUD (~48% height) */}
           <div className="h-[48vh] min-h-[300px] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[var(--bg-surface)] via-[var(--bg-base)]/90 to-[var(--bg-base)]">
             {/* Top Navigation Bar */}
-            <div className="w-full px-3.5 pt-2.5 pb-2 flex items-center justify-between z-30 pointer-events-auto shrink-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px]">
+            <div className={`w-full px-3.5 pt-2.5 pb-2 flex items-center justify-between z-30 shrink-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               {/* Left: Hamburger Menu + Lyra Avatar + Name */}
               <div className="flex items-center gap-2">
                 <button 
@@ -1087,7 +1092,7 @@ export default function Chat() {
             <div className="absolute inset-0 z-0 pointer-events-auto">
               {/* Camera Shutter Flash Effect */}
               {isCapturingFlash && (
-                <div className="absolute inset-0 bg-white z-[99999] pointer-events-none transition-opacity duration-200 opacity-30" />
+                <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-camera-flash" />
               )}
               <CompanionStage 
                 accentColor={activeAccent} 
@@ -1109,7 +1114,7 @@ export default function Chat() {
             </div>
 
             {/* Bottom HUD Controls on Mobile (5 circular buttons + Status Pill) */}
-            <div className="z-20 w-full flex flex-col items-center gap-2 pb-2 pointer-events-none">
+            <div className={`z-20 w-full flex flex-col items-center gap-2 pb-2 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-none'}`}>
               {/* Row of 5 Circular Control Buttons */}
               <div className="flex items-center justify-between gap-1.5 px-3 w-full max-w-sm mx-auto">
                 {/* 1. Camera */}
@@ -1350,10 +1355,15 @@ export default function Chat() {
         {/* ========================================================= */}
         <div className="hidden md:flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
-          <div className="companion-screen flex-1 bg-gradient-to-b from-[#1c131a] to-black group">
+          <div className="companion-screen flex-1 bg-gradient-to-b from-[#1c131a] to-black group relative overflow-hidden">
             <div className="companion-viewport w-full">
+            {/* Camera Shutter Flash Effect (Desktop) */}
+            {isCapturingFlash && (
+              <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-camera-flash" />
+            )}
+
             {/* HUD Top Left */}
-            <div className="absolute top-6 left-6 flex gap-3 z-20">
+            <div className={`absolute top-6 left-6 flex gap-3 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                 <Shirt className="w-5 h-5" />
               </button>
@@ -1363,7 +1373,7 @@ export default function Chat() {
             </div>
              
             {/* HUD Top Right */}
-            <div className="absolute top-6 right-6 z-20">
+            <div className={`absolute top-6 right-6 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
                 <Camera className="w-4 h-4" />
                 <span className="text-sm font-medium">Capture</span>
@@ -1394,7 +1404,7 @@ export default function Chat() {
             </div>
 
             {/* HUD Bottom Controls */}
-            <div className="control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 pointer-events-none scale-90 md:scale-100 origin-bottom">
+            <div className={`control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 scale-90 md:scale-100 origin-bottom transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-none'}`}>
               {/* 1. View */}
               <div className="flex flex-col items-center gap-2 pointer-events-auto">
                 <button 
