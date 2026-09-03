@@ -462,9 +462,36 @@ h3, .heading-3 {
 }
 
 /* Skip layout/paint work for offscreen long sections */
-.faq-section, .app-footer, footer {
+.faq-section {
   content-visibility: auto;
   contain-intrinsic-size: 600px;
+}
+
+.footer-links-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (min-width: 640px) {
+  .footer-links-group {
+    gap: 10px;
+  }
+}
+
+.footer-link {
+  line-height: 1.35;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+}
+
+@media (min-width: 640px) {
+  .footer-link {
+    line-height: 1.5;
+    padding: 2px 0;
+    font-size: 14px;
+  }
 }
 
 .emphasis {
@@ -1153,16 +1180,7 @@ h3, .heading-3 {
 
 
 
-@media (max-width: 768px) {
-  .footer-columns {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xl);
-  }
-  .footer-column {
-    width: 100%;
-  }
-}
+
 
 .companion-screen {
   display: flex;
