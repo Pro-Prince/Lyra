@@ -70,7 +70,7 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function OutfitShowcase() {
-  const [activeOutfit, setActiveOutfit] = useState('lyra');
+  const [activeOutfit, setActiveOutfit] = useState('default');
 
   const handleOutfitPreview = (outfitId: string) => {
     setActiveOutfit(outfitId);

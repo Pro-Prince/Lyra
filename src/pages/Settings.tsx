@@ -20,9 +20,6 @@ export default function Settings() {
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
 
-  // Check-in Settings
-  const [checkInEnabled, setCheckInEnabled] = useState(false);
-
   // Destructive Action Confirmation strings
   const [resetConfirm, setResetConfirm] = useState("");
   const [clearConfirm, setClearConfirm] = useState("");
@@ -33,9 +30,8 @@ export default function Settings() {
       setMemories(mems || []);
 
       const comp = await getCompanion();
-      if (comp) {
-        if (comp.outfit) setCurrentOutfit(comp.outfit);
-        if (comp.dailyCheckInEnabled) setCheckInEnabled(true);
+      if (comp && comp.outfit) {
+        setCurrentOutfit(comp.outfit);
       }
     }
     load();
@@ -122,8 +118,8 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header Section */}
-          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
+          <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <UserIcon className="w-5 h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
@@ -184,14 +180,14 @@ export default function Settings() {
           </form>
         </motion.section>
 
-        {/* VOICE & CHECK-INS (Span 12) */}
+        {/* VOICE & AUDIO (Span 12) */}
         <motion.section 
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm flex flex-col"
         >
           <div>
-            <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
+            <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                 <Volume2 className="w-5 h-5 shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
@@ -201,49 +197,8 @@ export default function Settings() {
             </div>
 
             {/* Voice Presets */}
-            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-4 sm:p-6 mb-6">
+            <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-2xl p-4 sm:p-6">
               <VoicePicker onSelect={() => showInfo("Voice updated")} />
-            </div>
-
-            {/* Consolidated Inline Check-in Row */}
-            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10">
-              <div className="min-w-0">
-                <strong className="text-[var(--text-primary)] text-sm sm:text-base font-semibold block font-heading leading-tight">Gentle check-ins</strong>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">A light greeting if you haven't spoken in a while</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={checkInEnabled}
-                  onChange={async (e) => {
-                    const checked = e.target.checked;
-                    if (checked) {
-                      if (!('Notification' in window)) {
-                        showError("Browser notifications are not supported on this device");
-                        return;
-                      }
-                      const permission = await Notification.requestPermission();
-                      if (permission === 'granted') {
-                        setCheckInEnabled(true);
-                        const comp = await getCompanion() || {};
-                        comp.dailyCheckInEnabled = true;
-                        await saveCompanion(comp);
-                        showInfo("Gentle check-ins enabled");
-                      } else {
-                        showError("Please enable browser notifications to receive gentle check-ins");
-                      }
-                    } else {
-                      setCheckInEnabled(false);
-                      const comp = await getCompanion() || {};
-                      comp.dailyCheckInEnabled = false;
-                      await saveCompanion(comp);
-                      showInfo("Gentle check-ins disabled");
-                    }
-                  }}
-                />
-                <div className="w-11 h-6 bg-[var(--bg-elevated)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--bg-base)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-muted)] peer-checked:after:bg-[var(--bg-base)] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-              </label>
             </div>
           </div>
 
@@ -278,8 +233,8 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
+          <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <Sparkles className="w-5 h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
@@ -301,8 +256,8 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-            <div className="flex items-start gap-3.5 sm:gap-4">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                 <BookOpen className="w-5 h-5 shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
@@ -350,84 +305,106 @@ export default function Settings() {
         {/* DANGER ZONE (Span 12 - Visible Panel) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 shadow-sm border-rose-500/20 bg-[var(--bg-surface)]"
+          className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header */}
-          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
+          <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <AlertTriangle className="w-5 h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
-              <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
-              <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Permanent actions and irreversible local data resets</p>
+              <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanent actions and irreversible local data resets</p>
             </div>
           </div>
 
-          {/* Action List */}
-          <div className="space-y-4 sm:space-y-5">
+          <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
+
+          {/* Action Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Action 1: Reset Chat & Memory */}
-            <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
-              <div className="flex items-start gap-3.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
-                  <RotateCcw className="w-4 h-4 shrink-0" />
+            <div className="p-4 sm:p-6 bg-[var(--bg-base)]/25 border border-[var(--text-primary)]/[0.08] rounded-xl sm:rounded-2xl flex flex-col justify-between gap-4 sm:gap-5 transition-all hover:border-[var(--accent-primary)]/20">
+              <div>
+                <div className="flex items-center gap-3 mb-2.5 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                    <RotateCcw className="w-4 h-4 shrink-0" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h3>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h3>
-                  <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 font-body leading-relaxed">Erases conversation history and memories while keeping your preferences.</p>
-                </div>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
+                  Erases conversation history and memories while keeping your preferences and wardrobe choices.
+                </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-                <input 
-                  type="text" 
-                  value={resetConfirm}
-                  onChange={(e) => setResetConfirm(e.target.value)}
-                  placeholder="Type RESET"
-                  className="h-10 w-full sm:w-36 text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleResetCompanion}
-                  disabled={resetConfirm !== "RESET"}
-                  className="h-10 text-sm whitespace-nowrap px-5"
-                  icon={RotateCcw}
-                  iconPlacement="left"
-                >
-                  Reset Chat & Memory
-                </Button>
+
+              <div className="pt-3.5 sm:pt-4 border-t border-[var(--text-primary)]/[0.06] flex flex-col gap-2 sm:gap-2.5">
+                <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-body">
+                  Type <span className="font-mono font-semibold text-[var(--text-primary)]">RESET</span> to confirm
+                </span>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+                  <input 
+                    type="text" 
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                    placeholder="RESET"
+                    className="!h-10 !py-0 w-full text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
+                  />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleResetCompanion}
+                    disabled={resetConfirm !== "RESET"}
+                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
+                    icon={RotateCcw}
+                    iconPlacement="left"
+                  >
+                    Reset Chat
+                  </Button>
+                </div>
               </div>
             </div>
 
             {/* Action 2: Wipe All App Data */}
-            <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
-              <div className="flex items-start gap-3.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
-                  <Trash2 className="w-4 h-4 shrink-0" />
+            <div className="p-4 sm:p-6 bg-[var(--bg-base)]/25 border border-[var(--text-primary)]/[0.08] rounded-xl sm:rounded-2xl flex flex-col justify-between gap-4 sm:gap-5 transition-all hover:border-[var(--accent-primary)]/20">
+              <div>
+                <div className="flex items-center gap-3 mb-2.5 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                    <Trash2 className="w-4 h-4 shrink-0" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h3>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-heading font-semibold text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h3>
-                  <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 font-body leading-relaxed">Permanently deletes all stored messages, wardrobe choices, and settings.</p>
-                </div>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
+                  Permanently deletes all stored messages, wardrobe choices, cached avatars, and local settings.
+                </p>
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-                <input 
-                  type="text" 
-                  value={clearConfirm}
-                  onChange={(e) => setClearConfirm(e.target.value)}
-                  placeholder="Type CLEAR"
-                  className="h-10 w-full sm:w-36 text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400 focus:outline-none placeholder:normal-case placeholder:font-sans placeholder:text-[var(--text-muted)]"
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleClear}
-                  disabled={clearConfirm !== "CLEAR"}
-                  className="h-10 text-sm whitespace-nowrap px-5"
-                  icon={Trash2}
-                  iconPlacement="left"
-                >
-                  Wipe All App Data
-                </Button>
+
+              <div className="pt-3.5 sm:pt-4 border-t border-[var(--text-primary)]/[0.06] flex flex-col gap-2 sm:gap-2.5">
+                <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-body">
+                  Type <span className="font-mono font-semibold text-[var(--text-primary)]">CLEAR</span> to confirm
+                </span>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+                  <input 
+                    type="text" 
+                    value={clearConfirm}
+                    onChange={(e) => setClearConfirm(e.target.value)}
+                    placeholder="CLEAR"
+                    className="!h-10 !py-0 w-full text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
+                  />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleClear}
+                    disabled={clearConfirm !== "CLEAR"}
+                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
+                    icon={Trash2}
+                    iconPlacement="left"
+                  >
+                    Wipe All
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

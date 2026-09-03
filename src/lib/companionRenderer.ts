@@ -36,6 +36,7 @@ export const MODEL_FILES: Record<string, string> = {
   lyra: '/models/lyra.vrm',
   lyra_casual: '/models/lyra_casual.vrm',
   lyra_dress: '/models/lyra_dress.vrm',
+  normal: '/models/lyra.vrm',
   default: '/models/lyra.vrm',
   casual: '/models/lyra_casual.vrm',
   dress: '/models/lyra_dress.vrm',
@@ -186,24 +187,6 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
       throw lastError || new Error(`Failed to fetch valid VRM binary model from ${url}`);
     }
 
-    // Binary GLB padding safeguard for header total length alignment
-    if (arrayBuffer.byteLength >= 20) {
-      const dv = new DataView(arrayBuffer);
-      const magic = dv.getUint32(0, true);
-      if (magic === 0x46546c67) { // 'glTF'
-        const totalLength = dv.getUint32(8, true);
-        if (arrayBuffer.byteLength < totalLength && totalLength <= 32 * 1024 * 1024) {
-          try {
-            const padded = new Uint8Array(totalLength);
-            padded.set(new Uint8Array(arrayBuffer), 0);
-            arrayBuffer = padded.buffer;
-          } catch (allocErr) {
-            console.warn(`[fetchCompanionBuffer] Buffer padding allocation skipped for ${url}:`, allocErr);
-          }
-        }
-      }
-    }
-
     rawBufferCache.set(url, arrayBuffer);
     return arrayBuffer;
   })();
@@ -222,18 +205,8 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
 
   try {
     const loader = createLoader();
-    const arrayBuffer = await fetchCompanionBuffer(url);
-    
-    const gltf = await new Promise<any>((resolve, reject) => {
-      loader.parse(
-        arrayBuffer.slice(0),
-        url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '',
-        (result) => resolve(result),
-        (err) => reject(err)
-      );
-    });
-
-    console.log('GLTF loaded successfully. (omitted gltf to prevent circular JSON crash)');
+    const gltf = await loader.loadAsync(url);
+    console.log('GLTF loaded successfully:', gltf ? '[GLTF Object]' : gltf);
 
     const vrm = gltf.userData.vrm;
     if (!vrm) {
@@ -241,18 +214,7 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
       throw new Error('No VRM data in loaded file');
     }
 
-    // Apply some essential fixes so the model actually draws if it loads
-    vrm.scene.traverse((child: THREE.Object3D) => {
-      if (child.parent === undefined) child.parent = null;
-      if (!child.matrixWorld) child.matrixWorld = new THREE.Matrix4();
-      if (!child.matrix) child.matrix = new THREE.Matrix4();
-      if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).frustumCulled = false;
-    });
-
-    applyRestPose(vrm);
-    safeUpdateVRM(vrm, 0);
-
-    console.log('VRM extracted successfully:', vrm);
+    console.log('VRM extracted successfully:', vrm ? '[VRM Object]' : vrm);
     return vrm as VRM;
   } catch (err: any) {
     console.error('FULL ERROR loading', url, ':', err);

@@ -111,9 +111,9 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
 
     try {
       // Prioritize primary model first
-      const outfitIds = ['lyra', 'lyra_casual', 'lyra_dress'];
+      const outfitIds = ['default', 'lyra_casual', 'lyra_dress'];
       for (const id of outfitIds) {
-        const url = MODEL_FILES[id];
+        const url = MODEL_FILES[id] || (id === 'default' ? '/models/lyra.vrm' : `/models/${id}.vrm`);
         try {
           const vrm = await loadCompanionModel(id);
 
@@ -144,8 +144,12 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
           const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
           sessionVrmCache[id] = entry;
           sessionVrmCache[url] = entry;
+          if (id === 'default') {
+            sessionVrmCache['lyra'] = entry;
+            sessionVrmCache['default'] = entry;
+          }
 
-          if (id === 'lyra' && heroPortrait && typeof window !== 'undefined') {
+          if ((id === 'default' || id === 'lyra') && heroPortrait && typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
           }
         } catch (err) {

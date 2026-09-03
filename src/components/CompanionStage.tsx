@@ -387,9 +387,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         // Check materials & textures
         vrmInstance.scene.traverse((obj: any) => {
           if (obj.isMesh) {
-            console.log(
-              `[VRM Mesh] ${obj.name || 'unnamed'} | material: ${obj.material?.type} | visible: ${obj.visible} | map: ${!!(obj.material?.map || obj.material?.userData?.vrmMToonTexture)}`
-            );
+            // omitted console log to prevent UI lag
           }
         });
 
@@ -864,9 +862,11 @@ function CompanionStageComponent({
         className="relative z-10 w-full h-full"
       >
         <Canvas 
+          id="companion-webgl-canvas"
           frameloop={isTabVisible ? "always" : "never"}
           camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
           gl={{ 
+            preserveDrawingBuffer: true,
             alpha: true, 
             antialias: true, 
             powerPreference: "default",
@@ -875,13 +875,14 @@ function CompanionStageComponent({
             failIfMajorPerformanceCaveat: false
           }}
           onCreated={({ gl, size, gl: { domElement } }) => {
+            domElement.id = 'companion-webgl-canvas';
             console.log('CompanionStage Canvas size at mount:', size.width, size.height);
             console.log('CompanionStage DOM Element size:', domElement.clientWidth, domElement.clientHeight);
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.05;
           }}
-          dpr={1}
+          dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           

@@ -916,41 +916,61 @@ export default function Chat() {
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
 
   const handleCapture = async () => {
-    const canvas = document.querySelector('canvas');
+    const canvas = (document.getElementById('companion-webgl-canvas') || 
+      document.querySelector('.companion-viewport canvas') || 
+      document.querySelector('canvas')) as HTMLCanvasElement | null;
+
     if (!canvas) {
       showError('No active stage found to capture');
+      return;
+    }
+
+    const srcWidth = canvas.width;
+    const srcHeight = canvas.height;
+    if (srcWidth === 0 || srcHeight === 0) {
+      showError('Stage is initializing. Please try again.');
       return;
     }
 
     // Trigger visual camera shutter flash effect & temporarily hide all buttons on the 3D stage
     setIsCapturingFlash(true);
 
-    // Export high quality 1080x1080 (1:1 square)
-    const exportSize = 1080;
+    // Capture the entire scene at crisp high definition preserving the exact room composition
+    const aspect = srcWidth / srcHeight;
+    let exportWidth = 1920;
+    let exportHeight = Math.round(1920 / aspect);
+    if (aspect < 1) {
+      // Portrait orientation
+      exportHeight = 1920;
+      exportWidth = Math.round(1920 * aspect);
+    }
+
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = exportSize;
-    tempCanvas.height = exportSize;
+    tempCanvas.width = exportWidth;
+    tempCanvas.height = exportHeight;
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) {
       setIsCapturingFlash(false);
       return;
     }
 
-    // Center crop source canvas into 1:1 square ratio
-    const srcWidth = canvas.width;
-    const srcHeight = canvas.height;
-    const minDim = Math.min(srcWidth, srcHeight);
-    const sx = (srcWidth - minDim) / 2;
-    const sy = (srcHeight - minDim) / 2;
-
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    ctx.drawImage(canvas, sx, sy, minDim, minDim, 0, 0, exportSize, exportSize);
+    // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
+    bgGradient.addColorStop(0, '#1c131a');
+    bgGradient.addColorStop(0.5, '#140D16');
+    bgGradient.addColorStop(1, '#0c070e');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
 
-    // Ensure logo image is loaded & draw exact brand logo lockup watermark
+    // 2. Draw the whole 3D canvas (entire room environment, walls, floor, lighting, and companion model)
+    ctx.drawImage(canvas, 0, 0, srcWidth, srcHeight, 0, 0, exportWidth, exportHeight);
+
+    // 3. Ensure logo image is loaded & draw exact brand logo lockup watermark
     const logoImg = await ensureLogoLoaded();
-    drawLyraLogoWatermark(ctx, exportSize, exportSize, logoImg);
+    drawLyraLogoWatermark(ctx, exportWidth, exportHeight, logoImg);
 
     // Download instantly with short, clean filename (no timestamps or underscores)
     try {

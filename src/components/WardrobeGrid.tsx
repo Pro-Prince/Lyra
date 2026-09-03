@@ -16,16 +16,24 @@ export function WardrobeGrid({
   className = ''
 }: WardrobeGridProps) {
   const outfits = [
-    { id: 'lyra', label: 'Default' },
+    { id: 'default', label: 'Default' },
     { id: 'lyra_casual', label: 'Casual' },
     { id: 'lyra_dress', label: 'Dress' },
   ];
 
   const isOutfitSelected = (outfitId: string) => {
-    if (!selectedOutfit) return false;
+    if (!selectedOutfit) return outfitId === 'default';
+    if (selectedOutfit === outfitId) return true;
+    if (outfitId === 'default' && 
+        (selectedOutfit === 'default' || selectedOutfit === 'lyra' || selectedOutfit === '/models/lyra.vrm')) {
+      return true;
+    }
     const modelUrl = MODEL_FILES[outfitId] || outfitId;
     const selectedUrl = MODEL_FILES[selectedOutfit] || selectedOutfit;
-    return selectedOutfit === outfitId || selectedUrl === modelUrl;
+    if (modelUrl === selectedUrl) {
+      return true;
+    }
+    return false;
   };
 
   const gridClasses = size === 'large'
