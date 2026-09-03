@@ -470,7 +470,8 @@ h3, .heading-3 {
 .footer-links-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
+  width: 100%;
 }
 
 @media (min-width: 640px) {
@@ -480,10 +481,16 @@ h3, .heading-3 {
 }
 
 .footer-link {
-  line-height: 1.35;
-  padding: 0;
+  display: block;
+  line-height: 1.4;
+  padding: 2px 0;
   margin: 0;
   font-size: 13px;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  height: auto !important;
+  width: fit-content;
+  white-space: nowrap;
 }
 
 @media (min-width: 640px) {
@@ -491,6 +498,7 @@ h3, .heading-3 {
     line-height: 1.5;
     padding: 2px 0;
     font-size: 14px;
+    white-space: normal;
   }
 }
 
@@ -1022,7 +1030,7 @@ h3, .heading-3 {
 /* 1. Global Touch Targets (Minimum 44x44px for every interactive element) */
 @media (max-width: 768px) {
   button, 
-  a, 
+  a:not(footer a), 
   .btn, 
   .btn-sm, 
   .icon-btn, 
@@ -1108,6 +1116,13 @@ h3, .heading-3 {
   border-radius: 20px;
   padding: 32px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 640px) {
+  .account-panel {
+    border-radius: 16px;
+    padding: 20px 16px;
+  }
 }
 
 .account-panel:hover {
