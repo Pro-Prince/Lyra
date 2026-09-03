@@ -28,12 +28,12 @@ export function Button({
 }: ButtonProps) {
   const combinedClassName = `btn btn-${variant} btn-${size} ${className}`.trim();
 
-  const iconSize = size === 'lg' ? 20 : 14;
+  const iconSize = size === 'lg' ? 16 : 13;
 
   const content = (
-    <span className="inline-flex items-center justify-center gap-2">
+    <span className="inline-flex items-center justify-center gap-1.5 leading-none">
       {Icon && iconPlacement === 'left' && <Icon size={iconSize} className="shrink-0" />}
-      <span>{children}</span>
+      <span className="leading-none">{children}</span>
       {Icon && iconPlacement === 'right' && <Icon size={iconSize} className="shrink-0" />}
     </span>
   );

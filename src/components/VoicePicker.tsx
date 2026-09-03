@@ -120,14 +120,14 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
             <button
               type="button"
               onClick={(e) => handlePreview(preset, e)}
-              className={`w-9 h-9 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+              className={`w-8 h-8 rounded-lg border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
                 isThisPlaying 
                   ? 'bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] animate-pulse' 
                   : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]/30'
               }`}
               title="Preview Voice Preset"
             >
-              <Play className={`w-4 h-4 ml-0.5 ${isThisPlaying ? 'fill-current' : 'fill-current opacity-70'}`} />
+              <Play className={`w-3.5 h-3.5 ml-0.5 ${isThisPlaying ? 'fill-current' : 'fill-current opacity-70'}`} />
             </button>
           </div>
         );
