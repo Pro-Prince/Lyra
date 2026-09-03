@@ -1,5 +1,5 @@
 const fs = require('fs');
-const buffer = fs.readFileSync('public/models/lyra.vrm');
+const buffer = fs.readFileSync('src/models/lyra.vrm');
 const data = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 
 const headerView = new DataView(data, 0, 12);

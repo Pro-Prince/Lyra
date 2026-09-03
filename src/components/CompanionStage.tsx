@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { VRM } from '@pixiv/three-vrm';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
+
 import { useToast } from '../hooks/useToast';
 import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
@@ -366,10 +367,10 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         applyRestPose(vrmInstance);
 
         // Detailed Diagnostics for Checks 1, 2, 3
-        console.log('[VRM Diagnostic] Model loaded:', url);
-        console.log('[VRM Diagnostic] Position before centering:', vrmInstance.scene.position.clone());
-        console.log('[VRM Diagnostic] Scale:', vrmInstance.scene.scale.clone());
-        console.log('[VRM Diagnostic] Initial Bounding Box:', safeSetFromObject(new THREE.Box3(), vrmInstance.scene));
+        // removed console.log
+        // removed console.log
+        // removed console.log
+        // removed console.log
 
         // Center & floor VRM
         safeUpdateMatrixWorld(vrmInstance.scene);
@@ -380,8 +381,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         vrmInstance.scene.position.z -= center.z;
         vrmInstance.scene.position.y -= box.min.y;
 
-        console.log('[VRM Diagnostic] Position after centering/grounding:', vrmInstance.scene.position.clone());
-        console.log('[VRM Diagnostic] Bounding Box after grounding:', safeSetFromObject(new THREE.Box3(), vrmInstance.scene));
+        // removed console.log
+        // removed console.log
 
         // Check materials & textures
         vrmInstance.scene.traverse((obj: any) => {
@@ -873,7 +874,9 @@ function CompanionStageComponent({
             depth: true,
             failIfMajorPerformanceCaveat: false
           }}
-          onCreated={({ gl }) => {
+          onCreated={({ gl, size, gl: { domElement } }) => {
+            console.log('CompanionStage Canvas size at mount:', size.width, size.height);
+            console.log('CompanionStage DOM Element size:', domElement.clientWidth, domElement.clientHeight);
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.05;

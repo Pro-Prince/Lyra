@@ -122,11 +122,11 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header Section */}
-          <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
               <UserIcon className="w-5 h-5 shrink-0" />
             </div>
-            <div className="flex flex-col justify-center min-w-0">
+            <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Profile Information</h2>
               <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Your name and account details</p>
             </div>
@@ -190,11 +190,11 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm flex flex-col"
         >
           <div>
-            <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+            <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
                 <Volume2 className="w-5 h-5 shrink-0" />
               </div>
-              <div className="flex flex-col justify-center min-w-0">
+              <div className="flex flex-col min-w-0">
                 <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Voice</h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Choose how Lyra sounds when speaking with you</p>
               </div>
@@ -278,11 +278,11 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
               <Sparkles className="w-5 h-5 shrink-0" />
             </div>
-            <div className="flex flex-col justify-center min-w-0">
+            <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Wardrobe Style</h2>
               <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Live 3D avatar aesthetic selection</p>
             </div>
@@ -301,11 +301,11 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-            <div className="flex items-center gap-3.5 sm:gap-4">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+            <div className="flex items-start gap-3.5 sm:gap-4">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 -mt-1.5 sm:-mt-1.5">
                 <BookOpen className="w-5 h-5 shrink-0" />
               </div>
-              <div className="flex flex-col justify-center min-w-0">
+              <div className="flex flex-col min-w-0">
                 <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">A few things she's picked up on so far</p>
               </div>
@@ -353,11 +353,11 @@ export default function Settings() {
           className="account-panel md:col-span-12 shadow-sm border-rose-500/20 bg-[var(--bg-surface)]"
         >
           {/* Header */}
-          <div className="flex items-center gap-3.5 sm:gap-4 mb-6 sm:mb-8">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+          <div className="flex items-start gap-3.5 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
               <AlertTriangle className="w-5 h-5 shrink-0" />
             </div>
-            <div className="flex flex-col justify-center min-w-0">
+            <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-xl sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
               <p className="text-sm text-[var(--text-muted)] mt-1 font-body leading-relaxed">Permanent actions and irreversible local data resets</p>
             </div>
@@ -367,8 +367,8 @@ export default function Settings() {
           <div className="space-y-4 sm:space-y-5">
             {/* Action 1: Reset Chat & Memory */}
             <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
                   <RotateCcw className="w-4 h-4 shrink-0" />
                 </div>
                 <div className="min-w-0">
@@ -400,8 +400,8 @@ export default function Settings() {
 
             {/* Action 2: Wipe All App Data */}
             <div className="p-4 sm:p-5 bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-5">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 -mt-1.5 sm:-mt-1.5">
                   <Trash2 className="w-4 h-4 shrink-0" />
                 </div>
                 <div className="min-w-0">

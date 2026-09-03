@@ -7,21 +7,29 @@ import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, fram
 if (typeof window !== 'undefined' && THREE.Object3D) {
   const originalUpdateMatrixWorld = THREE.Object3D.prototype.updateMatrixWorld;
   THREE.Object3D.prototype.updateMatrixWorld = function (force?: boolean) {
-    if (this.parent === undefined) {
-      this.parent = null;
-    }
-    if (!this.matrixWorld) {
-      this.matrixWorld = new THREE.Matrix4();
-    }
-    if (!this.matrix) {
-      this.matrix = new THREE.Matrix4();
-    }
+    if (this.parent === undefined) this.parent = null;
+    if (!this.matrixWorld) this.matrixWorld = new THREE.Matrix4();
+    if (!this.matrix) this.matrix = new THREE.Matrix4();
     try {
       originalUpdateMatrixWorld.call(this, force);
     } catch (err) {
       console.warn('[THREE.Object3D.updateMatrixWorld] Handled matrix exception:', err);
     }
   };
+
+  const originalUpdateWorldMatrix = THREE.Object3D.prototype.updateWorldMatrix;
+  if (originalUpdateWorldMatrix) {
+    THREE.Object3D.prototype.updateWorldMatrix = function (updateParents?: boolean, updateChildren?: boolean) {
+      if (this.parent === undefined) this.parent = null;
+      if (!this.matrixWorld) this.matrixWorld = new THREE.Matrix4();
+      if (!this.matrix) this.matrix = new THREE.Matrix4();
+      try {
+        originalUpdateWorldMatrix.call(this, updateParents, updateChildren);
+      } catch (err) {
+        console.warn('[THREE.Object3D.updateWorldMatrix] Handled matrix exception:', err);
+      }
+    };
+  }
 }
 
 export const MODEL_FILES: Record<string, string> = {
@@ -210,55 +218,38 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
 
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
   const url = MODEL_FILES[modelId] || modelId;
-  if (!url) throw new Error(`Unknown model id: ${modelId}`);
+  console.log('Attempting to load:', url);
 
-  const loadPromise = (async () => {
-    const arrayBuffer = await fetchCompanionBuffer(url);
-
+  try {
     const loader = createLoader();
-    const parseBuffer = arrayBuffer.slice(0);
-    const basePath = url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '';
-    const gltf = await new Promise<any>((resolve, reject) => {
-      loader.parse(
-        parseBuffer,
-        basePath,
-        (result) => resolve(result),
-        (err) => reject(err)
-      );
-    });
+    const gltf = await loader.loadAsync(url);
+    console.log('GLTF loaded successfully. (omitted gltf to prevent circular JSON crash)');
 
-    const vrm = gltf.userData.vrm as VRM;
-    if (!vrm) throw new Error(`No VRM instance found in loaded model at: ${url}`);
+    const vrm = gltf.userData.vrm;
+    if (!vrm) {
+      console.error('GLTF loaded but no VRM data found in userData.vrm. This file may not be a valid VRM export.');
+      throw new Error('No VRM data in loaded file');
+    }
 
-    // Prevent premature frustum culling on animated skinned meshes & sanitize matrix parents
+    // Apply some essential fixes so the model actually draws if it loads
     vrm.scene.traverse((child: THREE.Object3D) => {
-      if (child.parent === undefined) {
-        child.parent = null;
-      }
-      if (!child.matrixWorld) {
-        child.matrixWorld = new THREE.Matrix4();
-      }
-      if (!child.matrix) {
-        child.matrix = new THREE.Matrix4();
-      }
-      if ((child as THREE.Mesh).isMesh) {
-        (child as THREE.Mesh).frustumCulled = false;
-      }
+      if (child.parent === undefined) child.parent = null;
+      if (!child.matrixWorld) child.matrixWorld = new THREE.Matrix4();
+      if (!child.matrix) child.matrix = new THREE.Matrix4();
+      if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).frustumCulled = false;
     });
 
     applyRestPose(vrm);
-    applyRelaxedHandPose(vrm, 'left');
-    applyRelaxedHandPose(vrm, 'right');
     safeUpdateVRM(vrm, 0);
 
-    return vrm;
-  })();
-
-  const timeoutPromise = new Promise<VRM>((_, reject) =>
-    setTimeout(() => reject(new Error(`Timed out loading ${modelId} after ${LOAD_TIMEOUT_MS}ms`)), LOAD_TIMEOUT_MS)
-  );
-
-  return Promise.race([loadPromise, timeoutPromise]);
+    console.log('VRM extracted successfully:', vrm);
+    return vrm as VRM;
+  } catch (err: any) {
+    console.error('FULL ERROR loading', url, ':', err);
+    console.error('Error message:', err.message);
+    console.error('Error stack:', err.stack);
+    throw err;
+  }
 }
 
 export function isModelCached(modelId: string): boolean {

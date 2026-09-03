@@ -161,24 +161,29 @@ export function WardrobeCard({
       try {
         setLoading(true);
         setError(null);
-        const vrm = await loadCompanionModel(modelId); // same cache, same guarantees as everywhere else
+        const vrm = await loadCompanionModel(modelId);
+        
         if (cancelled || !containerRef.current) return;
-
+        
         setupCardScene(vrm, containerRef.current, rendererRef, modelRef, sceneRef, cameraRef);
-        renderFrame(); // one frame, not a continuous loop
+        renderFrame();
+
         setLoading(false);
 
         // Render on resize only (e.g. drawer opening transition), not continuously
         if (containerRef.current) {
-          resizeObserver = new ResizeObserver(() => {
+          resizeObserver = new ResizeObserver((entries) => {
             if (!containerRef.current || !rendererRef.current || !cameraRef.current || !modelRef.current) return;
-            const w = containerRef.current.clientWidth;
-            const h = containerRef.current.clientHeight;
-            if (w === 0 || h === 0) return;
-            cameraRef.current.aspect = w / h;
+            const { width, height } = entries[0].contentRect;
+            console.log(`WardrobeCard (${modelId}) Container size at mount/resize:`, width, height);
+            if (width === 0 || height === 0) {
+              console.warn(`WardrobeCard (${modelId}) Container has zero size, renderer cannot display anything yet`);
+              return;
+            }
+            cameraRef.current.aspect = width / height;
             cameraRef.current.updateProjectionMatrix();
-            rendererRef.current.setSize(w, h);
-            frameOutfit(modelRef.current.scene, cameraRef.current, h);
+            rendererRef.current.setSize(width, height);
+            frameOutfit(modelRef.current.scene, cameraRef.current, height);
             renderFrame();
           });
           resizeObserver.observe(containerRef.current);
@@ -251,7 +256,7 @@ export function WardrobeCard({
         {/* Error Fallback */}
         {error && !loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] p-2 text-center z-10">
-            <span className="text-[10px] text-[var(--text-muted)]">Model unavailable</span>
+            <span className="text-[10px] text-[var(--text-muted)]">{error}</span>
           </div>
         )}
 
