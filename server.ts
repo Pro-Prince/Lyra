@@ -107,28 +107,6 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Explicit static file serving for /models with binary content-type and range support
-  const modelsPath = path.join(process.cwd(), "public", "models");
-  app.get("/models/:filename", (req, res, next) => {
-    const filePath = path.join(modelsPath, req.params.filename);
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      res.setHeader("Content-Type", "model/gltf-binary");
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.sendFile(filePath);
-    }
-    next();
-  });
-
-  app.use("/models", express.static(modelsPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".vrm")) {
-        res.setHeader("Content-Type", "model/gltf-binary");
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-      }
-    }
-  }));
 
   app.post("/api/gemini", async (req, res) => {
     try {

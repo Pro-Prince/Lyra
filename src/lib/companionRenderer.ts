@@ -148,7 +148,7 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
   }
 
   const promise = (async () => {
-    const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v2`;
+    const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v3`;
     const candidates = [
       urlWithVersion,
       url,
@@ -222,7 +222,17 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
 
   try {
     const loader = createLoader();
-    const gltf = await loader.loadAsync(url);
+    const arrayBuffer = await fetchCompanionBuffer(url);
+    
+    const gltf = await new Promise<any>((resolve, reject) => {
+      loader.parse(
+        arrayBuffer.slice(0),
+        url.includes('/') ? url.substring(0, url.lastIndexOf('/') + 1) : '',
+        (result) => resolve(result),
+        (err) => reject(err)
+      );
+    });
+
     console.log('GLTF loaded successfully. (omitted gltf to prevent circular JSON crash)');
 
     const vrm = gltf.userData.vrm;
