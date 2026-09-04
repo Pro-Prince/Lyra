@@ -5,9 +5,12 @@ import { Home, Shirt } from "lucide-react";
 interface PresenceTopBarProps {
   onOpenWardrobe: () => void;
   onHomeClick?: (e: React.MouseEvent) => void;
+  currentOutfitLabel?: string;
 }
 
-export function PresenceTopBar({ onOpenWardrobe, onHomeClick }: PresenceTopBarProps) {
+export function PresenceTopBar({ onOpenWardrobe, onHomeClick, currentOutfitLabel }: PresenceTopBarProps) {
+  const tooltipText = currentOutfitLabel ? `Wardrobe (Wearing: ${currentOutfitLabel})` : "Wardrobe";
+
   return (
     <div className="presence-topbar absolute top-0 left-0 right-0 z-20 p-4 sm:p-6 pt-safe flex justify-between items-center pointer-events-none w-full max-w-5xl mx-auto">
       {/* Home Navigation */}
@@ -17,6 +20,7 @@ export function PresenceTopBar({ onOpenWardrobe, onHomeClick }: PresenceTopBarPr
           onClick={onHomeClick}
           className="home-icon p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-transparent hover:border-[var(--accent-primary)]/40 hover:bg-[var(--bg-surface)] active:scale-[0.97] active:border-[var(--accent-primary)]/60 transition-all shadow-lg cursor-pointer flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           aria-label="Home"
+          title="Return to Home"
         >
           <Home className="w-5 h-5" />
         </Link>
@@ -28,7 +32,8 @@ export function PresenceTopBar({ onOpenWardrobe, onHomeClick }: PresenceTopBarPr
           type="button"
           onClick={onOpenWardrobe}
           className="wardrobe-icon p-2.5 sm:p-3 rounded-full bg-[var(--bg-surface)]/80 backdrop-blur-[24px] border border-transparent hover:border-[var(--accent-primary)]/40 hover:bg-[var(--bg-surface)] active:scale-[0.97] active:border-[var(--accent-primary)]/60 transition-all shadow-lg cursor-pointer flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          aria-label="Wardrobe"
+          aria-label={tooltipText}
+          title={tooltipText}
         >
           <Shirt className="w-5 h-5" />
         </button>

@@ -48,6 +48,59 @@ export const MODEL_FILES: Record<string, string> = {
   '/models/lyra_dress.vrm': '/models/lyra_dress.vrm',
 };
 
+export type OutfitId = 'default' | 'lyra_casual' | 'lyra_dress';
+
+export interface OutfitDefinition {
+  id: OutfitId;
+  label: string;
+  description: string;
+  modelUrl: string;
+}
+
+export const OUTFIT_LIST: OutfitDefinition[] = [
+  {
+    id: 'default',
+    label: 'Default',
+    description: 'Signature tailored look with warm accents',
+    modelUrl: '/models/lyra.vrm',
+  },
+  {
+    id: 'lyra_casual',
+    label: 'Casual',
+    description: 'Comfortable knitwear and relaxed styling',
+    modelUrl: '/models/lyra_casual.vrm',
+  },
+  {
+    id: 'lyra_dress',
+    label: 'Dress',
+    description: 'Elegant evening dress with flowing silhouette',
+    modelUrl: '/models/lyra_dress.vrm',
+  },
+];
+
+export function normalizeOutfitId(outfit?: string | null): OutfitId {
+  if (!outfit) return 'default';
+  const clean = outfit.trim().toLowerCase();
+  if (clean === 'lyra_casual' || clean === 'casual' || clean.includes('casual')) return 'lyra_casual';
+  if (clean === 'lyra_dress' || clean === 'dress' || clean.includes('dress')) return 'lyra_dress';
+  return 'default';
+}
+
+export function getOutfitUrl(outfit?: string | null): string {
+  const id = normalizeOutfitId(outfit);
+  return MODEL_FILES[id] || '/models/lyra.vrm';
+}
+
+export function getOutfitLabel(outfit?: string | null): string {
+  const id = normalizeOutfitId(outfit);
+  const found = OUTFIT_LIST.find((o) => o.id === id);
+  return found ? found.label : 'Default';
+}
+
+export function isSameOutfit(a?: string | null, b?: string | null): boolean {
+  return normalizeOutfitId(a) === normalizeOutfitId(b);
+}
+
 const LOAD_TIMEOUT_MS = 12000; // hard ceiling, this is what prevents "loading forever"
 const rawBufferCache: Map<string, ArrayBuffer> = new Map();
 const inFlightBufferPromises: Map<string, Promise<ArrayBuffer>> = new Map();

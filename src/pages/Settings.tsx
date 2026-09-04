@@ -5,7 +5,7 @@ import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/m
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory } from "../lib/storage";
 import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
-import { MODEL_FILES } from "../lib/companionRenderer";
+import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import Button from "../components/Button";
@@ -35,6 +35,18 @@ export default function Settings() {
       }
     }
     load();
+
+    const handleOutfitChanged = (e: any) => {
+      if (e.detail) {
+        setCurrentOutfit(e.detail);
+      }
+    };
+    window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
+    window.addEventListener('focus', load);
+    return () => {
+      window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
+      window.removeEventListener('focus', load);
+    };
   }, []);
 
   const handleClear = async () => {
@@ -60,12 +72,19 @@ export default function Settings() {
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
-    const modelUrl = MODEL_FILES[outfitId] || outfitId;
+    if (isSameOutfit(outfitId, currentOutfit)) {
+      navigate("/chat");
+      return;
+    }
+    const modelUrl = getOutfitUrl(outfitId);
     const comp = await getCompanion() || {};
     comp.outfit = modelUrl;
     await saveCompanion(comp);
     setCurrentOutfit(modelUrl);
-    showInfo("Wardrobe style updated!");
+    window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
+    const label = getOutfitLabel(outfitId);
+    showInfo(`Lyra is now wearing her ${label} look!`);
+    navigate("/chat");
   };
 
   const handleTestSample = () => {

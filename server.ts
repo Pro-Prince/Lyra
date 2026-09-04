@@ -178,8 +178,16 @@ async function startServer() {
         ? `\nRecent things you remember about the user: ${memories.map((m: any) => m.content || m.factSummary).join('; ')}.`
         : "";
 
+      const outfitRaw = String(companionProfile?.outfit || '').toLowerCase();
+      const currentOutfitDescription = outfitRaw.includes('casual')
+        ? 'Casual look (comfortable, relaxed knitwear)'
+        : outfitRaw.includes('dress')
+          ? 'Elegant evening dress'
+          : 'Signature Default tailored outfit';
+
       const systemInstruction = `You are Lyra. The user prefers to be called "${companionProfile?.userPreferredName || companionProfile?.userName || 'Friend'}".
 Their preferred conversational vibe is: ${companionProfile?.conversationalVibe || companionProfile?.vibe || 'Warm & Gentle'}.${memoryGuideline}
+Currently wearing: You are currently wearing your ${currentOutfitDescription}. If the user asks what you are wearing or mentions your look, you know what you have on right now.
 
 Permanent Safety Constraints:
 - Adults-only framing (18+ companion experience).

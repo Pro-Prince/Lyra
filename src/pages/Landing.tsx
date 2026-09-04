@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getCompanion, saveCompanion, getLocalProfile } from "../lib/storage";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { getOutfitLabel, getOutfitUrl, isSameOutfit } from "../lib/companionRenderer";
 import { 
   ArrowRight, 
   Sparkles, 
@@ -71,9 +73,54 @@ const FAQ_ITEMS: FAQItem[] = [
 
 function OutfitShowcase() {
   const [activeOutfit, setActiveOutfit] = useState('default');
+  const { showInfo } = useToast();
+  const navigate = useNavigate();
 
-  const handleOutfitPreview = (outfitId: string) => {
-    setActiveOutfit(outfitId);
+  useEffect(() => {
+    async function loadCurrentOutfit() {
+      try {
+        const comp = await getCompanion();
+        if (comp && comp.outfit) {
+          setActiveOutfit(comp.outfit);
+        }
+      } catch (err) {
+        console.warn('Failed to load companion outfit for showcase:', err);
+      }
+    }
+    loadCurrentOutfit();
+
+    const handleOutfitChanged = (e: any) => {
+      if (e.detail) {
+        setActiveOutfit(e.detail);
+      }
+    };
+    window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
+    window.addEventListener('focus', loadCurrentOutfit);
+    return () => {
+      window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
+      window.removeEventListener('focus', loadCurrentOutfit);
+    };
+  }, []);
+
+  const handleOutfitWear = async (outfitId: string) => {
+    if (isSameOutfit(outfitId, activeOutfit)) {
+      navigate('/chat');
+      return;
+    }
+    const modelUrl = getOutfitUrl(outfitId);
+    setActiveOutfit(modelUrl);
+    try {
+      const comp = await getCompanion() || {};
+      comp.outfit = modelUrl;
+      await saveCompanion(comp);
+      window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
+      const label = getOutfitLabel(outfitId);
+      showInfo(`Lyra is now wearing her ${label} look!`);
+      navigate('/chat');
+    } catch (err) {
+      console.warn('Failed to save outfit selection:', err);
+      navigate('/chat');
+    }
   };
 
   return (
@@ -93,11 +140,11 @@ function OutfitShowcase() {
           Three looks, one presence
         </h2>
         <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
-          Explore Lyra's outfits in 3D and select a look to preview.
+          Select an outfit to change what Lyra is currently wearing across your entire companion experience.
         </p>
       </motion.div>
 
-      <WardrobeGrid selectedOutfit={activeOutfit} onSelect={handleOutfitPreview} size="large" />
+      <WardrobeGrid selectedOutfit={activeOutfit} onSelect={handleOutfitWear} size="large" />
     </motion.section>
   );
 }

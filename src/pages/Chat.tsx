@@ -7,6 +7,7 @@ import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, sav
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import WardrobeGrid from "../components/WardrobeGrid";
+import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { PresenceTopBar } from "../components/PresenceTopBar";
@@ -364,6 +365,16 @@ export default function Chat() {
       setupSpeechRecognition();
     }
     loadData();
+
+    const handleOutfitChanged = (e: any) => {
+      if (e.detail) {
+        setOutfit(e.detail);
+      }
+    };
+    window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
+    return () => {
+      window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
+    };
   }, []);
 
   const setupSpeechRecognition = () => {
@@ -666,13 +677,22 @@ export default function Chat() {
   };
 
   const handleOutfitChange = async (newOutfit: string) => {
-    if (newOutfit === outfit) return;
-    setOutfit(newOutfit);
+    if (isSameOutfit(newOutfit, outfit)) {
+      setIsWardrobeOpen(false);
+      return;
+    }
+    const modelUrl = getOutfitUrl(newOutfit);
+    setOutfit(modelUrl);
     const comp = await getCompanion() || {};
-    comp.outfit = newOutfit;
+    comp.outfit = modelUrl;
     await saveCompanion(comp);
     companionProfileRef.current = comp;
+    window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
     
+    const label = getOutfitLabel(newOutfit);
+    showInfo(`Lyra changed into her ${label} look!`);
+    setIsWardrobeOpen(false);
+
     if (typeof window !== 'undefined' && (window as any).playGesture) {
       (window as any).playGesture('twirl');
     }
@@ -1427,7 +1447,12 @@ export default function Chat() {
 
             {/* HUD Top Left */}
             <div className={`absolute top-6 left-6 flex gap-3 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <button onClick={() => setIsWardrobeOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
+              <button 
+                onClick={() => setIsWardrobeOpen(true)} 
+                title={`Wardrobe (Currently wearing: ${getOutfitLabel(outfit)})`}
+                aria-label={`Wardrobe (Currently wearing: ${getOutfitLabel(outfit)})`}
+                className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer"
+              >
                 <Shirt className="w-5 h-5" />
               </button>
               <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
@@ -1739,10 +1764,15 @@ export default function Chat() {
                     setIsMobileMenuOpen(false);
                     setIsWardrobeOpen(true);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
-                  <Shirt className="w-4 h-4" style={{ color: activeAccent }} />
-                  <span>Wardrobe & Outfits</span>
+                  <div className="flex items-center gap-3">
+                    <Shirt className="w-4 h-4" style={{ color: activeAccent }} />
+                    <span>Wardrobe & Outfits</span>
+                  </div>
+                  <span className="text-xs text-[var(--accent-primary)] font-medium">
+                    {getOutfitLabel(outfit)}
+                  </span>
                 </button>
 
                 <button
@@ -1905,7 +1935,12 @@ export default function Chat() {
               className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
             >
               <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/5">
-                <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Wardrobe</h2>
+                <div>
+                  <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Wardrobe</h2>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                    Currently wearing: <span className="font-semibold text-[var(--accent-primary)]">{getOutfitLabel(outfit)}</span>
+                  </p>
+                </div>
                 <button onClick={closeDrawers} className="p-2 text-[var(--text-primary)]/50 hover:text-[var(--text-primary)]/90 rounded-full hover:bg-[var(--bg-elevated)]/5 active:scale-95 transition-all cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
