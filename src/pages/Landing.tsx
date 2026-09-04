@@ -103,10 +103,6 @@ function OutfitShowcase() {
   }, []);
 
   const handleOutfitWear = async (outfitId: string) => {
-    if (isSameOutfit(outfitId, activeOutfit)) {
-      navigate('/chat');
-      return;
-    }
     const modelUrl = getOutfitUrl(outfitId);
     setActiveOutfit(modelUrl);
     try {

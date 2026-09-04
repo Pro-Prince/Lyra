@@ -72,10 +72,6 @@ export default function Settings() {
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
-    if (isSameOutfit(outfitId, currentOutfit)) {
-      navigate("/chat");
-      return;
-    }
     const modelUrl = getOutfitUrl(outfitId);
     const comp = await getCompanion() || {};
     comp.outfit = modelUrl;

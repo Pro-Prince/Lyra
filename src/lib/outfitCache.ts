@@ -215,7 +215,7 @@ export function getAllCachedThumbnails(): Record<string, string> {
 
 export function getAllFullBodyRenders(): Record<string, string> {
   const result: Record<string, string> = {};
-  for (const id of ['lyra', 'lyra_casual', 'lyra_dress']) {
+  for (const id of ['default', 'lyra', 'lyra_casual', 'lyra_dress']) {
     const entry = getCachedOutfit(id);
     if (entry?.fullBodyRender) {
       result[id] = entry.fullBodyRender;

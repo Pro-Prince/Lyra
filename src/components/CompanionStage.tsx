@@ -307,13 +307,13 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       lookTarget.current.set(companionPosition.x, midY, companionPosition.z);
     } else if (mode === 'room-wide') {
       targetPos.current.set(companionPosition.x + 0.4, Math.max(0.8, 1.75), companionPosition.z + 3.2);
-      lookTarget.current.set(companionPosition.x + 0.1, 1.3, companionPosition.z);
+      lookTarget.current.set(companionPosition.x + 0.1, 1.0, companionPosition.z);
     } else if (mode === 'panned-left') {
       targetPos.current.set(-0.9, Math.max(0.8, 1.3), 2.4);
-      lookTarget.current.set(-0.4, 1.3, 0);
+      lookTarget.current.set(-0.4, 1.0, 0);
     } else {
       targetPos.current.set(0, Math.max(0.8, 1.3), 2.0);
-      lookTarget.current.set(0, 1.3, 0);
+      lookTarget.current.set(0, 1.0, 0);
     }
 
     // Clamp camera Y so it never drops below floor level (floor is y=0)
@@ -322,6 +322,38 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     camera.position.lerp(targetPos.current, 0.05);
     camera.lookAt(lookTarget.current);
   });
+  return null;
+}
+
+function TestCube({ onLoaded }: { onLoaded?: () => void }) {
+  const { scene } = useThree();
+  const cubeRef = useRef<THREE.Mesh | null>(null);
+
+  useEffect(() => {
+    const testCube = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xff00ff }) // bright magenta, impossible to miss if it renders
+    );
+    testCube.position.set(0, 1, 0);
+    scene.add(testCube);
+    cubeRef.current = testCube;
+    console.log('[TestCube] Magenta test cube added to CompanionStage scene at (0, 1, 0)');
+    onLoaded?.();
+
+    return () => {
+      scene.remove(testCube);
+      testCube.geometry.dispose();
+      (testCube.material as THREE.Material).dispose();
+    };
+  }, [scene, onLoaded]);
+
+  useFrame((_, delta) => {
+    if (cubeRef.current) {
+      cubeRef.current.rotation.y += delta;
+      cubeRef.current.rotation.x += delta * 0.5;
+    }
+  });
+
   return null;
 }
 
@@ -350,6 +382,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
   useEffect(() => {
     let isCancelled = false;
+    let handleOutfitsReady: (() => void) | null = null;
 
     const setupVRM = async () => {
       try {
@@ -404,8 +437,23 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         const proceduralGestures = createGestureClips(vrmInstance);
         clips.current = {
           ...proceduralGestures,
-          ...(cached.clips || {})
+          ...(cached?.clips || {})
         };
+
+        handleOutfitsReady = () => {
+          if (isCancelled) return;
+          const freshCached = getCachedOutfit(url);
+          if (freshCached?.clips) {
+            clips.current = {
+              ...clips.current,
+              ...freshCached.clips,
+            };
+            if (!currentAction.current && clips.current['idle']) {
+              playAction('idle', true);
+            }
+          }
+        };
+        window.addEventListener('lyraOutfitsReady', handleOutfitsReady);
 
         const playGesture = (name: string) => {
           if (!mixer.current || !clips.current[name]) return;
@@ -502,6 +550,9 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
     return () => {
       isCancelled = true;
+      if (handleOutfitsReady) {
+        window.removeEventListener('lyraOutfitsReady', handleOutfitsReady);
+      }
       setVrm(null);
       if (onReset) onReset();
       if (mixer.current) {

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { loadCompanionModel, safeUpdateVRM } from '../lib/companionRenderer';
-import { frameOutfit } from '../lib/poseUtils';
+import { frameOutfit, applyRestPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
 export function useDragRotate(onDrag: (deltaX: number) => void) {
@@ -62,10 +62,10 @@ export function setupCardScene(
   sceneRef.current = scene;
 
   // Lighting tuned for wardrobe preview clarity
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
-  const keyLight = new THREE.DirectionalLight(0xfff8f0, 0.7);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+  const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.2);
   keyLight.position.set(1.5, 2.5, 2.0);
-  const fillLight = new THREE.DirectionalLight(0xf0e8ff, 0.4);
+  const fillLight = new THREE.DirectionalLight(0xf0e8ff, 0.8);
   fillLight.position.set(-1.5, 1.5, 1.5);
   scene.add(ambientLight, keyLight, fillLight);
 
@@ -73,7 +73,7 @@ export function setupCardScene(
   const camera = new THREE.PerspectiveCamera(28, width / height, 0.1, 20);
   cameraRef.current = camera;
 
-  // Renderer - created once, rendering on-demand
+  // Renderer - created once
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
@@ -97,7 +97,8 @@ export function setupCardScene(
   modelRef.current = vrm;
   scene.add(vrm.scene);
 
-  // Frame outfit
+  // Apply rest pose & frame outfit
+  applyRestPose(vrm);
   frameOutfit(vrm.scene, camera, height);
   vrm.scene.updateMatrixWorld(true);
 }
@@ -134,27 +135,19 @@ export function WardrobeCard({
   const [error, setError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  function renderFrame() {
-    if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !modelRef.current || !modelRef.current.scene) return;
-    try {
-      modelRef.current.scene.rotation.y = rotationRef.current;
-      safeUpdateVRM(modelRef.current, 0);
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-    } catch (e) {
-      console.warn('[WardrobeCard renderFrame] Exception:', e);
-    }
-  }
-
   function handleDrag(deltaX: number) {
     rotationRef.current += deltaX * 0.01;
-    renderFrame(); // render only when rotation actually changes, not every frame regardless
   }
 
   const dragHandlers = useDragRotate(handleDrag);
 
   useEffect(() => {
     let cancelled = false;
+    let animId: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
+    const container = containerRef.current;
+    if (!container) return;
+
     rotationRef.current = 0;
 
     (async () => {
@@ -162,32 +155,42 @@ export function WardrobeCard({
         setLoading(true);
         setError(null);
         const vrm = await loadCompanionModel(modelId);
-        
+
         if (cancelled || !containerRef.current) return;
-        
+
         setupCardScene(vrm, containerRef.current, rendererRef, modelRef, sceneRef, cameraRef);
-        renderFrame();
 
-        setLoading(false);
+        // Continuous render loop
+        let lastTime = performance.now();
+        function animate() {
+          animId = requestAnimationFrame(animate);
+          const now = performance.now();
+          const delta = Math.min((now - lastTime) / 1000, 0.05);
+          lastTime = now;
 
-        // Render on resize only (e.g. drawer opening transition), not continuously
+          if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
+            modelRef.current.scene.rotation.y = rotationRef.current;
+            safeUpdateVRM(modelRef.current, delta);
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
+          }
+        }
+        animate();
+
+        // Resize observer
         if (containerRef.current) {
           resizeObserver = new ResizeObserver((entries) => {
             if (!containerRef.current || !rendererRef.current || !cameraRef.current || !modelRef.current) return;
             const { width, height } = entries[0].contentRect;
-            console.log(`WardrobeCard (${modelId}) Container size at mount/resize:`, width, height);
-            if (width === 0 || height === 0) {
-              console.warn(`WardrobeCard (${modelId}) Container has zero size, renderer cannot display anything yet`);
-              return;
-            }
+            if (width === 0 || height === 0) return;
             cameraRef.current.aspect = width / height;
             cameraRef.current.updateProjectionMatrix();
             rendererRef.current.setSize(width, height);
             frameOutfit(modelRef.current.scene, cameraRef.current, height);
-            renderFrame();
           });
           resizeObserver.observe(containerRef.current);
         }
+
+        setLoading(false);
       } catch (err: any) {
         console.error(`Failed to load wardrobe model ${modelId}:`, err);
         if (!cancelled) {
@@ -199,13 +202,15 @@ export function WardrobeCard({
 
     return () => {
       cancelled = true;
+      if (animId !== null) {
+        cancelAnimationFrame(animId);
+      }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
       if (rendererRef.current) {
         try {
           rendererRef.current.forceContextLoss?.();
-          rendererRef.current.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
           rendererRef.current.dispose();
         } catch {}
         if (rendererRef.current.domElement?.parentElement) {

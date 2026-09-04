@@ -260,7 +260,7 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
   try {
     const loader = createLoader();
     const gltf = await loader.loadAsync(url);
-    console.log('GLTF loaded successfully:', gltf ? '[GLTF Object]' : gltf);
+    console.log('GLTF loaded successfully for', url);
 
     const vrm = gltf.userData.vrm;
     if (!vrm) {
@@ -268,12 +268,11 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
       throw new Error('No VRM data in loaded file');
     }
 
-    console.log('VRM extracted successfully:', vrm ? '[VRM Object]' : vrm);
+    console.log('VRM extracted successfully for', url);
     return vrm as VRM;
   } catch (err: any) {
-    console.error('FULL ERROR loading', url, ':', err);
-    console.error('Error message:', err.message);
-    console.error('Error stack:', err.stack);
+    console.error('FULL ERROR loading', url, ':', err?.message || String(err));
+    if (err?.stack) console.error('Error stack:', err.stack);
     throw err;
   }
 }
