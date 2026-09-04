@@ -37,16 +37,29 @@ const emotionColors: Record<Emotion, string> = {
 
 // Pre-loaded logo watermark image for instant capture
 const logoWatermarkImg = new Image();
-logoWatermarkImg.crossOrigin = 'anonymous';
 logoWatermarkImg.src = '/images/Logo.png';
 
-const ensureLogoLoaded = (): Promise<HTMLImageElement> => {
+const ensureLogoLoaded = (): Promise<HTMLImageElement | null> => {
   return new Promise((resolve) => {
-    if (logoWatermarkImg.complete && logoWatermarkImg.naturalWidth > 0) {
-      resolve(logoWatermarkImg);
+    if (logoWatermarkImg.complete) {
+      resolve(logoWatermarkImg.naturalWidth > 0 ? logoWatermarkImg : null);
       return;
     }
-    const handleLoad = () => resolve(logoWatermarkImg);
+    let resolved = false;
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 1500);
+
+    const handleLoad = () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        resolve(logoWatermarkImg.naturalWidth > 0 ? logoWatermarkImg : null);
+      }
+    };
     logoWatermarkImg.addEventListener('load', handleLoad, { once: true });
     logoWatermarkImg.addEventListener('error', handleLoad, { once: true });
     if (!logoWatermarkImg.src) {
@@ -916,12 +929,22 @@ export default function Chat() {
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
 
   const handleCapture = async () => {
-    const canvas = (document.getElementById('companion-webgl-canvas') || 
+    let element = document.getElementById('companion-webgl-canvas') || 
       document.querySelector('.companion-viewport canvas') || 
-      document.querySelector('canvas')) as HTMLCanvasElement | null;
+      document.querySelector('canvas');
 
-    if (!canvas) {
-      showError('No active stage found to capture');
+    // If the found element is not a canvas (e.g. a wrapper div), find the canvas inside it
+    if (element && element.tagName !== 'CANVAS') {
+      const nestedCanvas = element.querySelector('canvas');
+      if (nestedCanvas) {
+        element = nestedCanvas;
+      }
+    }
+
+    const canvas = element as HTMLCanvasElement | null;
+
+    if (!canvas || typeof canvas.toDataURL !== 'function') {
+      showError('No active 3D stage canvas found to capture');
       return;
     }
 
@@ -935,61 +958,82 @@ export default function Chat() {
     // Trigger visual camera shutter flash effect & temporarily hide all buttons on the 3D stage
     setIsCapturingFlash(true);
 
-    // Capture the entire scene at crisp high definition preserving the exact room composition
-    const aspect = srcWidth / srcHeight;
-    let exportWidth = 1920;
-    let exportHeight = Math.round(1920 / aspect);
-    if (aspect < 1) {
-      // Portrait orientation
-      exportHeight = 1920;
-      exportWidth = Math.round(1920 * aspect);
-    }
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = exportWidth;
-    tempCanvas.height = exportHeight;
-    const ctx = tempCanvas.getContext('2d');
-    if (!ctx) {
-      setIsCapturingFlash(false);
-      return;
-    }
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
-    // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-    bgGradient.addColorStop(0, '#1c131a');
-    bgGradient.addColorStop(0.5, '#140D16');
-    bgGradient.addColorStop(1, '#0c070e');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, exportWidth, exportHeight);
-
-    // 2. Draw the whole 3D canvas (entire room environment, walls, floor, lighting, and companion model)
-    ctx.drawImage(canvas, 0, 0, srcWidth, srcHeight, 0, 0, exportWidth, exportHeight);
-
-    // 3. Ensure logo image is loaded & draw exact brand logo lockup watermark
-    const logoImg = await ensureLogoLoaded();
-    drawLyraLogoWatermark(ctx, exportWidth, exportHeight, logoImg);
-
-    // Download instantly with short, clean filename (no timestamps or underscores)
     try {
-      const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
+      // Capture the entire scene at crisp high definition preserving the exact room composition
+      const aspect = srcWidth / srcHeight;
+      // High-resolution HD limit (1920px on the longest edge)
+      const MAX_DIM = 1920;
+      let exportWidth = aspect >= 1 ? MAX_DIM : Math.round(MAX_DIM * aspect);
+      let exportHeight = aspect >= 1 ? Math.round(MAX_DIM / aspect) : MAX_DIM;
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = exportWidth;
+      tempCanvas.height = exportHeight;
+      const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        throw new Error('Failed to get 2d context for export canvas');
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
+      bgGradient.addColorStop(0, '#1c131a');
+      bgGradient.addColorStop(0.5, '#140D16');
+      bgGradient.addColorStop(1, '#0c070e');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, exportWidth, exportHeight);
+
+      // 2. Draw the whole 3D canvas (entire room environment, walls, floor, lighting, and companion model)
+      try {
+        ctx.drawImage(canvas, 0, 0, srcWidth, srcHeight, 0, 0, exportWidth, exportHeight);
+      } catch (drawErr: any) {
+        console.warn('Could not draw WebGL canvas directly:', drawErr);
+        throw new Error(`WebGL canvas draw failed: ${drawErr.message || drawErr}`);
+      }
+
+      // 3. Draw exact brand logo lockup watermark synchronously if loaded
+      if (logoWatermarkImg.complete && logoWatermarkImg.naturalWidth > 0) {
+        drawLyraLogoWatermark(ctx, exportWidth, exportHeight, logoWatermarkImg);
+      }
+
+      // Download instantly with short, clean filename as high-resolution PNG
+      const dataUrl = tempCanvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = 'Lyra.png';
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
       showInfo('Photo saved! 📸');
-    } catch (err) {
-      console.error('Failed to export capture:', err);
-      showError('Failed to save image');
-    } finally {
-      // Restore UI buttons after a smooth fraction of a second
       setTimeout(() => {
         setIsCapturingFlash(false);
       }, 450);
+      
+    } catch (err: any) {
+      console.warn('Advanced composited drawing failed, attempting direct WebGL fallback capture:', err);
+      try {
+        // Fallback: download directly from the WebGL canvas to bypass tainted 2D canvas context or Safari drawImage bug!
+        const directDataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'Lyra.png';
+        link.href = directDataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showInfo('Photo saved! 📸');
+        setTimeout(() => {
+          setIsCapturingFlash(false);
+        }, 450);
+      } catch (fallbackErr: any) {
+        console.error('Failed direct WebGL fallback export capture:', fallbackErr);
+        showError(`Failed to save image: ${fallbackErr?.message || fallbackErr}`);
+        setTimeout(() => {
+          setIsCapturingFlash(false);
+        }, 450);
+      }
     }
   };
 
@@ -1133,7 +1177,7 @@ export default function Chat() {
             </div>
 
             {/* Bottom HUD Controls on Mobile (5 circular buttons + Status Pill) */}
-            <div className={`z-20 w-full flex flex-col items-center gap-2 pb-2 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-none'}`}>
+            <div className={`z-20 w-full flex flex-col items-center gap-2 pb-2 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               {/* Row of 5 Circular Control Buttons */}
               <div className="flex items-center justify-between gap-1.5 px-3 w-full max-w-sm mx-auto">
                 {/* 1. Camera */}
@@ -1375,7 +1419,7 @@ export default function Chat() {
         <div className="hidden md:flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
           <div className="companion-screen flex-1 bg-gradient-to-b from-[#1c131a] to-black group relative overflow-hidden">
-            <div className="companion-viewport w-full">
+            <div className="companion-viewport w-full h-full relative">
             {/* Camera Shutter Flash Effect (Desktop) */}
             {isCapturingFlash && (
               <div className="absolute inset-0 bg-white z-50 pointer-events-none animate-camera-flash" />
@@ -1423,7 +1467,7 @@ export default function Chat() {
             </div>
 
             {/* HUD Bottom Controls */}
-            <div className={`control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 scale-90 md:scale-100 origin-bottom transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-none'}`}>
+            <div className={`control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 scale-90 md:scale-100 origin-bottom transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               {/* 1. View */}
               <div className="flex flex-col items-center gap-2 pointer-events-auto">
                 <button 

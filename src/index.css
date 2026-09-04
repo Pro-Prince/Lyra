@@ -1133,12 +1133,19 @@ h3, .heading-3 {
   background: var(--bg-base);
   border: 1px solid rgba(var(--text-primary-rgb), 0.1);
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 11px 14px;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 13.5px;
   width: 100%;
   transition: all 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .account-panel input:not([type="checkbox"]):not([type="file"]), .account-panel select {
+    padding: 12px 16px;
+    font-size: 14.5px;
+  }
 }
 
 .account-panel input:not([type="checkbox"]):not([type="file"]):focus, .account-panel select:focus {
@@ -1200,8 +1207,7 @@ h3, .heading-3 {
 .companion-screen {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  height: calc(100dvh - 72px); /* minus header */
+  height: 100%; /* Take full height of the parent container on desktop */
 }
 .companion-viewport {
   flex: 1 1 auto;
@@ -1210,7 +1216,7 @@ h3, .heading-3 {
 }
 .control-bar {
   position: absolute;
-  bottom: var(--space-md);
+  bottom: 12px; /* Position closer to the bottom edge of the screen to utilize unused space */
   left: 0;
   right: 0;
   flex: 0 0 auto;

@@ -62,10 +62,10 @@ export function setupCardScene(
   sceneRef.current = scene;
 
   // Lighting tuned for wardrobe preview clarity
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
-  const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.4);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+  const keyLight = new THREE.DirectionalLight(0xfff8f0, 0.7);
   keyLight.position.set(1.5, 2.5, 2.0);
-  const fillLight = new THREE.DirectionalLight(0xf0e8ff, 0.8);
+  const fillLight = new THREE.DirectionalLight(0xf0e8ff, 0.4);
   fillLight.position.set(-1.5, 1.5, 1.5);
   scene.add(ambientLight, keyLight, fillLight);
 

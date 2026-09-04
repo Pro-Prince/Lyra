@@ -54,6 +54,7 @@ const inFlightBufferPromises: Map<string, Promise<ArrayBuffer>> = new Map();
 
 function createLoader() {
   const loader = new GLTFLoader();
+  loader.setCrossOrigin('anonymous');
   loader.register((parser) => new VRMLoaderPlugin(parser));
   return loader;
 }
@@ -236,8 +237,8 @@ export async function renderStaticPortrait(
 ): Promise<string> {
   const vrm = await loadCompanionModel(modelId);
   const scene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  const key = new THREE.DirectionalLight(0xffffff, 1.2);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+  const key = new THREE.DirectionalLight(0xffffff, 0.65);
   key.position.set(1, 2, 2);
   scene.add(ambient, key, vrm.scene);
 

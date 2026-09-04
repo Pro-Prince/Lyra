@@ -306,8 +306,8 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x, Math.max(0.6, midY), companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, midY, companionPosition.z);
     } else if (mode === 'room-wide') {
-      targetPos.current.set(companionPosition.x, Math.max(0.8, 1.6), companionPosition.z + 3.2);
-      lookTarget.current.set(companionPosition.x, 1.2, companionPosition.z);
+      targetPos.current.set(companionPosition.x + 0.4, Math.max(0.8, 1.75), companionPosition.z + 3.2);
+      lookTarget.current.set(companionPosition.x + 0.1, 1.3, companionPosition.z);
     } else if (mode === 'panned-left') {
       targetPos.current.set(-0.9, Math.max(0.8, 1.3), 2.4);
       lookTarget.current.set(-0.4, 1.3, 0);
@@ -862,9 +862,9 @@ function CompanionStageComponent({
         className="relative z-10 w-full h-full"
       >
         <Canvas 
-          id="companion-webgl-canvas"
+          id="companion-canvas-container"
           frameloop={isTabVisible ? "always" : "never"}
-          camera={{ position: [0, 1.3, 2.0], fov: 45 }} 
+          camera={{ position: [0.4, 1.75, 3.2], fov: 32 }} 
           gl={{ 
             preserveDrawingBuffer: true,
             alpha: true, 
@@ -880,7 +880,7 @@ function CompanionStageComponent({
             console.log('CompanionStage DOM Element size:', domElement.clientWidth, domElement.clientHeight);
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 1.05;
+            gl.toneMappingExposure = 0.95;
           }}
           dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >
@@ -907,6 +907,9 @@ function CompanionStageComponent({
             />
           </Suspense>
         </Canvas>
+        
+        {/* Cinematic Vignette Overlay */}
+        <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)' }} />
       </motion.div>
     </div>
   );

@@ -150,7 +150,7 @@ export default function Settings() {
                   type="email" 
                   defaultValue={mockUser?.email} 
                   disabled 
-                  className="opacity-50"
+                  className="opacity-50 text-xs py-1.5 px-3 w-full"
                 />
               </div>
             </div>
