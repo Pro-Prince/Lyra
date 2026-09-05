@@ -291,10 +291,10 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
       className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
     >
       {/* Top Segmented Progress Bar Section (matching reference image) */}
-      <div className="absolute top-0 left-0 right-0 w-full max-w-6xl mx-auto px-6 pt-8 pb-4 flex items-center justify-center z-50">
+      <div className="absolute top-0 left-0 right-0 w-full max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between z-50">
         
         {/* Back Button (Left aligned with cross button) */}
-        <div className="absolute left-6 top-6">
+        <div className="w-20">
           <AnimatePresence>
             {step > 1 && (
               <motion.button
@@ -313,7 +313,7 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-3 flex-1 max-w-lg mx-auto">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 max-w-xs sm:max-w-md mx-auto">
           {Array.from({ length: 4 }).map((_, idx) => (
             <div
               key={idx}
@@ -325,15 +325,17 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
             />
           ))}
         </div>
-        <button
-          onClick={() => navigate("/")}
-          className="absolute right-6 top-6 p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all cursor-pointer"
-          title="Skip to home"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="w-20 flex justify-end">
+          <button
+            onClick={() => navigate("/")}
+            className="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all cursor-pointer"
+            title="Skip to home"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Adult Confirmation Modal (fires once before step 1 if not confirmed) */}
@@ -345,7 +347,7 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-              className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 rounded-3xl p-8 shadow-2xl text-center"
+              className="w-full max-w-md bg-[var(--bg-surface)] border border-[var(--accent-primary)]/20 rounded-3xl p-6 sm:p-8 shadow-2xl text-center"
             >
               <div className="w-12 h-12 rounded-2xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] mx-auto mb-4">
                 <ShieldCheck className="w-6 h-6" />
@@ -376,17 +378,17 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
       </AnimatePresence>
 
       {/* Main Grid: Same 55/45 split across all 4 steps */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-28 pb-12 sm:pt-36 sm:pb-20 flex-1 flex flex-col justify-start lg:justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center w-full">
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-14 pb-6 sm:pb-8 flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-14 items-center w-full">
           
           {/* Her Presence: Alternates Left/Right depending on step */}
           <motion.div 
             layout
             transition={{ duration: 0.6, ease: SIGNATURE_EASE }}
-            className={`order-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} lg:col-span-5 flex items-center justify-center relative w-full`}
+            className={`hidden lg:flex order-1 ${step % 2 === 0 ? 'lg:order-1' : 'lg:order-2'} lg:col-span-5 items-center justify-center relative w-full`}
           >
             {/* Ambient Presence Glow anchored directly behind her silhouette */}
-            <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-none h-[360px] sm:h-[440px] lg:h-[520px] rounded-3xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 shadow-lg flex items-center justify-center">
+            <div className="relative w-full max-w-[340px] sm:max-w-[400px] lg:max-w-none h-[290px] sm:h-[360px] lg:h-[430px] xl:h-[470px] rounded-3xl overflow-hidden bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 shadow-lg flex items-center justify-center">
               <div className="absolute inset-0 pointer-events-none -z-10 flex items-center justify-center">
                 <div 
                   className="w-full h-full max-w-[500px] max-h-[500px] rounded-full opacity-30" 
@@ -424,9 +426,9 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
                 >
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-5 sm:mb-6">
                     <div className="inline-flex items-center gap-2 bg-[var(--text-primary)]/5 border border-[var(--text-primary)]/10 px-3.5 py-1.5 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
                       <span className="text-[10px] font-body text-[var(--text-primary)] uppercase tracking-widest font-semibold">
@@ -452,7 +454,7 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                     <Heading2 className="text-2xl sm:text-3xl mb-2">
                       {t("onboarding_step1_greeting")}
                     </Heading2>
-                    <BodyText className="text-[var(--text-muted)] leading-relaxed">
+                    <BodyText className="text-[var(--text-muted)] leading-relaxed text-sm sm:text-base">
                       {t("onboarding_step1_sub")}
                     </BodyText>
                   </div>
@@ -477,18 +479,18 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
                 >
-                  <div className="mb-8">
-                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                  <div className="mb-5 sm:mb-6">
+                    <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
                       What should I call you?
                     </Heading2>
-                    <BodyText className="text-[var(--text-muted)] text-sm">
+                    <BodyText className="text-[var(--text-muted)] text-xs sm:text-sm">
                       Enter your name or preferred nickname so Lyra can address you personally.
                     </BodyText>
                   </div>
 
-                  <div className="flex flex-col gap-2 mb-6">
+                  <div className="flex flex-col gap-1.5 mb-5 sm:mb-6">
                     <label htmlFor="user-name-input" className="text-xs font-body font-medium text-[var(--text-muted)]">
                       Your Name
                     </label>
@@ -527,19 +529,19 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
                 >
-                  <div className="mb-8">
-                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                  <div className="mb-4 sm:mb-5">
+                    <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
                       Choose her conversational vibe
                     </Heading2>
-                    <BodyText className="text-[var(--text-muted)] text-sm">
+                    <BodyText className="text-[var(--text-muted)] text-xs sm:text-sm">
                       Select the tone that best matches how you like to converse.
                     </BodyText>
                   </div>
 
                   {/* Clean vertical list of selectable rows */}
-                  <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex flex-col gap-2 sm:gap-2.5 mb-5 sm:mb-6">
                     {VIBE_OPTIONS.map(vibe => {
                       const Icon = vibe.icon;
                       const isSelected = selectedVibe === vibe.id;
@@ -548,17 +550,17 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                           key={vibe.id}
                           type="button"
                           onClick={() => setSelectedVibe(vibe.id)}
-                          className={`interactive-surface w-full flex items-center justify-between p-4 rounded-xl border cursor-pointer text-left transition-all ${
+                          className={`interactive-surface w-full flex items-center justify-between p-3 sm:p-3.5 rounded-xl border cursor-pointer text-left transition-all ${
                             isSelected
                               ? "bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/40"
                               : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10 hover:border-[var(--accent-primary)]/20 hover:bg-[var(--text-primary)]/[0.02]"
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-muted)]"}`}>
-                              <Icon className="w-5 h-5" />
+                            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${isSelected ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-muted)]"}`}>
+                              <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                             </div>
-                            <span className={`block text-base font-heading font-medium transition-colors ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"}`}>
+                            <span className={`block text-sm sm:text-base font-heading font-medium transition-colors ${isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"}`}>
                               {vibe.label}
                             </span>
                           </div>
@@ -593,19 +595,19 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-8 sm:p-10 shadow-xl flex flex-col"
+                  className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
                 >
-                  <div className="mb-8">
-                    <Heading2 className="text-2xl sm:text-3xl mb-2">
+                  <div className="mb-4 sm:mb-5">
+                    <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
                       What topics interest you most?
                     </Heading2>
-                    <BodyText className="text-[var(--text-muted)] text-sm">
-                      Pick up to 5 topics to help shape your initial conversations.
+                    <BodyText className="text-[var(--text-muted)] text-xs sm:text-sm">
+                      Pick topics to shape your initial conversations.
                     </BodyText>
                   </div>
 
-                  {/* Wrapped row of topic chips with --space-sm (16px) gap */}
-                  <div className="flex flex-wrap gap-4 mb-6">
+                  {/* Wrapped row of topic chips */}
+                  <div className="flex flex-wrap gap-2.5 sm:gap-3 mb-5 sm:mb-6">
                     {INTEREST_TAGS.map(tag => {
                       const active = selectedInterests.includes(tag);
                       return (
@@ -613,7 +615,7 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
                           key={tag}
                           type="button"
                           onClick={() => toggleInterest(tag)}
-                          className={`interactive-surface px-4 py-2 rounded-full text-sm font-body cursor-pointer ${
+                          className={`interactive-surface px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-body cursor-pointer ${
                             active
                               ? "bg-[var(--accent-primary)] text-[#2D0A1E] font-medium shadow-sm"
                               : "bg-transparent border border-[var(--text-primary)]/20 text-[var(--text-primary)]/70 hover:border-[var(--text-primary)]/40 hover:text-[var(--text-primary)]"

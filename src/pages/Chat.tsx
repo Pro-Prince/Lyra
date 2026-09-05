@@ -1090,21 +1090,37 @@ export default function Chat() {
      if (prevAppStateRef.current === AppState.SPEAKING && appState === AppState.IDLE) {
         // Asynchronous fact extraction
         const currentMessages = messagesRef.current;
-        if (currentMessages.length >= 2) {
+        if (currentMessages && currentMessages.length >= 2) {
            const recentChatContext = currentMessages.slice(-10);
            fetch('/api/extract-memory', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ messages: recentChatContext })
-           }).then(res => res.json()).then(async data => {
-              if (data.facts && data.facts.length > 0) {
-                let updatedMemories = [...memories];
+           })
+           .then(res => (res.ok ? res.json() : Promise.reject(new Error(`Server response: ${res.status}`))))
+           .then(async data => {
+              if (data && Array.isArray(data.facts) && data.facts.length > 0) {
+                const currentMemories = Array.isArray(memories) ? memories : [];
+                let updatedMemories = [...currentMemories];
                 let added = false;
-                for (const fact of data.facts) {
-                  if (!updatedMemories.some(m => m.content.toLowerCase() === fact.toLowerCase())) {
+                for (const rawFact of data.facts) {
+                  const cleanFact = typeof rawFact === 'string' 
+                    ? rawFact.trim() 
+                    : rawFact && typeof rawFact === 'object' 
+                      ? String(rawFact.fact || rawFact.content || rawFact.memory || rawFact.text || '').trim()
+                      : '';
+
+                  if (!cleanFact) continue;
+
+                  const isDuplicate = updatedMemories.some(m => {
+                    const existingContent = typeof m?.content === 'string' ? m.content.trim() : '';
+                    return existingContent.toLowerCase() === cleanFact.toLowerCase();
+                  });
+
+                  if (!isDuplicate) {
                     const newMem = {
-                      id: crypto.randomUUID(),
-                      content: fact,
+                      id: crypto.randomUUID ? crypto.randomUUID() : `mem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                      content: cleanFact,
                       createdAt: Date.now(),
                       lastReferencedAt: Date.now()
                     };
@@ -1116,7 +1132,7 @@ export default function Chat() {
                 if (added) setMemories(updatedMemories);
               }
            }).catch(err => {
-              console.error('[MemoryExtraction] Failed to extract memory:', err);
+              console.warn('[MemoryExtraction] Handled background extraction notice:', err?.message || err);
            });
         }
      }

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, Suspense, memo, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { VRM } from '@pixiv/three-vrm';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { useToast } from '../hooks/useToast';
@@ -499,6 +503,15 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         // Setup LookAt target
         lookTarget.current.position.set(0, 1.35, 3);
         vrmInstance.scene.add(lookTarget.current);
+        vrmInstance.scene.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+            if (obj.material?.isMToonMaterial) {
+              obj.material.envMapIntensity = 0;
+            }
+          }
+        });
         if (vrmInstance.lookAt) {
           vrmInstance.lookAt.target = lookTarget.current;
         }
@@ -855,6 +868,35 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   return <primitive object={vrm.scene} position={[0, 0, 0]} />;
 }
 
+function CustomPostProcessing() {
+  const { gl, scene, camera, size } = useThree();
+  
+  const composer = useMemo(() => {
+    const comp = new EffectComposer(gl);
+    comp.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(size.width, size.height),
+      0.4,
+      0.6,
+      0.85
+    );
+    comp.addPass(bloom);
+    const film = new FilmPass(0.15, false);
+    comp.addPass(film);
+    return comp;
+  }, [gl, scene, camera]);
+
+  useEffect(() => {
+    composer.setSize(size.width, size.height);
+  }, [composer, size]);
+
+  useFrame(() => {
+    composer.render();
+  }, 1);
+
+  return null;
+}
+
 function CompanionStageComponent({
   modelId,
   isWardrobeOpen = false,
@@ -1015,10 +1057,10 @@ function CompanionStageComponent({
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative z-10 w-full h-full"
       >
-        <Canvas 
+        <Canvas shadows 
           id="companion-canvas-container"
           frameloop={isTabVisible ? "always" : "never"}
-          camera={{ position: [0.4, 1.75, 3.2], fov: 32 }} 
+          camera={{ position: [0.3, 1.6, 3.0], fov: 35 }} 
           gl={{ 
             preserveDrawingBuffer: true,
             alpha: true, 
@@ -1032,6 +1074,8 @@ function CompanionStageComponent({
             domElement.id = 'companion-webgl-canvas';
             console.log('CompanionStage Canvas size at mount:', size.width, size.height);
             console.log('CompanionStage DOM Element size:', domElement.clientWidth, domElement.clientHeight);
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 0.95;
@@ -1041,6 +1085,7 @@ function CompanionStageComponent({
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
+          <CustomPostProcessing />
 
           <Suspense fallback={null}>
             <VRMModel 

@@ -296,7 +296,14 @@ Hard constraints:
   app.post("/api/extract-memory", async (req, res) => {
     try {
       const { messages } = req.body;
-      if (!messages || messages.length === 0) return res.json({ facts: [] });
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        return res.json({ facts: [] });
+      }
+
+      const validMessages = messages.filter((m: any) => m && m.content);
+      if (validMessages.length === 0) {
+        return res.json({ facts: [] });
+      }
 
       const aiClient = getAI();
       const prompt = `Review the following recent conversation between a user and their companion. 
@@ -306,7 +313,7 @@ Return ONLY a valid JSON array of strings, where each string is a clear, concise
 ["User loves black coffee", "User's brother is named Alex", "User is planning a trip to Japan next month"]
 
 Conversation:
-${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`;
+${validMessages.map((m: any) => `${(m.role || 'USER').toUpperCase()}: ${String(m.content || '')}`).join('\n')}`;
 
       const response = await generateContentWithRetry(aiClient, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -315,11 +322,43 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
         }
       });
       
-      const facts = JSON.parse(response.text || "[]");
-      res.json({ facts });
-    } catch (error) {
-      console.warn("Memory Extraction Warning:", error.message || error);
-      res.status(500).json({ error: "Extraction failed" });
+      let rawParsed: any = [];
+      try {
+        rawParsed = JSON.parse(response.text || "[]");
+      } catch (parseErr) {
+        console.warn("Memory Extraction JSON parse error:", parseErr);
+        rawParsed = [];
+      }
+
+      // Normalize whatever Gemini returned into a clean array of string facts
+      let candidates: any[] = [];
+      if (Array.isArray(rawParsed)) {
+        candidates = rawParsed;
+      } else if (rawParsed && typeof rawParsed === 'object') {
+        if (Array.isArray(rawParsed.facts)) {
+          candidates = rawParsed.facts;
+        } else if (Array.isArray(rawParsed.memories)) {
+          candidates = rawParsed.memories;
+        } else {
+          candidates = Object.values(rawParsed);
+        }
+      }
+
+      const cleanFacts: string[] = candidates
+        .map((item: any) => {
+          if (typeof item === 'string') return item.trim();
+          if (item && typeof item === 'object') {
+            const val = item.fact || item.content || item.memory || item.summary || item.text || item.value;
+            if (typeof val === 'string') return val.trim();
+          }
+          return '';
+        })
+        .filter((fact: string) => Boolean(fact && fact.length > 2));
+
+      res.json({ facts: cleanFacts });
+    } catch (error: any) {
+      console.warn("Memory Extraction Warning:", error?.message || error);
+      res.json({ facts: [] });
     }
   });
 
