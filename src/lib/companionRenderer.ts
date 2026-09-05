@@ -203,38 +203,28 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
   }
 
   const promise = (async () => {
-    const urlWithVersion = `${url}${url.includes('?') ? '&' : '?'}v=lyra-3d-v3`;
-    const candidates = [
-      urlWithVersion,
-      url,
-      ...(typeof window !== 'undefined' && url.startsWith('/') ? [`${window.location.origin}${urlWithVersion}`] : []),
-    ];
-
     let lastError: any = null;
     let arrayBuffer: ArrayBuffer | null = null;
 
-    for (const candidate of candidates) {
-      try {
-        const resp = await fetch(candidate, { cache: 'no-store' });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${candidate}`);
-        const cType = resp.headers.get('content-type') || '';
-        if (cType.includes('text/html')) {
-          throw new Error(`Candidate returned HTML instead of binary: ${candidate}`);
-        }
-        const buf = await resp.arrayBuffer();
-        if (buf.byteLength < 20) {
-          throw new Error(`Invalid buffer length (${buf.byteLength}) from ${candidate}`);
-        }
-        const dv = new DataView(buf);
-        const magic = dv.getUint32(0, true);
-        if (magic !== 0x46546c67) { // 'glTF'
-          throw new Error(`Invalid binary header magic (0x${magic.toString(16)}) from ${candidate}`);
-        }
-        arrayBuffer = buf;
-        break;
-      } catch (err) {
-        lastError = err;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} fetching ${url}`);
+      const cType = resp.headers.get('content-type') || '';
+      if (cType.includes('text/html')) {
+        throw new Error(`Server returned HTML instead of binary model for ${url}`);
       }
+      const buf = await resp.arrayBuffer();
+      if (buf.byteLength < 20) {
+        throw new Error(`Invalid buffer length (${buf.byteLength}) for ${url}`);
+      }
+      const dv = new DataView(buf);
+      const magic = dv.getUint32(0, true);
+      if (magic !== 0x46546c67) { // 'glTF'
+        throw new Error(`Invalid binary header magic (0x${magic.toString(16)}) from ${url}`);
+      }
+      arrayBuffer = buf;
+    } catch (err) {
+      lastError = err;
     }
 
     if (!arrayBuffer) {
@@ -255,23 +245,22 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
 
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
   const url = MODEL_FILES[modelId] || modelId;
-  console.log('Attempting to load:', url);
 
   try {
+    const buffer = await fetchCompanionBuffer(url);
     const loader = createLoader();
-    const gltf = await loader.loadAsync(url);
-    console.log('GLTF loaded successfully for', url);
+    const bufferCopy = buffer.slice(0);
+    const gltf = await loader.parseAsync(bufferCopy, '');
 
     const vrm = gltf.userData.vrm;
     if (!vrm) {
-      console.error('GLTF loaded but no VRM data found in userData.vrm. This file may not be a valid VRM export.');
+      console.error('GLTF loaded but no VRM data found in userData.vrm for:', url);
       throw new Error('No VRM data in loaded file');
     }
 
-    console.log('VRM extracted successfully for', url);
     return vrm as VRM;
   } catch (err: any) {
-    console.error('FULL ERROR loading', url, ':', err?.message || String(err));
+    console.error(`FULL ERROR loading ${url}:`, err?.message || String(err));
     if (err?.stack) console.error('Error stack:', err.stack);
     throw err;
   }

@@ -323,36 +323,29 @@ ${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}`
     }
   });
 
-  // Serve 3D models with explicit binary stream handler
+  // Serve 3D models strictly from public/models only with fast caching
   app.get("/models/:filename", (req, res) => {
     const filename = path.basename(req.params.filename);
-    const candidatePaths = [
-      path.join(process.cwd(), "public", "models", filename),
-      path.join(process.cwd(), "src", "models", filename),
-      path.join(process.cwd(), "dist", "models", filename),
-    ];
-    for (const p of candidatePaths) {
-      if (fs.existsSync(p)) {
-        res.setHeader("Content-Type", "model/gltf-binary");
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        return res.sendFile(p);
-      }
+    const p = path.join(process.cwd(), "public", "models", filename);
+    if (fs.existsSync(p)) {
+      res.setHeader("Content-Type", "model/gltf-binary");
+      res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.sendFile(p);
     }
-    res.status(404).send("Model not found");
+    res.status(404).send("Model not found in public/models");
   });
 
   const publicModelsPath = path.join(process.cwd(), "public", "models");
   if (fs.existsSync(publicModelsPath)) {
     app.use("/models", express.static(publicModelsPath, {
+      maxAge: '1d',
       setHeaders: (res, filePath) => {
         if (filePath.endsWith(".vrm")) {
           res.setHeader("Content-Type", "model/gltf-binary");
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-          res.setHeader("Pragma", "no-cache");
-          res.setHeader("Expires", "0");
+          res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+          res.setHeader("Accept-Ranges", "bytes");
           res.setHeader("Access-Control-Allow-Origin", "*");
         }
       }

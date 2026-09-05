@@ -51,6 +51,8 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
   shy: { happy: 0.2, relaxed: 0.0, surprised: 0.1, neutral: 0.4, sad: 0.0 }
 };
 
+import { HUMAN_REST_EULERS } from '../lib/poseUtils';
+
 function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const h = vrm.humanoid;
   if (!h) return {};
@@ -59,6 +61,9 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const neck = h.getNormalizedBoneNode('neck');
   const spine = h.getNormalizedBoneNode('spine');
   const chest = h.getNormalizedBoneNode('chest');
+  const upperChest = h.getNormalizedBoneNode('upperChest');
+  const leftShoulder = h.getNormalizedBoneNode('leftShoulder');
+  const rightShoulder = h.getNormalizedBoneNode('rightShoulder');
   const upperArmR = h.getNormalizedBoneNode('rightUpperArm');
   const lowerArmR = h.getNormalizedBoneNode('rightLowerArm');
   const handR = h.getNormalizedBoneNode('rightHand');
@@ -72,166 +77,265 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
     return new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, values);
   };
 
-  const qZero = new THREE.Euler(0, 0, 0);
+  const R = HUMAN_REST_EULERS;
   const gestureClips: Record<string, THREE.AnimationClip> = {};
 
-  // 1. WAVE (2.0s)
+  // 1. WAVE (2.2s) - Natural, warm human wave with soft elbow and wrist lag
   const waveTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(rightShoulder, [
+      R.rightShoulder,
+      new THREE.Euler(-0.04, 0, 0.08),
+      new THREE.Euler(-0.04, 0, 0.08),
+      R.rightShoulder
+    ], [0, 0.4, 1.8, 2.2]),
     makeTrack(upperArmR, [
-      qZero,
-      new THREE.Euler(0, 0, -Math.PI / 2.2),
-      new THREE.Euler(0, 0, -Math.PI / 2.2),
-      qZero
-    ], [0, 0.3, 1.7, 2.0]),
+      R.rightUpperArm,
+      new THREE.Euler(0.25, 0.10, -0.65), // smooth natural raise
+      new THREE.Euler(0.25, 0.10, -0.65),
+      R.rightUpperArm
+    ], [0, 0.4, 1.8, 2.2]),
     makeTrack(lowerArmR, [
-      qZero,
-      qZero,
-      new THREE.Euler(0, 0, -0.5),
-      new THREE.Euler(0, 0, 0.5),
-      new THREE.Euler(0, 0, -0.5),
-      new THREE.Euler(0, 0, 0.5),
-      new THREE.Euler(0, 0, 0),
-      qZero
-    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.7, 2.0]),
+      R.rightLowerArm,
+      new THREE.Euler(0.95, 0.25, -0.25),
+      new THREE.Euler(0.95, 0.10, -0.45),
+      new THREE.Euler(0.95, 0.35, -0.15),
+      new THREE.Euler(0.95, 0.10, -0.45),
+      new THREE.Euler(0.95, 0.35, -0.15),
+      new THREE.Euler(0.95, 0.25, -0.25),
+      R.rightLowerArm
+    ], [0, 0.4, 0.7, 1.0, 1.3, 1.6, 1.8, 2.2]),
     makeTrack(handR, [
-      qZero,
-      qZero,
-      new THREE.Euler(0, 0, -0.2),
-      new THREE.Euler(0, 0, 0.2),
-      new THREE.Euler(0, 0, -0.2),
-      new THREE.Euler(0, 0, 0.2),
-      qZero
-    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5, 2.0]),
+      R.rightHand,
+      new THREE.Euler(0.10, -0.15, -0.10),
+      new THREE.Euler(0.12, 0.20, 0.15),
+      new THREE.Euler(0.08, -0.20, -0.15),
+      new THREE.Euler(0.12, 0.20, 0.15),
+      new THREE.Euler(0.08, -0.20, -0.15),
+      new THREE.Euler(0.10, 0.00, 0.00),
+      R.rightHand
+    ], [0, 0.4, 0.75, 1.05, 1.35, 1.65, 1.85, 2.2]),
     makeTrack(head, [
-      qZero,
-      new THREE.Euler(0, -0.08, -0.05),
-      new THREE.Euler(0, -0.08, -0.05),
-      qZero
-    ], [0, 0.3, 1.7, 2.0])
+      R.head,
+      new THREE.Euler(0.04, -0.08, -0.06),
+      new THREE.Euler(0.04, -0.08, -0.06),
+      R.head
+    ], [0, 0.4, 1.8, 2.2]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.04, -0.02, -0.02),
+      new THREE.Euler(-0.04, -0.02, -0.02),
+      R.chest
+    ], [0, 0.4, 1.8, 2.2])
   ];
   const validWave = waveTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validWave.length > 0) gestureClips['wave'] = new THREE.AnimationClip('wave', 2.0, validWave);
+  if (validWave.length > 0) gestureClips['wave'] = new THREE.AnimationClip('wave', 2.2, validWave);
 
-  // 2. NOD (0.9s)
+  // 2. NOD (1.1s) - Human acknowledgment with natural deceleration and follow-through
   const nodTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
     makeTrack(head, [
-      qZero,
-      new THREE.Euler(0.22, 0, 0),
-      new THREE.Euler(-0.06, 0, 0),
-      new THREE.Euler(0.14, 0, 0),
-      qZero
-    ], [0, 0.25, 0.45, 0.68, 0.9]),
+      R.head,
+      new THREE.Euler(0.24, 0, 0),
+      new THREE.Euler(-0.04, 0, 0),
+      new THREE.Euler(0.12, 0, 0),
+      R.head
+    ], [0, 0.32, 0.58, 0.84, 1.1]),
     makeTrack(neck, [
-      qZero,
-      new THREE.Euler(0.08, 0, 0),
+      R.neck,
+      new THREE.Euler(0.09, 0, 0),
       new THREE.Euler(-0.02, 0, 0),
       new THREE.Euler(0.05, 0, 0),
-      qZero
-    ], [0, 0.25, 0.45, 0.68, 0.9])
+      R.neck
+    ], [0, 0.32, 0.58, 0.84, 1.1]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.035, 0, 0),
+      R.chest,
+      new THREE.Euler(-0.03, 0, 0),
+      R.chest
+    ], [0, 0.32, 0.58, 0.84, 1.1])
   ];
   const validNod = nodTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 0.9, validNod);
+  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 1.1, validNod);
 
-  // 3. LAUGH (1.5s)
+  // 3. LAUGH (1.6s) - Rhythmic torso bounce, polite hand gesture, playful head tilt
   const laughTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
     makeTrack(head, [
-      qZero,
-      new THREE.Euler(-0.16, 0.06, 0.05),
-      new THREE.Euler(0.04, -0.02, 0),
-      new THREE.Euler(-0.12, 0.04, 0.03),
-      new THREE.Euler(0.02, 0, 0),
-      qZero
-    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5]),
-    makeTrack(chest, [
-      qZero,
-      new THREE.Euler(0.05, 0, 0),
-      new THREE.Euler(-0.02, 0, 0),
-      new THREE.Euler(0.04, 0, 0),
-      new THREE.Euler(-0.01, 0, 0),
-      qZero
-    ], [0, 0.3, 0.6, 0.9, 1.2, 1.5]),
-    makeTrack(spine, [
-      qZero,
-      new THREE.Euler(-0.04, 0.02, 0.02),
+      R.head,
+      new THREE.Euler(-0.14, 0.05, 0.04),
+      new THREE.Euler(0.03, -0.02, 0),
+      new THREE.Euler(-0.10, 0.04, 0.03),
       new THREE.Euler(0.01, 0, 0),
-      new THREE.Euler(-0.03, 0.01, 0.01),
-      qZero
-    ], [0, 0.3, 0.6, 0.9, 1.5])
+      R.head
+    ], [0, 0.35, 0.7, 1.05, 1.35, 1.6]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(0.04, 0, 0),
+      new THREE.Euler(-0.035, 0, 0),
+      new THREE.Euler(0.03, 0, 0),
+      new THREE.Euler(-0.03, 0, 0),
+      R.chest
+    ], [0, 0.35, 0.7, 1.05, 1.35, 1.6]),
+    makeTrack(spine, [
+      R.spine,
+      new THREE.Euler(-0.02, 0.01, 0.01),
+      new THREE.Euler(0.02, 0, 0),
+      new THREE.Euler(-0.015, 0.01, 0.01),
+      R.spine
+    ], [0, 0.35, 0.7, 1.05, 1.6]),
+    makeTrack(upperArmR, [
+      R.rightUpperArm,
+      new THREE.Euler(0.35, 0.05, 0.95),
+      new THREE.Euler(0.35, 0.05, 0.95),
+      R.rightUpperArm
+    ], [0, 0.35, 1.25, 1.6]),
+    makeTrack(lowerArmR, [
+      R.rightLowerArm,
+      new THREE.Euler(0.75, 0.15, 0.10),
+      new THREE.Euler(0.75, 0.15, 0.10),
+      R.rightLowerArm
+    ], [0, 0.35, 1.25, 1.6])
   ];
   const validLaugh = laughTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.5, validLaugh);
+  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.6, validLaugh);
 
-  // 4. THINK (1.8s)
+  // 4. THINK (2.0s) - Right hand softly at chin, curious head tilt
   const thinkTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
     makeTrack(head, [
-      qZero,
-      new THREE.Euler(0.12, -0.22, 0.14),
-      new THREE.Euler(0.12, -0.22, 0.14),
-      qZero
-    ], [0, 0.4, 1.4, 1.8]),
+      R.head,
+      new THREE.Euler(0.08, -0.18, 0.12),
+      new THREE.Euler(0.08, -0.18, 0.12),
+      R.head
+    ], [0, 0.45, 1.55, 2.0]),
     makeTrack(upperArmR, [
-      qZero,
-      new THREE.Euler(0.35, 0.15, -0.4),
-      new THREE.Euler(0.35, 0.15, -0.4),
-      qZero
-    ], [0, 0.4, 1.4, 1.8]),
+      R.rightUpperArm,
+      new THREE.Euler(0.38, 0.12, 0.65),
+      new THREE.Euler(0.38, 0.12, 0.65),
+      R.rightUpperArm
+    ], [0, 0.45, 1.55, 2.0]),
     makeTrack(lowerArmR, [
-      qZero,
-      new THREE.Euler(0.6, 0.1, 0.3),
-      new THREE.Euler(0.6, 0.1, 0.3),
-      qZero
-    ], [0, 0.4, 1.4, 1.8])
+      R.rightLowerArm,
+      new THREE.Euler(1.10, 0.20, 0.15),
+      new THREE.Euler(1.10, 0.20, 0.15),
+      R.rightLowerArm
+    ], [0, 0.45, 1.55, 2.0]),
+    makeTrack(handR, [
+      R.rightHand,
+      new THREE.Euler(0.18, 0.10, 0.08),
+      new THREE.Euler(0.18, 0.10, 0.08),
+      R.rightHand
+    ], [0, 0.45, 1.55, 2.0]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.03, -0.04, 0.02),
+      new THREE.Euler(-0.03, -0.04, 0.02),
+      R.chest
+    ], [0, 0.45, 1.55, 2.0])
   ];
   const validThink = thinkTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 1.8, validThink);
+  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 2.0, validThink);
 
-  // 5. CHEER (1.8s)
+  // 5. CHEER (2.0s) - Joyous raised curved arms, lifted chest, bright head position
   const cheerTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
     makeTrack(upperArmL, [
-      qZero,
-      new THREE.Euler(0.3, 0, 1.5),
-      new THREE.Euler(0.3, 0, 1.6),
-      new THREE.Euler(0.3, 0, 1.5),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8]),
+      R.leftUpperArm,
+      new THREE.Euler(0.35, 0.10, -0.45),
+      new THREE.Euler(0.38, 0.10, -0.48),
+      new THREE.Euler(0.35, 0.10, -0.45),
+      R.leftUpperArm
+    ], [0, 0.45, 0.95, 1.45, 2.0]),
     makeTrack(upperArmR, [
-      qZero,
-      new THREE.Euler(0.3, 0, -1.5),
-      new THREE.Euler(0.3, 0, -1.6),
-      new THREE.Euler(0.3, 0, -1.5),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8]),
+      R.rightUpperArm,
+      new THREE.Euler(0.35, -0.10, 0.45),
+      new THREE.Euler(0.38, -0.10, 0.48),
+      new THREE.Euler(0.35, -0.10, 0.45),
+      R.rightUpperArm
+    ], [0, 0.45, 0.95, 1.45, 2.0]),
     makeTrack(lowerArmL, [
-      qZero,
-      new THREE.Euler(0.6, 0, 0.4),
-      new THREE.Euler(0.7, 0, 0.5),
-      new THREE.Euler(0.6, 0, 0.4),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8]),
+      R.leftLowerArm,
+      new THREE.Euler(0.70, 0.10, 0.25),
+      new THREE.Euler(0.75, 0.12, 0.28),
+      new THREE.Euler(0.70, 0.10, 0.25),
+      R.leftLowerArm
+    ], [0, 0.45, 0.95, 1.45, 2.0]),
     makeTrack(lowerArmR, [
-      qZero,
-      new THREE.Euler(0.6, 0, -0.4),
-      new THREE.Euler(0.7, 0, -0.5),
-      new THREE.Euler(0.6, 0, -0.4),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8]),
+      R.rightLowerArm,
+      new THREE.Euler(0.70, -0.10, -0.25),
+      new THREE.Euler(0.75, -0.12, -0.28),
+      new THREE.Euler(0.70, -0.10, -0.25),
+      R.rightLowerArm
+    ], [0, 0.45, 0.95, 1.45, 2.0]),
     makeTrack(chest, [
-      qZero,
+      R.chest,
+      new THREE.Euler(-0.065, 0, 0),
       new THREE.Euler(-0.08, 0, 0),
-      new THREE.Euler(-0.1, 0, 0),
-      new THREE.Euler(-0.08, 0, 0),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8]),
+      new THREE.Euler(-0.065, 0, 0),
+      R.chest
+    ], [0, 0.45, 0.95, 1.45, 2.0]),
     makeTrack(head, [
-      qZero,
-      new THREE.Euler(-0.18, 0, 0),
-      new THREE.Euler(-0.2, 0, 0),
-      new THREE.Euler(-0.18, 0, 0),
-      qZero
-    ], [0, 0.4, 0.8, 1.2, 1.8])
+      R.head,
+      new THREE.Euler(-0.12, 0, 0),
+      new THREE.Euler(-0.15, 0, 0),
+      new THREE.Euler(-0.12, 0, 0),
+      R.head
+    ], [0, 0.45, 0.95, 1.45, 2.0])
   ];
   const validCheer = cheerTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 1.8, validCheer);
+  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 2.0, validCheer);
+
+  // 6. PROCEDURAL IDLE (4.0s loop) - Lifelike organic breathing & subtle weight shifts
+  const idleTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.045, 0.005, 0),
+      R.chest,
+      new THREE.Euler(-0.015, -0.005, 0),
+      R.chest
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(spine, [
+      R.spine,
+      new THREE.Euler(0.025, 0.008, 0.003),
+      R.spine,
+      new THREE.Euler(0.015, -0.008, -0.003),
+      R.spine
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(head, [
+      R.head,
+      new THREE.Euler(0.035, 0.012, 0.008),
+      R.head,
+      new THREE.Euler(0.010, -0.012, -0.008),
+      R.head
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(upperArmL, [
+      R.leftUpperArm,
+      new THREE.Euler(0.14, 0.07, -1.26),
+      R.leftUpperArm,
+      new THREE.Euler(0.10, 0.05, -1.30),
+      R.leftUpperArm
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(upperArmR, [
+      R.rightUpperArm,
+      new THREE.Euler(0.14, -0.07, 1.26),
+      R.rightUpperArm,
+      new THREE.Euler(0.10, -0.05, 1.30),
+      R.rightUpperArm
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(lowerArmL, [
+      R.leftLowerArm,
+      new THREE.Euler(0.36, -0.12, 0.04),
+      R.leftLowerArm,
+      new THREE.Euler(0.32, -0.12, 0.04),
+      R.leftLowerArm
+    ], [0, 1.0, 2.0, 3.0, 4.0]),
+    makeTrack(lowerArmR, [
+      R.rightLowerArm,
+      new THREE.Euler(0.36, 0.12, -0.04),
+      R.rightLowerArm,
+      new THREE.Euler(0.32, 0.12, -0.04),
+      R.rightLowerArm
+    ], [0, 1.0, 2.0, 3.0, 4.0])
+  ];
+  const validIdle = idleTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validIdle.length > 0) gestureClips['procedural_idle'] = new THREE.AnimationClip('procedural_idle', 4.0, validIdle);
 
   return gestureClips;
 }
@@ -322,38 +426,6 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     camera.position.lerp(targetPos.current, 0.05);
     camera.lookAt(lookTarget.current);
   });
-  return null;
-}
-
-function TestCube({ onLoaded }: { onLoaded?: () => void }) {
-  const { scene } = useThree();
-  const cubeRef = useRef<THREE.Mesh | null>(null);
-
-  useEffect(() => {
-    const testCube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({ color: 0xff00ff }) // bright magenta, impossible to miss if it renders
-    );
-    testCube.position.set(0, 1, 0);
-    scene.add(testCube);
-    cubeRef.current = testCube;
-    console.log('[TestCube] Magenta test cube added to CompanionStage scene at (0, 1, 0)');
-    onLoaded?.();
-
-    return () => {
-      scene.remove(testCube);
-      testCube.geometry.dispose();
-      (testCube.material as THREE.Material).dispose();
-    };
-  }, [scene, onLoaded]);
-
-  useFrame((_, delta) => {
-    if (cubeRef.current) {
-      cubeRef.current.rotation.y += delta;
-      cubeRef.current.rotation.x += delta * 0.5;
-    }
-  });
-
   return null;
 }
 
@@ -516,7 +588,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
                 nextAction.fadeOut(0.3);
                 mixer.current?.removeEventListener('finished', onFinished);
                 if (currentAction.current === nextAction) {
-                   crossfadeToAction('idle', 0.4, true);
+                   const idleName = clips.current['idle'] ? 'idle' : 'procedural_idle';
+                   crossfadeToAction(idleName, 0.4, true);
                    window.dispatchEvent(new CustomEvent('lyraAction', { detail: 'idle' }));
                 }
               }
@@ -534,6 +607,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
         if (clips.current['idle']) {
           playAction('idle', true);
+        } else if (clips.current['procedural_idle']) {
+          playAction('procedural_idle', true);
         }
 
         if (onProgress) onProgress(100);
@@ -902,6 +977,34 @@ function CompanionStageComponent({
           <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
             <div className="presence-glow" />
           </div>
+        )}
+        {hasFailed && !silentError && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center pointer-events-auto bg-black/60 backdrop-blur-sm"
+          >
+            <div className="max-w-md w-full p-6 rounded-2xl bg-[var(--bg-surface,#18181b)]/90 border border-red-500/30 shadow-2xl flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold text-white">Model File Not Found</h3>
+              <p className="text-xs text-neutral-300 leading-relaxed">
+                Could not load <code className="bg-black/50 px-1.5 py-0.5 rounded text-red-300 font-mono text-[11px]">{activeModelId}</code>. Please place your exported <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[11px]">lyra.vrm</code> file into <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[11px]">public/models/</code>.
+              </p>
+              <button
+                onClick={() => {
+                  retryCount.current = 0;
+                  handleRetry();
+                }}
+                className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:brightness-110 text-white text-xs font-medium shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                Retry Loading Model
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

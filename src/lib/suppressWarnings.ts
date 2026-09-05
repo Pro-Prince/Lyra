@@ -1,6 +1,44 @@
 import * as THREE from 'three';
 
-// 1. Configure Three.js internal console handler to drop Clock deprecation warnings & texture load fallbacks
+/**
+ * Safely converts an argument into a primitive value (string, number, boolean)
+ * so that iframe console wrappers attempting JSON.stringify never encounter circular references.
+ */
+function toSafeConsoleArg(arg: any): any {
+  if (arg === null || arg === undefined) return arg;
+  const type = typeof arg;
+  if (type === 'string' || type === 'number' || type === 'boolean') return arg;
+  if (arg instanceof Error) return `[Error: ${arg.message}]`;
+  if (arg.isObject3D) return `[Object3D: ${arg.type || 'Object3D'} (${arg.name || 'unnamed'})]`;
+  if (arg.isMaterial) return `[Material: ${arg.type || 'Material'}]`;
+  if (arg.isTexture) return `[Texture: ${arg.name || 'Texture'}]`;
+  if (arg.scene && arg.humanoid) return `[VRM: ${arg.meta?.name || 'VRM Model'}]`;
+  if (arg.scene && arg.parser) return `[GLTF Object]`;
+  if (typeof arg === 'function') return `[Function: ${arg.name || 'anonymous'}]`;
+  
+  // Try safe simple stringification for plain objects, otherwise fallback to constructor name
+  try {
+    const seen = new WeakSet();
+    return JSON.stringify(arg, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return '[Circular]';
+        seen.add(value);
+        if (value.isObject3D || (value.scene && value.humanoid) || value.isMaterial) {
+          return `[${value.constructor?.name || 'Object'}]`;
+        }
+      }
+      return value;
+    });
+  } catch {
+    return `[${arg?.constructor?.name || 'Object'}]`;
+  }
+}
+
+function sanitizeArgs(args: any[]): any[] {
+  return args.map(toSafeConsoleArg);
+}
+
+// 1. Configure Three.js internal console handler
 if (typeof (THREE as any).setConsoleFunction === 'function') {
   (THREE as any).setConsoleFunction((type: string, message: string, ...params: any[]) => {
     if (
@@ -15,46 +53,50 @@ if (typeof (THREE as any).setConsoleFunction === 'function') {
       return;
     }
     const logFn = (console as any)[type] || console.warn;
-    logFn.call(console, message, ...params);
+    const safeParams = sanitizeArgs(params);
+    logFn.call(console, message, ...safeParams);
   });
 }
 
-// 2. Intercept global console.warn
+// 2. Intercept global console.log
+const origLog = console.log;
+console.log = function (...args: any[]) {
+  origLog.apply(console, sanitizeArgs(args));
+};
+
+// 3. Intercept global console.info
+const origInfo = console.info;
+console.info = function (...args: any[]) {
+  origInfo.apply(console, sanitizeArgs(args));
+};
+
+// 4. Intercept global console.warn
 const origWarn = console.warn;
 console.warn = function (...args: any[]) {
-  const msg = args[0];
-  if (
-    typeof msg === 'string' &&
-    (msg.includes('THREE.Clock') ||
-     msg.includes('Clock:') ||
-     msg.includes('THREE.Timer') ||
-     msg.includes('removeUnnecessaryJoints') ||
-     msg.includes('combineSkeletons') ||
-     msg.includes("Couldn't load texture") ||
-     msg.includes('Failed to load texture'))
-  ) {
-    return;
-  }
   for (let i = 0; i < args.length; i++) {
-    const argStr = String(args[i]);
+    const arg = args[i];
+    const argStr = typeof arg === 'string' ? arg : (arg?.message || String(arg));
     if (
       argStr.includes('THREE.Clock') ||
+      argStr.includes('Clock:') ||
       argStr.includes('THREE.Timer') ||
       argStr.includes('removeUnnecessaryJoints') ||
+      argStr.includes('combineSkeletons') ||
       argStr.includes("Couldn't load texture") ||
       argStr.includes('Failed to load texture')
     ) {
       return;
     }
   }
-  origWarn.apply(console, args);
+  origWarn.apply(console, sanitizeArgs(args));
 };
 
-// 3. Intercept global console.error
+// 5. Intercept global console.error
 const origError = console.error;
 console.error = function (...args: any[]) {
   for (let i = 0; i < args.length; i++) {
-    const argStr = String(args[i]);
+    const arg = args[i];
+    const argStr = typeof arg === 'string' ? arg : (arg?.message || String(arg));
     if (
       argStr.includes('[vite] failed to connect to websocket') ||
       argStr.includes('WebSocket closed without opened') ||
@@ -66,5 +108,5 @@ console.error = function (...args: any[]) {
       return;
     }
   }
-  origError.apply(console, args);
+  origError.apply(console, sanitizeArgs(args));
 };

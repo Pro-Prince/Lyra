@@ -413,7 +413,7 @@ export default function Chat() {
       };
       recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
-          console.error('[SpeechRecognition] Microphone permission denied:', event);
+          console.error('[SpeechRecognition] Microphone permission denied');
           showError("Can't hear you right now, check your browser's microphone permission", {
             label: "Retry",
             onClick: () => toggleMic()
@@ -421,7 +421,7 @@ export default function Chat() {
         } else if (event.error === 'no-speech' || event.error === 'aborted') {
           // Benign timeout or intentional cancellation - ignore silently
         } else {
-          console.error('[SpeechRecognition] Voice input error:', event.error);
+          console.error('[SpeechRecognition] Voice input error:', event?.error || 'unknown');
           showError("Having trouble hearing your voice right now, try speaking again", {
             label: "Retry",
             onClick: () => toggleMic()
