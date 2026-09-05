@@ -3,9 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory } from "../lib/storage";
-import { Trash2, Volume2, Sparkles, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
+import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
+import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import Button from "../components/Button";
@@ -83,12 +84,17 @@ export default function Settings() {
     navigate("/chat");
   };
 
-  const handleTestSample = () => {
+  const handleTestSample = async () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
+    const comp = await getCompanion();
+    const allVoices = window.speechSynthesis.getVoices();
+    const allowed = filterAllowedVoices(allVoices, "en");
+    const voice = allowed.find(v => v.voiceURI === comp?.voiceUri) || getVoiceForPreset(comp?.voicePreset || 'soft-calm', allowed) || getDefaultFemaleVoice(allowed);
     const utterance = new SpeechSynthesisUtterance("Hi there! I'm Lyra. It's so lovely to speak with you today.");
-    utterance.pitch = 1.05;
-    utterance.rate = 0.95;
+    if (voice) utterance.voice = voice;
+    utterance.pitch = comp?.pitch ?? 0.96;
+    utterance.rate = comp?.rate ?? 0.92;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -206,8 +212,8 @@ export default function Settings() {
                 <Volume2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
-                <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Voice</h2>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Choose Lyra's speaking voice</p>
+                <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Voice Settings</h2>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Choose Lyra's speaking voice and persona</p>
               </div>
             </div>
 
@@ -215,31 +221,6 @@ export default function Settings() {
             <div className="bg-[var(--bg-base)]/20 border border-[var(--text-primary)]/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-6">
               <VoicePicker onSelect={() => showInfo("Voice updated")} />
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 sm:gap-4 pt-5 sm:pt-6 mt-5 sm:mt-6 border-t border-[var(--text-primary)]/[0.06]">
-            <Button
-              variant="secondary"
-              size="sm"
-              type="button"
-              onClick={handleTestSample}
-              className="h-10 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-5 w-full sm:w-auto justify-center"
-              icon={Volume2}
-              iconPlacement="left"
-            >
-              Test Sample
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              type="button"
-              onClick={handleSaveVoice}
-              className="h-10 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-5 w-full sm:w-auto justify-center"
-              icon={Sparkles}
-              iconPlacement="left"
-            >
-              Save Voice
-            </Button>
           </div>
         </motion.section>
 
@@ -250,7 +231,7 @@ export default function Settings() {
         >
           <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-1 sm:mt-0.5">
-              <Sparkles className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
+              <Shirt className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Wardrobe Style</h2>

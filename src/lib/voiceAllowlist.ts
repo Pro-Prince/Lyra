@@ -256,3 +256,110 @@ export function getFemaleVoices(): SpeechSynthesisVoice[] {
   return filterAllowedVoices(voices);
 }
 
+/**
+ * Priority search patterns for each preset to guarantee distinctly different soft female voices.
+ */
+const PRESET_VOICE_PATTERNS: Record<string, string[]> = {
+  'soft-calm': [
+    'samantha',
+    'jenny',
+    'google us english',
+    'zira',
+    'ava',
+    'victoria',
+    'susan',
+    'allison',
+    'aria',
+    'female'
+  ],
+  'warm-playful': [
+    'karen',
+    'google uk english female',
+    'google uk english',
+    'neerja',
+    'heera',
+    'moira',
+    'tessa',
+    'veena',
+    'sonia',
+    'nicky',
+    'ayumi',
+    'female'
+  ],
+  'bright-cheerful': [
+    'kate',
+    'serena',
+    'fiona',
+    'emma',
+    'hazel',
+    'zoe',
+    'sophia',
+    'alice',
+    'libby',
+    'mia',
+    'google australia',
+    'google india',
+    'female'
+  ]
+};
+
+/**
+ * Maps each of the 3 presets to distinctly different soft female voices available in the browser.
+ */
+export function getDistinctVoicesForPresets(allowedVoices: SpeechSynthesisVoice[]): Record<string, SpeechSynthesisVoice> {
+  const result: Record<string, SpeechSynthesisVoice> = {};
+  if (!allowedVoices || allowedVoices.length === 0) return result;
+
+  const presets = ['soft-calm', 'warm-playful', 'bright-cheerful'];
+  const usedURIs = new Set<string>();
+
+  // Pass 1: Try to match best pattern for each preset without colliding with already assigned voices
+  for (const presetId of presets) {
+    const patterns = PRESET_VOICE_PATTERNS[presetId] || [];
+    let matched: SpeechSynthesisVoice | undefined;
+    for (const pattern of patterns) {
+      const candidate = allowedVoices.find(v => 
+        (v.name.toLowerCase().includes(pattern) || v.voiceURI.toLowerCase().includes(pattern)) &&
+        !usedURIs.has(v.voiceURI)
+      );
+      if (candidate) {
+        matched = candidate;
+        break;
+      }
+    }
+    if (matched) {
+      result[presetId] = matched;
+      usedURIs.add(matched.voiceURI);
+    }
+  }
+
+  // Pass 2: For any preset that didn't find an unused pattern match, assign an unused allowed voice
+  for (const presetId of presets) {
+    if (!result[presetId]) {
+      const unused = allowedVoices.find(v => !usedURIs.has(v.voiceURI));
+      if (unused) {
+        result[presetId] = unused;
+        usedURIs.add(unused.voiceURI);
+      } else {
+        // Fallback to best available
+        result[presetId] = allowedVoices[0];
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Retrieves the distinct voice mapped to a specific preset ID.
+ */
+export function getVoiceForPreset(
+  presetId: string,
+  allowedVoices: SpeechSynthesisVoice[]
+): SpeechSynthesisVoice | null {
+  if (!allowedVoices || allowedVoices.length === 0) return null;
+  const distinctMap = getDistinctVoicesForPresets(allowedVoices);
+  return distinctMap[presetId] || allowedVoices[0] || null;
+}
+
+

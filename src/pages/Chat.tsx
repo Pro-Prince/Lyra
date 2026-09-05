@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, saveLocalProfile } from "../lib/storage";
 import { t } from "../lib/i18n";
-import { filterAllowedVoices, getDefaultFemaleVoice, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
+import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { VoicePicker } from "../components/VoicePicker";
@@ -606,7 +606,7 @@ export default function Chat() {
        return;
     }
     
-    const { voiceUri, pitch, rate, language } = companionProfileRef.current;
+    const { voiceUri, voicePreset, pitch, rate, language } = companionProfileRef.current;
     const utterance = new SpeechSynthesisUtterance(text);
     // Speaker toggle: 1.0 for loud Speakerphone, 0.35 for private Earpiece/Bluetooth
     utterance.volume = isSpeakerOnRef.current ? 1.0 : 0.35;
@@ -616,6 +616,9 @@ export default function Chat() {
     const allowed = filterAllowedVoices(allVoices, targetPrefix);
     
     let voice = allowed.find(v => v.voiceURI === voiceUri);
+    if (!voice && voicePreset) {
+      voice = getVoiceForPreset(voicePreset, allowed) || undefined;
+    }
     if (!voice) {
       voice = getDefaultFemaleVoice(allowed) || undefined;
     }
@@ -666,6 +669,30 @@ export default function Chat() {
     setIsSettingsOpen(false);
     setIsWardrobeOpen(false);
     setIsMobileMenuOpen(false);
+  };
+
+  const openWardrobe = () => {
+    setIsSettingsOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsWardrobeOpen(true);
+  };
+
+  const openSettings = () => {
+    setIsWardrobeOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsSettingsOpen(true);
+  };
+
+  const toggleWardrobe = () => {
+    setIsSettingsOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsWardrobeOpen((prev) => !prev);
+  };
+
+  const toggleSettings = () => {
+    setIsWardrobeOpen(false);
+    setIsMobileMenuOpen(false);
+    setIsSettingsOpen((prev) => !prev);
   };
 
   const handleSceneryChange = async (newScenery: string) => {
@@ -1121,13 +1148,20 @@ export default function Chat() {
     <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#0b0a12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
-        {(isSettingsOpen || isWardrobeOpen || isMobileMenuOpen) && (
-          <div 
-            className="fixed inset-0 z-50 cursor-pointer backdrop-blur-[10px] bg-black/40" 
-            onClick={closeDrawers} 
-            aria-label="Close menus" 
-          />
-        )}
+        <AnimatePresence>
+          {(isSettingsOpen || isWardrobeOpen || isMobileMenuOpen) && (
+            <motion.div 
+              key="chat-drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="fixed inset-0 md:top-[50px] md:h-[calc(100vh-50px)] z-[35] cursor-pointer backdrop-blur-xl bg-black/60" 
+              onClick={closeDrawers} 
+              aria-label="Close menus" 
+            />
+          )}
+        </AnimatePresence>
 
         {/* ========================================================= */}
         {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
@@ -1448,14 +1482,27 @@ export default function Chat() {
             {/* HUD Top Left */}
             <div className={`absolute top-6 left-6 flex gap-3 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               <button 
-                onClick={() => setIsWardrobeOpen(true)} 
-                title={`Wardrobe (Currently wearing: ${getOutfitLabel(outfit)})`}
-                aria-label={`Wardrobe (Currently wearing: ${getOutfitLabel(outfit)})`}
-                className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer"
+                onClick={toggleWardrobe} 
+                title={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
+                aria-label={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
+                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer ${
+                  isWardrobeOpen 
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-base)] border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.4)]' 
+                    : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
+                }`}
               >
                 <Shirt className="w-5 h-5" />
               </button>
-              <button onClick={() => setIsSettingsOpen(true)} className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 flex items-center justify-center text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
+              <button 
+                onClick={toggleSettings} 
+                title="Voice Settings"
+                aria-label="Voice Settings"
+                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer ${
+                  isSettingsOpen 
+                    ? 'bg-[var(--accent-primary)] text-[var(--bg-base)] border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.4)]' 
+                    : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
+                }`}
+              >
                 <Settings className="w-5 h-5" />
               </button>
             </div>
@@ -1477,7 +1524,7 @@ export default function Chat() {
                   scenery={scenery} 
                   outfitUrl={outfit} 
                   emotion={currentEmotion}
-                  isWardrobeOpen={isWardrobeOpen}
+                  isWardrobeOpen={isWardrobeOpen || isSettingsOpen}
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
                   transparentBg={true}
@@ -1576,7 +1623,7 @@ export default function Chat() {
           </div>
 
           {/* DESKTOP RIGHT PANEL: CHAT DRAWER PANEL */}
-          <div className="chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[var(--bg-base)] border-l border-[var(--text-primary)]/5 flex flex-col z-30 shadow-2xl relative shrink-0 h-full">
+          <div className="chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[var(--bg-base)] border-l border-[var(--text-primary)]/5 flex flex-col z-10 shadow-2xl relative shrink-0 h-full">
             {/* Tabs */}
             <div className="flex px-6 pt-2 border-b border-[var(--text-primary)]/5 shrink-0">
                <button 
@@ -1760,15 +1807,12 @@ export default function Chat() {
               {/* Menu Links */}
               <div className="flex-1 py-4 space-y-1 overflow-y-auto no-scrollbar scrollbar-hide">
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsWardrobeOpen(true);
-                  }}
+                  onClick={openWardrobe}
                   className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <Shirt className="w-4 h-4" style={{ color: activeAccent }} />
-                    <span>Wardrobe & Outfits</span>
+                    <span>Wardrobe Style</span>
                   </div>
                   <span className="text-xs text-[var(--accent-primary)] font-medium">
                     {getOutfitLabel(outfit)}
@@ -1776,14 +1820,11 @@ export default function Chat() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsSettingsOpen(true);
-                  }}
+                  onClick={openSettings}
                   className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
                 >
                   <Settings className="w-4 h-4" style={{ color: activeAccent }} />
-                  <span>Voice & Mic Settings</span>
+                  <span>Voice Settings</span>
                 </button>
 
 
@@ -1860,63 +1901,40 @@ export default function Chat() {
         <AnimatePresence>
           {isSettingsOpen && (
             <motion.aside
+              key="settings-drawer"
               tabIndex={-1}
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
+              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.42 }}
+              className="fixed top-0 md:top-[50px] bottom-0 left-0 w-full sm:w-[460px] md:w-[500px] lg:w-[540px] max-w-[92vw] z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full md:h-[calc(100vh-50px)]"
             >
-              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/5">
-                <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Settings</h2>
-                <button onClick={closeDrawers} className="p-2 text-[var(--text-primary)]/50 hover:text-[var(--text-primary)]/90 rounded-full hover:bg-[var(--bg-elevated)]/5 active:scale-95 transition-all cursor-pointer">
+              <div className="p-5 sm:p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10 shrink-0 bg-[var(--bg-drawer)]/90 backdrop-blur-md">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                    <Volume2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-medium text-xl sm:text-2xl text-[var(--text-primary)]/95">Voice Settings</h2>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">Choose Lyra's speaking voice and persona</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={closeDrawers} 
+                  aria-label="Close settings"
+                  className="p-2 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-elevated)]/40 active:scale-95 transition-all cursor-pointer"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 no-scrollbar scrollbar-hide">
                 {/* Voice Settings */}
-                <div>
-                  <Heading2 className="text-xs font-heading font-medium text-[var(--text-primary)]/40 uppercase tracking-wider mb-3">Voice</Heading2>
-                  <VoicePicker />
-                </div>
-
-                {/* Microphone Settings */}
-                <div>
-                  <Heading2 className="text-xs font-heading font-medium text-[var(--text-primary)]/40 uppercase tracking-wider mb-3">Microphone Mode</Heading2>
-                  <div className="flex bg-[var(--bg-elevated)]/40 rounded-xl p-1 border border-[var(--text-primary)]/5">
-                    <button
-                      onClick={async () => {
-                        setMicMode('ptt');
-                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
-                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'ptt' }));
-                      }}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                        micMode === 'ptt' 
-                          ? 'bg-[var(--bg-elevated)]/10 text-[var(--text-primary)] shadow-sm' 
-                          : 'text-[var(--text-primary)]/40 hover:text-[var(--text-primary)]/80'
-                      }`}
-                    >
-                      Push-to-Talk
-                    </button>
-                    <button
-                      onClick={async () => {
-                        setMicMode('hands-free');
-                        const local = await import('../lib/storage').then(m => m.getLocalProfile()) || {};
-                        await import('../lib/storage').then(m => m.saveLocalProfile({ ...local, micMode: 'hands-free' }));
-                      }}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                        micMode === 'hands-free' 
-                          ? 'bg-[var(--bg-elevated)]/10 text-[var(--text-primary)] shadow-sm' 
-                          : 'text-[var(--text-primary)]/40 hover:text-[var(--text-primary)]/80'
-                      }`}
-                    >
-                      Hands-Free
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-[var(--text-primary)]/40 mt-3 font-body leading-relaxed">
-                    {micMode === 'ptt' ? 'Hold down the mic button to speak. Releasing automatically sends your message.' : 'Microphone stays on and listens continuously during conversations.'}
-                  </p>
+                <div className="bg-[var(--bg-surface)]/60 border border-[var(--text-primary)]/10 rounded-2xl p-5 shadow-sm">
+                  <VoicePicker onSelect={async () => {
+                    const comp = await getCompanion();
+                    if (comp) companionProfileRef.current = comp;
+                  }} />
                 </div>
               </div>
             </motion.aside>
@@ -1927,30 +1945,40 @@ export default function Chat() {
         <AnimatePresence>
           {isWardrobeOpen && (
             <motion.aside
+              key="wardrobe-drawer"
               tabIndex={-1}
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-              className="fixed inset-0 md:right-auto md:w-[340px] z-[110] bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full w-full"
+              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.42 }}
+              className="fixed top-0 md:top-[50px] bottom-0 left-0 w-full sm:w-[460px] md:w-[500px] lg:w-[540px] max-w-[92vw] z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full md:h-[calc(100vh-50px)]"
             >
-              <div className="p-6 flex items-center justify-between border-b border-[var(--text-primary)]/5">
-                <div>
-                  <h2 className="font-heading font-medium text-2xl text-[var(--text-primary)]/90">Wardrobe</h2>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                    Currently wearing: <span className="font-semibold text-[var(--accent-primary)]">{getOutfitLabel(outfit)}</span>
-                  </p>
+              <div className="p-5 sm:p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10 shrink-0 bg-[var(--bg-drawer)]/90 backdrop-blur-md">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                    <Shirt className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-medium text-xl sm:text-2xl text-[var(--text-primary)]/95">Wardrobe Style</h2>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      Currently wearing: <span className="font-semibold text-[var(--accent-primary)]">{getOutfitLabel(outfit)}</span>
+                    </p>
+                  </div>
                 </div>
-                <button onClick={closeDrawers} className="p-2 text-[var(--text-primary)]/50 hover:text-[var(--text-primary)]/90 rounded-full hover:bg-[var(--bg-elevated)]/5 active:scale-95 transition-all cursor-pointer">
+                <button 
+                  onClick={closeDrawers} 
+                  aria-label="Close wardrobe"
+                  className="p-2 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-elevated)]/40 active:scale-95 transition-all cursor-pointer"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 no-scrollbar scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 no-scrollbar scrollbar-hide">
                 {!isOutfitsReady ? (
-                  <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-[var(--text-primary)]/5 overflow-hidden bg-black/20">
-                    <div className="w-8 h-8 rounded-full border-2 border-[var(--text-primary)]/10 border-t-white/50 animate-spin mb-3 z-10" />
-                    <span className="text-xs font-body text-[var(--text-primary)]/40 z-10">Preparing wardrobe...</span>
+                  <div className="relative w-full h-48 flex flex-col items-center justify-center rounded-2xl border border-[var(--text-primary)]/10 overflow-hidden bg-black/20">
+                    <div className="w-8 h-8 rounded-full border-2 border-[var(--text-primary)]/20 border-t-[var(--accent-primary)] animate-spin mb-3 z-10" />
+                    <span className="text-xs font-body text-[var(--text-muted)] z-10">Preparing wardrobe...</span>
                   </div>
                 ) : (
                   <WardrobeGrid
