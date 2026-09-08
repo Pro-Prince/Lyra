@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
+import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, saveLocalProfile } from "../lib/storage";
@@ -1376,26 +1376,46 @@ export default function Chat() {
               <>
                 {/* Messages Feed */}
                 <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-2.5 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                  {/* WhatsApp-Style Date Pill */}
+                  <div className="flex justify-center my-0.5 select-none">
+                    <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
+                      Today
+                    </span>
+                  </div>
+
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
-                      <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
-                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-3.5 py-2 border border-[var(--accent-primary)]/30 shadow-xs">
-                          <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <div key={msg.id} className="self-end max-w-[85%] sm:max-w-[80%] flex flex-col items-end">
+                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-[18px] rounded-tr-[4px] px-3.5 py-2 border border-[var(--accent-primary)]/30 shadow-xs">
+                          <p className="text-[13.5px] leading-relaxed break-words font-body">
+                            <span className="whitespace-pre-wrap">{msg.content}</span>
+                            <span className="inline-flex items-center gap-1 float-right ml-2.5 mt-1 align-bottom select-none">
+                              <span className="text-[10px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <CheckCheck className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
+                            </span>
+                          </p>
                         </div>
-                        <span className="text-[10px] text-[var(--text-muted)]/70 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[92%] flex gap-2 items-start">
+                      <div key={msg.id} className="self-start max-w-[92%] sm:max-w-[88%] flex gap-2 items-start">
                         <img 
                           src="/images/Logo.png" 
                           alt="Lyra" 
                           className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 shadow-xs" 
                         />
                         <div className="flex flex-col items-start min-w-0">
-                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-xs border border-[var(--text-primary)]/10">
-                            <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-[18px] rounded-tl-[4px] px-3.5 py-2 shadow-xs border border-[var(--text-primary)]/10">
+                            <p className="text-[13.5px] leading-relaxed break-words font-body">
+                              <span className="whitespace-pre-wrap">{msg.content}</span>
+                              <span className="inline-flex items-center float-right ml-2.5 mt-1 align-bottom select-none">
+                                <span className="text-[10px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </span>
+                            </p>
                           </div>
-                          <span className="text-[10px] text-[var(--text-muted)]/70 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )
@@ -1407,7 +1427,7 @@ export default function Chat() {
                         alt="Lyra" 
                         className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 animate-pulse" 
                       />
-                      <div className="bg-[var(--bg-elevated)]/90 rounded-2xl rounded-tl-xs px-3 py-2 border border-[var(--text-primary)]/10 flex items-center gap-1.5 shadow-xs">
+                      <div className="bg-[var(--bg-elevated)]/90 rounded-[18px] rounded-tl-[4px] px-3 py-2 border border-[var(--text-primary)]/10 flex items-center gap-1.5 shadow-xs">
                         <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
                         <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
                         <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
@@ -1660,22 +1680,42 @@ export default function Chat() {
               <>
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto px-4 lg:px-5 py-3 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                  {/* WhatsApp-Style Date Pill */}
+                  <div className="flex justify-center my-0.5 select-none">
+                    <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
+                      Today
+                    </span>
+                  </div>
+
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
-                      <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
-                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-2xl rounded-tr-sm p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/5">
-                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <div key={msg.id} className="self-end max-w-[85%] sm:max-w-[80%] flex flex-col items-end">
+                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-[18px] rounded-tr-[4px] p-3 px-3.5 shadow-xs border border-[var(--accent-primary)]/20">
+                          <p className="text-[14px] leading-relaxed break-words font-body">
+                            <span className="whitespace-pre-wrap">{msg.content}</span>
+                            <span className="inline-flex items-center gap-1 float-right ml-3 mt-1.5 align-bottom select-none">
+                              <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <CheckCheck className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
+                            </span>
+                          </p>
                         </div>
-                        <span className="text-[10px] text-[var(--text-primary)]/40 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[95%] flex gap-2.5 items-start">
+                      <div key={msg.id} className="self-start max-w-[95%] sm:max-w-[88%] flex gap-2.5 items-start">
                         <img src="/images/Logo.png" alt="Lyra" className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5" />
                         <div className="flex flex-col items-start min-w-0">
-                          <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-sm p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/5">
-                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-[18px] rounded-tl-[4px] p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/10">
+                            <p className="text-[14px] leading-relaxed break-words font-body">
+                              <span className="whitespace-pre-wrap">{msg.content}</span>
+                              <span className="inline-flex items-center float-right ml-3 mt-1.5 align-bottom select-none">
+                                <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </span>
+                            </p>
                           </div>
-                          <span className="text-[10px] text-[var(--text-primary)]/40 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )

@@ -354,27 +354,39 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
   const targetPos = useRef(new THREE.Vector3());
   const lookTarget = useRef(new THREE.Vector3());
   const portraitFraming = useRef({ midY: 1.35, distance: 1.2 });
+  const fullBodyFraming = useRef({ midY: 0.78, distance: 3.35 });
 
-  // Compute portrait camera framing ONCE per VRM load and on resize - NEVER inside useFrame!
+  // Compute camera framing ONCE per VRM load and on resize - NEVER inside useFrame!
   const updateFraming = () => {
     if (!vrmScene) return;
     safeUpdateMatrixWorld(vrmScene);
     const box = safeSetFromObject(new THREE.Box3(), vrmScene);
-    const headTop = box.max.y;
-    const shoulderY = headTop - (box.max.y - box.min.y) * 0.25;
-    const targetHeight = Math.max(0.2, headTop - shoulderY);
-    const paddingFactor = 1.4; // real headroom above her head so ears/head are never cropped
+    const headTop = box.max.y || 1.55;
+    const feetBottom = Math.min(box.min.y || 0, 0);
+    const totalHeight = Math.max(1.2, headTop - feetBottom);
+
     const perspCam = camera as THREE.PerspectiveCamera;
     const fov = perspCam.fov * (Math.PI / 180);
-    let distance = (targetHeight * paddingFactor) / (2 * Math.tan(fov / 2));
-    
-    // If screen is narrow (mobile), we need to pull back to not crop horizontally
+
+    // 1. Portrait Framing (Bust / Head & Shoulders)
+    const shoulderY = headTop - totalHeight * 0.25;
+    const portraitTargetHeight = Math.max(0.2, headTop - shoulderY);
+    let portraitDist = (portraitTargetHeight * 1.4) / (2 * Math.tan(fov / 2));
     if (perspCam.aspect < 1.0) {
-       distance = distance / perspCam.aspect;
+      portraitDist = portraitDist / perspCam.aspect;
     }
-    
-    const midY = (headTop + shoulderY) / 2;
-    portraitFraming.current = { midY, distance };
+    const portraitMidY = (headTop + shoulderY) / 2;
+    portraitFraming.current = { midY: portraitMidY, distance: portraitDist };
+
+    // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are completely visible)
+    const fullBodyPaddingFactor = 1.42; // Generous margin so feet, shoes and floor are fully in frame
+    let fullBodyDist = (totalHeight * fullBodyPaddingFactor) / (2 * Math.tan(fov / 2));
+    if (perspCam.aspect < 1.0) {
+      // In narrow/mobile screens, scale distance dynamically to prevent clipping feet
+      fullBodyDist = fullBodyDist / Math.max(0.65, perspCam.aspect);
+    }
+    const fullBodyMidY = (headTop + feetBottom) * 0.5;
+    fullBodyFraming.current = { midY: fullBodyMidY, distance: fullBodyDist };
   };
 
   useEffect(() => {
@@ -408,26 +420,26 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
 
   useFrame(() => {
     const companionPosition = vrmScene ? vrmScene.position : new THREE.Vector3();
+    const { distance } = fullBodyFraming.current;
 
     if (vrmScene && mode === 'portrait') {
-      const { midY, distance } = portraitFraming.current;
-      targetPos.current.set(companionPosition.x, Math.max(0.6, midY), companionPosition.z + distance);
-      lookTarget.current.set(companionPosition.x, midY, companionPosition.z);
-    } else if (mode === 'room-wide') {
-      targetPos.current.set(companionPosition.x + 0.4, Math.max(0.8, 1.75), companionPosition.z + 3.2);
-      lookTarget.current.set(companionPosition.x + 0.1, 1.0, companionPosition.z);
+      const { midY: pMidY, distance: pDist } = portraitFraming.current;
+      targetPos.current.set(companionPosition.x, Math.max(0.6, pMidY), companionPosition.z + pDist);
+      lookTarget.current.set(companionPosition.x, pMidY, companionPosition.z);
     } else if (mode === 'panned-left') {
-      targetPos.current.set(-0.9, Math.max(0.8, 1.3), 2.4);
-      lookTarget.current.set(-0.4, 1.0, 0);
+      // Offset camera to frame character on the left when wardrobe is open, full body visible with gentle upward tilt
+      targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
+      lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      targetPos.current.set(0, Math.max(0.8, 1.3), 2.0);
-      lookTarget.current.set(0, 1.0, 0);
+      // 'room-wide' / 'centered': low-angle upward tilt (camera at waist/hip height 0.72, looking up at 1.05) with full legs in frame
+      targetPos.current.set(companionPosition.x, 0.72, companionPosition.z + distance);
+      lookTarget.current.set(companionPosition.x, 1.05, companionPosition.z);
     }
 
     // Clamp camera Y so it never drops below floor level (floor is y=0)
-    targetPos.current.y = Math.max(0.6, targetPos.current.y);
+    targetPos.current.y = Math.max(0.5, targetPos.current.y);
 
-    camera.position.lerp(targetPos.current, 0.05);
+    camera.position.lerp(targetPos.current, 0.08);
     camera.lookAt(lookTarget.current);
   });
   return null;
@@ -489,6 +501,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         vrmInstance.scene.position.x -= center.x;
         vrmInstance.scene.position.z -= center.z;
         vrmInstance.scene.position.y -= box.min.y;
+        vrmInstance.scene.rotation.set(0, 0, 0);
 
         // removed console.log
         // removed console.log
@@ -877,12 +890,12 @@ function CustomPostProcessing() {
     comp.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
-      0.4,
-      0.6,
-      0.85
+      0.18, // Balanced soft aesthetic bloom without overexposure glare
+      0.5,
+      0.90  // High threshold so only genuine highlights softly glow
     );
     comp.addPass(bloom);
-    const film = new FilmPass(0.15, false);
+    const film = new FilmPass(0.08, false);
     comp.addPass(film);
     return comp;
   }, [gl, scene, camera]);
@@ -1013,8 +1026,8 @@ function CompanionStageComponent({
   }
 
   return (
-    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[var(--bg-base)]' : 'bg-transparent'} ${className}`}>
-      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[var(--bg-base)]" />}
+    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
+      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[#ede2dc]" />}
       
       <AnimatePresence>
         {!isLoaded && !hasFailed && (
@@ -1062,7 +1075,7 @@ function CompanionStageComponent({
         <Canvas shadows 
           id="companion-canvas-container"
           frameloop={isTabVisible ? "always" : "never"}
-          camera={{ position: [0.3, 1.6, 3.0], fov: 35 }} 
+          camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
           gl={{ 
             preserveDrawingBuffer: true,
             alpha: true, 
@@ -1080,7 +1093,7 @@ function CompanionStageComponent({
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.95;
+            gl.toneMappingExposure = 0.88;
           }}
           dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >
