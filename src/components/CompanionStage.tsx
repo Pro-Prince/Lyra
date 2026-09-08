@@ -873,6 +873,7 @@ function CustomPostProcessing() {
   
   const composer = useMemo(() => {
     const comp = new EffectComposer(gl);
+    comp.setPixelRatio(gl.getPixelRatio());
     comp.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
@@ -888,7 +889,8 @@ function CustomPostProcessing() {
 
   useEffect(() => {
     composer.setSize(size.width, size.height);
-  }, [composer, size]);
+    composer.setPixelRatio(gl.getPixelRatio());
+  }, [composer, size, gl]);
 
   useFrame(() => {
     composer.render();

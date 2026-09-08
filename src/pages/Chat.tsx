@@ -1375,50 +1375,50 @@ export default function Chat() {
             {activeTab === 'chat' ? (
               <>
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-3 flex flex-col gap-3 custom-scrollbar no-scrollbar scrollbar-hide">
+                <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-2.5 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
                       <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
-                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-3.5 py-2.5 border border-[var(--accent-primary)]/30 shadow-xs">
-                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-2xl rounded-tr-xs px-3.5 py-2 border border-[var(--accent-primary)]/30 shadow-xs">
+                          <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                         </div>
-                        <span className="text-[10px] text-[var(--text-muted)]/70 mt-1 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]/70 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[92%] flex gap-2.5 items-start">
+                      <div key={msg.id} className="self-start max-w-[92%] flex gap-2 items-start">
                         <img 
                           src="/images/Logo.png" 
                           alt="Lyra" 
                           className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 shadow-xs" 
                         />
                         <div className="flex flex-col items-start min-w-0">
-                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-xs border border-[var(--text-primary)]/10">
-                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-xs border border-[var(--text-primary)]/10">
+                            <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           </div>
-                          <span className="text-[10px] text-[var(--text-muted)]/70 mt-1 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-[10px] text-[var(--text-muted)]/70 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )
                   ))}
                   {isLoading && (
-                    <div className="self-start max-w-[92%] flex gap-2.5 items-start">
+                    <div className="self-start max-w-[92%] flex gap-2 items-start">
                       <img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
                         className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 animate-pulse" 
                       />
-                      <div className="bg-[var(--bg-elevated)]/90 rounded-2xl rounded-tl-xs px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex items-center gap-2">
-                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full animate-bounce" />
-                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
-                        <div style={{ backgroundColor: activeAccent }} className="w-2 h-2 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
+                      <div className="bg-[var(--bg-elevated)]/90 rounded-2xl rounded-tl-xs px-3 py-2 border border-[var(--text-primary)]/10 flex items-center gap-1.5 shadow-xs">
+                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
+                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
+                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
                       </div>
                     </div>
                   )}
-                  <div ref={chatEndRef} className="h-1" />
+                  <div ref={chatEndRef} className="h-0.5" />
                 </div>
 
                 {/* Suggestions / Quick Prompt Chips */}
-                <div className="flex gap-2 overflow-x-auto pb-2 px-3.5 sm:px-4 pt-1 scrollbar-hide shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <div className="flex gap-1.5 overflow-x-auto pb-1.5 px-3.5 sm:px-4 pt-0.5 scrollbar-hide shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
                     <button 
                       key={text}
@@ -1426,7 +1426,7 @@ export default function Chat() {
                         setInputText(text);
                         handleSend(text);
                       }}
-                      className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/15 border border-[var(--text-primary)]/15 text-xs text-[var(--text-primary)]/85 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
+                      className="px-2.5 py-1 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/15 border border-[var(--text-primary)]/15 text-[11px] text-[var(--text-primary)]/85 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
                     >
                       {text}
                     </button>
@@ -1434,7 +1434,7 @@ export default function Chat() {
                 </div>
 
                 {/* Input Bar */}
-                <div className="p-2.5 sm:p-3 pt-0 pb-2.5 sm:pb-3 bg-[var(--bg-panel)] shrink-0">
+                <div className="p-2 sm:p-2.5 pt-0 pb-2 sm:pb-2.5 bg-[var(--bg-panel)] shrink-0">
                   <div className="relative bg-[var(--bg-elevated)]/90 backdrop-blur-md rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/15 focus-within:border-[var(--accent-primary)]/50 focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/20 shadow-inner">
                     <input 
                       type="text" 
@@ -1659,76 +1659,76 @@ export default function Chat() {
             {activeTab === 'chat' ? (
               <>
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 custom-scrollbar no-scrollbar scrollbar-hide">
+                <div className="flex-1 overflow-y-auto px-4 lg:px-5 py-3 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
                       <div key={msg.id} className="self-end max-w-[85%] flex flex-col items-end">
-                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-2xl rounded-tr-sm p-3.5 px-4 shadow-sm border border-[var(--text-primary)]/5">
-                          <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-2xl rounded-tr-sm p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/5">
+                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                         </div>
-                        <span className="text-[10px] text-[var(--text-primary)]/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-[var(--text-primary)]/40 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[95%] flex gap-3">
-                        <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-1" />
-                        <div className="flex flex-col items-start">
-                          <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-sm p-3.5 px-4 shadow-sm border border-[var(--text-primary)]/5">
-                            <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <div key={msg.id} className="self-start max-w-[95%] flex gap-2.5 items-start">
+                        <img src="/images/Logo.png" alt="Lyra" className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5" />
+                        <div className="flex flex-col items-start min-w-0">
+                          <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-2xl rounded-tl-sm p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/5">
+                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           </div>
-                          <span className="text-[10px] text-[var(--text-primary)]/30 mt-1.5 px-1 font-medium">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-[10px] text-[var(--text-primary)]/40 mt-0.5 px-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     )
                   ))}
                   {isLoading && (
                     <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="self-start max-w-[90%] flex gap-3 items-start"
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="self-start max-w-[90%] flex gap-2.5 items-start"
                     >
                       <motion.img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
-                        className="w-8 h-8 rounded-[9px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-1"
+                        className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5"
                         animate={{ scale: [1, 1.05, 1] }}
                         transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                       />
-                      <div className="flex flex-col items-start gap-1">
-                        <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm p-4 border border-[var(--text-primary)]/5 flex gap-2 items-center h-11 shadow-inner relative overflow-hidden">
+                      <div className="flex flex-col items-start">
+                        <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex gap-1.5 items-center shadow-xs relative overflow-hidden">
                           <motion.div 
                             className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff7eb6]/5 to-transparent"
                             animate={{ x: ['-100%', '100%'] }}
                             transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
                           />
                           <motion.div 
-                            className="w-2 h-2 bg-[var(--accent-primary)] rounded-full"
-                            animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0 }}
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0 }}
                           />
                           <motion.div 
-                            className="w-2 h-2 bg-[var(--accent-primary)]/80 rounded-full"
-                            animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.18 }}
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)]/80 rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0.18 }}
                           />
                           <motion.div 
-                            className="w-2 h-2 bg-[var(--accent-primary)]/60 rounded-full"
-                            animate={{ y: [0, -6, 0], scale: [1, 1.15, 1] }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "easeInOut", delay: 0.36 }}
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)]/60 rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0.36 }}
                           />
                         </div>
                       </div>
                     </motion.div>
                   )}
-                  <div ref={chatEndRef} className="h-2" />
+                  <div ref={chatEndRef} className="h-0.5" />
                 </div>
 
                 {/* Desktop Input Area */}
-                <div className="input-bar input-bar-container p-4 pt-2 bg-gradient-to-t from-[#130f12] via-[#130f12] to-transparent shrink-0 transition-transform duration-150 ease-out">
+                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 border-t border-[var(--text-primary)]/5 shrink-0 transition-transform duration-150 ease-out">
                    {/* Suggestions */}
                    {messages.length <= 1 && (
-                     <div className="suggestion-chips flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                     <div className="suggestion-chips flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
                            <button 
                               key={text}
@@ -1737,7 +1737,7 @@ export default function Chat() {
                                  setInputText(text);
                                  handleSend(text);
                               }}
-                              className="whitespace-nowrap px-4 py-2 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/5 text-[13px] text-[var(--text-primary)]/60 hover:text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer"
+                              className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/5 text-xs text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer shadow-xs"
                            >
                               {text}
                            </button>
@@ -1746,7 +1746,7 @@ export default function Chat() {
                    )}
 
                    {/* Input Field */}
-                   <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1.5 border border-[var(--text-primary)]/10 shadow-inner">
+                   <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
                       <input 
                          type="text" 
                          value={inputText}
@@ -1759,7 +1759,7 @@ export default function Chat() {
                               if (!isLoading && inputText.trim()) handleSend();
                             }
                          }}
-                         className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-[15px] focus:outline-none placeholder:text-[var(--text-primary)]/30 px-4 h-10 w-full" 
+                         className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
                          placeholder={isListening ? "Listening..." : "Ask Anything..."}
                          disabled={isListening || isLoading}
                       />
@@ -1769,9 +1769,9 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="w-10 h-10 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
+                         className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer shadow-md"
                       >
-                          <Send className="w-4 h-4 text-[var(--bg-base)] ml-0.5" />
+                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] ml-0.5" />
                       </button>
                    </div>
                 </div>
