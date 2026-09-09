@@ -1375,7 +1375,7 @@ export default function Chat() {
             {activeTab === 'chat' ? (
               <>
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto px-3.5 sm:px-4 py-2.5 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 pb-1 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
                   {/* WhatsApp-Style Date Pill */}
                   <div className="flex justify-center my-0.5 select-none">
                     <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
@@ -1386,11 +1386,11 @@ export default function Chat() {
                   {messages.map((msg) => (
                     msg.role === 'user' ? (
                       <div key={msg.id} className="self-end max-w-[85%] sm:max-w-[80%] flex flex-col items-end">
-                        <div className="bg-[var(--accent-primary)]/20 text-[var(--text-primary)] rounded-[18px] rounded-tr-[4px] px-3.5 py-2 border border-[var(--accent-primary)]/30 shadow-xs">
-                          <p className="text-[13.5px] leading-relaxed break-words font-body">
+                        <div className="bg-[var(--bg-user-bubble)] text-[var(--text-primary)]/95 rounded-[18px] rounded-tr-[4px] p-3 px-3.5 shadow-xs border border-[var(--accent-primary)]/20">
+                          <p className="text-[14px] leading-relaxed break-words font-body">
                             <span className="whitespace-pre-wrap">{msg.content}</span>
-                            <span className="inline-flex items-center gap-1 float-right ml-2.5 mt-1 align-bottom select-none">
-                              <span className="text-[10px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
+                            <span className="inline-flex items-center gap-1 float-right ml-3 mt-1.5 align-bottom select-none">
+                              <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                               <CheckCheck className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
@@ -1399,18 +1399,14 @@ export default function Chat() {
                         </div>
                       </div>
                     ) : (
-                      <div key={msg.id} className="self-start max-w-[92%] sm:max-w-[88%] flex gap-2 items-start">
-                        <img 
-                          src="/images/Logo.png" 
-                          alt="Lyra" 
-                          className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 shadow-xs" 
-                        />
+                      <div key={msg.id} className="self-start max-w-[95%] sm:max-w-[88%] flex gap-2.5 items-start">
+                        <img src="/images/Logo.png" alt="Lyra" className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5" />
                         <div className="flex flex-col items-start min-w-0">
-                          <div className="bg-[var(--bg-elevated)]/90 text-[var(--text-primary)]/95 rounded-[18px] rounded-tl-[4px] px-3.5 py-2 shadow-xs border border-[var(--text-primary)]/10">
-                            <p className="text-[13.5px] leading-relaxed break-words font-body">
+                          <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-[18px] rounded-tl-[4px] p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/10">
+                            <p className="text-[14px] leading-relaxed break-words font-body">
                               <span className="whitespace-pre-wrap">{msg.content}</span>
-                              <span className="inline-flex items-center float-right ml-2.5 mt-1 align-bottom select-none">
-                                <span className="text-[10px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
+                              <span className="inline-flex items-center float-right ml-3 mt-1.5 align-bottom select-none">
+                                <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
                                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </span>
@@ -1421,68 +1417,101 @@ export default function Chat() {
                     )
                   ))}
                   {isLoading && (
-                    <div className="self-start max-w-[92%] flex gap-2 items-start">
-                      <img 
+                    <motion.div 
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="self-start max-w-[90%] flex gap-2.5 items-start"
+                    >
+                      <motion.img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
-                        className="w-7 h-7 rounded-[8px] object-cover shrink-0 mt-0.5 border border-[var(--accent-primary)]/50 animate-pulse" 
+                        className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5"
+                        animate={{ scale: [1, 1.05, 1] }}
+                        transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                       />
-                      <div className="bg-[var(--bg-elevated)]/90 rounded-[18px] rounded-tl-[4px] px-3 py-2 border border-[var(--text-primary)]/10 flex items-center gap-1.5 shadow-xs">
-                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full animate-bounce" />
-                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-70 animate-bounce [animation-delay:0.2s]" />
-                        <div style={{ backgroundColor: activeAccent }} className="w-1.5 h-1.5 rounded-full opacity-40 animate-bounce [animation-delay:0.4s]" />
+                      <div className="flex flex-col items-start">
+                        <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex gap-1.5 items-center shadow-xs relative overflow-hidden">
+                          <motion.div 
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff7eb6]/5 to-transparent"
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
+                          />
+                          <motion.div 
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0 }}
+                          />
+                          <motion.div 
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)]/80 rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0.18 }}
+                          />
+                          <motion.div 
+                            className="w-1.5 h-1.5 bg-[var(--accent-primary)]/60 rounded-full"
+                            animate={{ y: [0, -4, 0], scale: [1, 1.15, 1] }}
+                            transition={{ repeat: Infinity, duration: 0.9, ease: "easeInOut", delay: 0.36 }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                   <div ref={chatEndRef} className="h-0.5" />
                 </div>
 
-                {/* Suggestions / Quick Prompt Chips */}
-                <div className="flex gap-1.5 overflow-x-auto pb-1.5 px-3.5 sm:px-4 pt-0.5 scrollbar-hide shrink-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
-                    <button 
-                      key={text}
-                      onClick={() => {
-                        setInputText(text);
-                        handleSend(text);
-                      }}
-                      className="px-2.5 py-1 rounded-full bg-[var(--bg-elevated)] hover:bg-[var(--accent-primary)]/15 border border-[var(--text-primary)]/15 text-[11px] text-[var(--text-primary)]/85 hover:text-[var(--text-primary)] whitespace-nowrap active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
-                    >
-                      {text}
-                    </button>
-                  ))}
-                </div>
+                {/* Input Area */}
+                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 border-t border-[var(--text-primary)]/5 shrink-0 transition-transform duration-150 ease-out">
+                   {/* Suggestions */}
+                   {messages.length <= 1 && (
+                     <div className="suggestion-chips flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
+                           <button 
+                              key={text}
+                              onClick={(e) => {
+                                 e.preventDefault();
+                                 setInputText(text);
+                                 handleSend(text);
+                              }}
+                              className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/5 text-xs text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer shadow-xs"
+                           >
+                              {text}
+                           </button>
+                        ))}
+                     </div>
+                   )}
 
-                {/* Input Bar */}
-                <div className="p-2 sm:p-2.5 pt-0 pb-2 sm:pb-2.5 bg-[var(--bg-panel)] shrink-0">
-                  <div className="relative bg-[var(--bg-elevated)]/90 backdrop-blur-md rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/15 focus-within:border-[var(--accent-primary)]/50 focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/20 shadow-inner">
-                    <input 
-                      type="text" 
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          if (!isLoading && inputText.trim()) handleSend();
-                        }
-                      }}
-                      className="flex-1 bg-transparent border-none text-[var(--text-primary)] text-sm focus:outline-none placeholder:text-[var(--text-muted)]/60 h-9 w-full" 
-                      placeholder={isListening ? "Listening..." : "Ask Lyra anything..."}
-                      disabled={isListening || isLoading}
-                    />
-                    <button 
-                      onClick={() => handleSend()}
-                      disabled={!inputText.trim() || isLoading}
-                      style={{ 
-                        backgroundColor: inputText.trim() && !isLoading ? activeAccent : undefined 
-                      }}
-                      className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center text-[var(--bg-base)] transition-all shrink-0 cursor-pointer shadow-md ml-1"
-                    >
-                      <Send className="w-4 h-4 text-white ml-0.5" />
-                    </button>
-                  </div>
-                  {/* Home Indicator Bar */}
-                  <div className="w-28 h-1 bg-[var(--text-primary)]/20 rounded-full mx-auto mt-2" />
+                   {/* Input Field */}
+                   <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
+                      <input 
+                         type="text" 
+                         value={inputText}
+                         onChange={(e) => setInputText(e.target.value)}
+                         onFocus={() => setIsInputFocused(true)}
+                         onBlur={() => setIsInputFocused(false)}
+                         onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (!isLoading && inputText.trim()) handleSend();
+                            }
+                         }}
+                         className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
+                         placeholder={isListening ? "Listening..." : "Ask Lyra anything..."}
+                         disabled={isListening || isLoading}
+                      />
+                      <button 
+                         onClick={(e) => {
+                           e.preventDefault();
+                           handleSend();
+                         }}
+                         disabled={!inputText.trim() || isLoading}
+                         className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer shadow-md"
+                      >
+                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] ml-0.5" />
+                      </button>
+                   </div>
+                   {/* Home Indicator Bar */}
+                   <div className="w-28 h-1 bg-[var(--text-primary)]/20 rounded-full mx-auto mt-2" />
                 </div>
               </>
             ) : (
