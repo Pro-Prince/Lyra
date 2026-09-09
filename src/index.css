@@ -1267,7 +1267,7 @@ h3, .heading-3 {
 
 .auth-brand {
   text-align: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 .auth-logo-badge {
   width: 48px;
@@ -1294,7 +1294,7 @@ h3, .heading-3 {
   background: var(--bg-surface);
   border: 1px solid rgba(255, 182, 213, 0.16);
   border-radius: 24px;
-  padding: var(--space-xl);
+  padding: var(--space-lg);
   width: 100%;
   max-width: 440px;
 }
@@ -1302,14 +1302,14 @@ h3, .heading-3 {
   font-family: var(--font-heading);
   font-size: 24px;
   font-weight: 500;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 .auth-card label {
   display: block;
   font-size: 14px;
   color: var(--text-muted);
-  margin-bottom: var(--space-xs);
+  margin-bottom: 6px;
 }
 .auth-card input {
   width: 100%;
@@ -1335,7 +1335,7 @@ h3, .heading-3 {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin: var(--space-lg) 0;
+  margin: var(--space-md) 0;
   color: var(--text-muted);
   font-size: 12px;
   letter-spacing: 0.05em;
@@ -1353,7 +1353,7 @@ h3, .heading-3 {
 
 .auth-switch {
   text-align: center;
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
   color: var(--text-muted);
   font-size: 14px;
 }
@@ -1372,7 +1372,7 @@ h3, .heading-3 {
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
-  margin-top: var(--space-lg);
+  margin-top: var(--space-md);
   max-width: 440px;
 }
 .auth-legal a {
