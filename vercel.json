@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/models/(.*)",
@@ -17,11 +18,20 @@
           "value": "*"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
     {
-      "source": "/((?!models/|images/|icons/|favicon|api/).*)",
+      "source": "/((?!assets/|models/|images/|icons/|favicon|api/|sw\\.js|workbox-|manifest|.*\\.[\\w]+$).*)",
       "destination": "/index.html"
     }
   ]

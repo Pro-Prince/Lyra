@@ -58,7 +58,10 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
   const location = useLocation();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    localStorage.removeItem("lyra_guest_mode");
     onClose();
     navigate("/");
   };
@@ -169,7 +172,10 @@ function AccountDropdown({ onClose }: { onClose: () => void }) {
   const { session } = useAuth();
   
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    localStorage.removeItem("lyra_guest_mode");
     onClose();
     navigate("/");
   };
@@ -266,7 +272,10 @@ function DesktopNav() {
 
   const handleLogout = async () => {
     setIsAccountOpen(false);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    localStorage.removeItem("lyra_guest_mode");
     navigate("/");
   };
 

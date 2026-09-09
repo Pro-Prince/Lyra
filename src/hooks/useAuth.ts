@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -8,22 +8,56 @@ export function useAuth() {
   const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem("lyra_guest_mode") === "true");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    let mounted = true;
+
+    if (!isSupabaseConfigured) {
       setLoading(false);
-    });
+      return;
+    }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (mounted) {
+          setSession(session);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('[useAuth] Error retrieving session:', err);
+        if (mounted) {
+          setSession(null);
+          setLoading(false);
+        }
+      });
 
-    return () => listener.subscription.unsubscribe();
+    try {
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (mounted) {
+          setSession(session);
+        }
+      });
+
+      return () => {
+        mounted = false;
+        listener?.subscription?.unsubscribe();
+      };
+    } catch (err) {
+      console.warn('[useAuth] Error attaching onAuthStateChange:', err);
+      return () => {
+        mounted = false;
+      };
+    }
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('[useAuth] Sign out error:', err);
+    }
     localStorage.removeItem("lyra_guest_mode");
     setIsGuestMode(false);
+    setSession(null);
   };
 
   const continueAsGuest = () => {

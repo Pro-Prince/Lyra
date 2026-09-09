@@ -464,65 +464,77 @@ export async function clearLocalProfile(): Promise<void> {
 import { supabase } from './supabaseClient';
 
 export async function getProfile() {
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (session) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-    if (error) throw error;
-    // Map snake_case to camelCase
-    return {
-      preferredName: data.preferred_name,
-      conversationalVibe: data.conversational_vibe,
-      topics: data.topics,
-      activeOutfit: data.active_outfit,
-      voicePresetId: data.voice_preset_id
-    };
+    if (session) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      if (!error && data) {
+        return {
+          preferredName: data.preferred_name,
+          conversationalVibe: data.conversational_vibe,
+          topics: data.topics,
+          activeOutfit: data.active_outfit,
+          voicePresetId: data.voice_preset_id
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[storage] Remote profile fetch failed, using local:', err);
   }
 
   return getLocalProfileData();
 }
 
 export async function saveProfile(updates: any) {
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (session) {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ 
-        preferred_name: updates.preferredName,
-        conversational_vibe: updates.conversationalVibe,
-        topics: updates.topics,
-        active_outfit: updates.activeOutfit,
-        voice_preset_id: updates.voicePresetId,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', session.user.id);
-    if (error) throw error;
-    return;
+    if (session) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          preferred_name: updates.preferredName,
+          conversational_vibe: updates.conversationalVibe,
+          topics: updates.topics,
+          active_outfit: updates.activeOutfit,
+          voice_preset_id: updates.voicePresetId,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', session.user.id);
+      if (!error) return;
+    }
+  } catch (err) {
+    console.warn('[storage] Remote profile save failed, using local:', err);
   }
 
   return saveLocalProfileData(updates);
 }
 
 export async function getMemories() {
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (session) {
-    const { data, error } = await supabase
-      .from('memories')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data.map((d: any) => ({
-      id: d.id,
-      text: d.text,
-      createdAt: d.created_at
-    }));
+    if (session) {
+      const { data, error } = await supabase
+        .from('memories')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map((d: any) => ({
+          id: d.id,
+          text: d.text,
+          createdAt: d.created_at
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('[storage] Remote memories fetch failed, using local:', err);
   }
 
   return getLocalMemories();
@@ -530,62 +542,76 @@ export async function getMemories() {
 
 export async function saveMemory(textOrObj: any) {
   const text = typeof textOrObj === 'string' ? textOrObj : (textOrObj.text || textOrObj.content || textOrObj.factSummary || '');
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (session) {
-    const { error } = await supabase
-      .from('memories')
-      .insert({ user_id: session.user.id, text });
-    if (error) throw error;
-    return;
+    if (session) {
+      const { error } = await supabase
+        .from('memories')
+        .insert({ user_id: session.user.id, text });
+      if (!error) return;
+    }
+  } catch (err) {
+    console.warn('[storage] Remote memory save failed, using local:', err);
   }
 
   return saveLocalMemory(textOrObj);
 }
 
 export async function deleteMemory(id: string) {
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (session) {
-    const { error } = await supabase.from('memories').delete().eq('id', id);
-    if (error) throw error;
-    return;
+    if (session) {
+      const { error } = await supabase.from('memories').delete().eq('id', id);
+      if (!error) return;
+    }
+  } catch (err) {
+    console.warn('[storage] Remote memory delete failed, using local:', err);
   }
 
   return deleteLocalMemory(id);
 }
 
 export async function resetChatAndMemory() {
-  const { data: { session } } = await supabase.auth.getSession();
-
   await clearAllMessages(); // always local, chat history never lives in Supabase
 
-  if (session) {
-    await supabase.from('memories').delete().eq('user_id', session.user.id);
-  } else {
-    await clearLocalMemories();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('memories').delete().eq('user_id', session.user.id);
+      return;
+    }
+  } catch (err) {
+    console.warn('[storage] Remote reset failed, clearing local:', err);
   }
+
+  await clearLocalMemories();
 }
 
 export async function wipeAllData() {
-  const { data: { session } } = await supabase.auth.getSession();
-
   await clearAllMessages();
 
-  if (session) {
-    await supabase.from('memories').delete().eq('user_id', session.user.id);
-    await supabase.from('profiles').update({
-      preferred_name: null,
-      conversational_vibe: null,
-      topics: [],
-      active_outfit: 'lyra',
-      voice_preset_id: 'soft-calm',
-      onboarding_completed: false,
-    }).eq('id', session.user.id);
-  } else {
-    await clearLocalMemories();
-    await clearLocalProfile();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('memories').delete().eq('user_id', session.user.id);
+      await supabase.from('profiles').update({
+        preferred_name: null,
+        conversational_vibe: null,
+        topics: [],
+        active_outfit: 'lyra',
+        voice_preset_id: 'soft-calm',
+        onboarding_completed: false,
+      }).eq('id', session.user.id);
+      return;
+    }
+  } catch (err) {
+    console.warn('[storage] Remote wipe failed, clearing local:', err);
   }
+
+  await clearLocalMemories();
+  await clearLocalProfile();
 }
 
 export async function clearAllData(): Promise<void> {
