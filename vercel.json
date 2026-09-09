@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/models/(.*)",
@@ -31,7 +30,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|models/|images/|icons/|favicon|api/|sw\\.js|workbox-|manifest|.*\\.[\\w]+$).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
