@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, User, LogOut, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronUp, User, LogOut, Menu, X, Home, MessageSquare, LogIn, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../hooks/useAuth";
 import Button from "./Button";
@@ -53,7 +53,7 @@ function NavItem({
 }
 
 function MobileNavDropdown({ onClose }: { onClose: () => void }) {
-  const { isAuthed } = useAuth();
+  const { isAuthed, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,7 +69,6 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
   const isHome = location.pathname === "/";
   const isChat = location.pathname === "/chat";
   const isLogin = location.pathname === "/login";
-  const isSignUp = location.pathname === "/signup";
   const isAccount = location.pathname === "/account" || location.pathname === "/settings";
 
   return (
@@ -82,85 +81,116 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
         transition={{ duration: 0.16, ease: "easeOut" }}
         className="nav-dropdown"
       >
-        {/* HOME ITEM */}
-        <Link
-          to="/"
-          onClick={onClose}
-          className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
-            isHome
-              ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
-          }`}
-        >
-          Home
-        </Link>
-
-        {/* CHAT ITEM (ONLY VISIBLE WHEN SIGNED IN) */}
-        {isAuthed && (
-          <Link
-            to="/chat"
-            onClick={onClose}
-            className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
-              isChat
-                ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
-            }`}
-          >
-            Chat
-          </Link>
-        )}
-
-        {/* SUBTLE DIVIDER */}
-        <div className="nav-dropdown-divider" />
-
         {isAuthed ? (
-          <>
+          /* AFTER LOGIN (MOBILE) */
+          <div className="flex flex-col gap-1">
+            {session?.user?.email && (
+              <div className="px-3 py-1.5 mb-0.5 border-b border-[var(--text-primary)]/10">
+                <p className="text-[11px] font-medium text-[var(--text-muted)] truncate">
+                  {session.user.email}
+                </p>
+              </div>
+            )}
+
+            {/* HOME */}
+            <Link
+              to="/"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+                isHome
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Home className={`w-4 h-4 shrink-0 ${isHome ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <span>Home</span>
+            </Link>
+
+            {/* CHAT */}
+            <Link
+              to="/chat"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+                isChat
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <MessageSquare className={`w-4 h-4 shrink-0 ${isChat ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <span>Chat</span>
+            </Link>
+
+            {/* ACCOUNT */}
             <Link
               to="/account"
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
                 isAccount
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 font-normal"
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
               }`}
             >
-              <User className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+              <User className={`w-4 h-4 shrink-0 ${isAccount ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
               <span>Account</span>
             </Link>
 
+            {/* SUBTLE CLEAN DIVIDER */}
+            <div className="nav-dropdown-divider my-0.5" />
+
+            {/* LOG OUT */}
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[15px] font-body text-[var(--text-danger)] hover:bg-[var(--text-danger)]/10 transition-colors text-left cursor-pointer font-medium"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium text-red-400/90 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left cursor-pointer active:scale-[0.98]"
             >
-              <LogOut className="w-4 h-4 text-[var(--text-danger)] shrink-0" />
+              <LogOut className="w-4 h-4 shrink-0 text-red-400/90" />
               <span>Log Out</span>
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            {/* LOGIN ITEM */}
+          /* BEFORE LOGIN / LOGGED OUT (MOBILE) */
+          <div className="flex flex-col gap-1">
+            {/* HOME */}
+            <Link
+              to="/"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+                isHome
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Home className={`w-4 h-4 shrink-0 ${isHome ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <span>Home</span>
+            </Link>
+
+            {/* LOGIN */}
             <Link
               to="/login"
               onClick={onClose}
-              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
                 isLogin
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-medium"
-                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 font-normal"
+                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
+                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
               }`}
             >
-              Login
+              <LogIn className={`w-4 h-4 shrink-0 ${isLogin ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <span>Login</span>
             </Link>
 
-            {/* SIGN UP BUTTON (Prominent) */}
+            {/* SUBTLE CLEAN DIVIDER */}
+            <div className="nav-dropdown-divider my-0.5" />
+
+            {/* SIGN UP BUTTON (Prominent, High-Contrast Luxury Design) */}
             <Link
               to="/signup"
               onClick={onClose}
-              className="mt-2 block w-full px-4 py-2.5 rounded-xl text-[15px] font-body font-semibold text-center bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-colors"
+              className="mt-0.5 flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-center bg-[var(--accent-primary)] text-[#160F17] hover:bg-[#ff7eb6] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(255,143,192,0.25)]"
             >
-              Sign Up
+              <UserPlus className="w-4 h-4 shrink-0 text-[#160F17]" />
+              <span>Sign Up</span>
             </Link>
-          </>
+          </div>
         )}
       </motion.div>
     </>

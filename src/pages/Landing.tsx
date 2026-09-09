@@ -14,8 +14,7 @@ import {
   Trash2, 
   Smartphone,
   User,
-  MessageSquare,
-  RefreshCw
+  MessageSquare
 } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
@@ -49,19 +48,19 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "account",
     icon: User,
     question: "Do I need to create an account?",
-    answer: "No, not yet. Everything stays on your device for now."
+    answer: "Yes. An account (via Google or email) is required to talk with Lyra, this keeps your profile and her memory of you tied securely to you across sessions."
   },
   {
     id: "privacy",
     icon: ShieldCheck,
     question: "Is my data private?",
-    answer: "Your conversations are stored locally on your device. Only the message text itself is sent to Google's Gemini API to generate her responses."
+    answer: "Your account and profile data are stored securely and are only ever accessible to you. Your full conversation history never leaves your device, only the message text itself is sent to Google's Gemini API to generate responses."
   },
   {
     id: "delete",
     icon: Trash2,
     question: "Can I delete my data?",
-    answer: "Yes, anytime, from Settings, and it's immediate and irreversible."
+    answer: "Yes. You can reset your conversations and memories, or wipe all local data, anytime from Settings. To delete your account entirely, contact us and we'll take care of it."
   },
   {
     id: "mobile",

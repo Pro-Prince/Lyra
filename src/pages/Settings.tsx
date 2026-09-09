@@ -124,7 +124,7 @@ export default function Settings() {
       <div className="mb-6 sm:mb-10 max-w-6xl mx-auto w-full pt-2 sm:pt-6">
         <h1 className="text-2xl sm:text-4xl font-heading font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
         <p className="text-xs sm:text-base text-[var(--text-muted)] mt-1.5 sm:mt-2 font-body max-w-2xl leading-relaxed">
-          Manage your local preferences and profile.
+          Manage your account preferences, profile, and companion settings.
         </p>
       </div>
 
@@ -315,7 +315,7 @@ export default function Settings() {
             </div>
             <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanent actions and local data resets</p>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanent actions and data resets</p>
             </div>
           </div>
 
@@ -413,14 +413,14 @@ export default function Settings() {
 
       </motion.div>
 
-      {/* Local Storage Privacy Note */}
+      {/* Privacy Note */}
       <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-8 font-body">
         <div className="flex items-start justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
           <div className="h-5 flex items-center justify-center shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
           </div>
           <p className="text-xs text-[var(--text-muted)] leading-5 text-left sm:text-center">
-            Stored locally on your device for complete privacy.
+            Conversation history is kept locally on your device. Profile and memories sync securely to your account.
           </p>
         </div>
       </footer>

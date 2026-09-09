@@ -17,7 +17,7 @@ export default function Terms() {
                 <Heading1 className="tracking-tight text-left">Terms of Service</Heading1>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-1">
                   <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>Last updated: August 23, 2026</span>
+                  <span>Last updated: September 9, 2026</span>
                 </div>
               </div>
             </div>
@@ -45,44 +45,51 @@ export default function Terms() {
             </section>
 
             <section className="space-y-2">
-              <Heading2>4. Acceptable Use</Heading2>
+              <Heading2>4. Accounts</Heading2>
+              <BodyText>
+                You must create an account to use Lyra's chat experience. You're responsible for maintaining the security of your account credentials and for all activity that occurs under your account. You must be 18 or older to create an account, consistent with our age eligibility requirement throughout these Terms. If you believe your account has been compromised, contact us immediately at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a>.
+              </BodyText>
+            </section>
+
+            <section className="space-y-2">
+              <Heading2>5. Acceptable Use</Heading2>
               <BodyText>
                 You must not use Lyra for any illegal or unauthorized purpose, attempt to extract, scrape, or reverse-engineer the app's underlying models or assets, or attempt to disrupt or bypass any part of the service.
               </BodyText>
             </section>
 
             <section className="space-y-2">
-              <Heading2>5. Your Content</Heading2>
+              <Heading2>6. Your Content</Heading2>
               <BodyText>
                 You're responsible for what you say to Lyra. Message content is processed by Google's Gemini API to generate responses, as described in our Privacy Policy.
               </BodyText>
             </section>
 
             <section className="space-y-2">
-              <Heading2>6. No Account, No Guarantee of Persistence</Heading2>
+              <Heading2>7. Data Storage and Device Transfer</Heading2>
               <BodyText>
-                Lyra currently stores your data locally on your device, not on a server. If you clear your browser data, switch devices, or uninstall the app, your conversation history and memories are not recoverable. This is a deliberate part of how the current version works, not a bug.
+                Profile preferences and companion memories sync securely to your account via our cloud database, allowing them to carry over across sessions and devices. Your actual message and conversation history is stored locally on your device and browser only, and will not transfer if you switch devices or clear your browser data.
               </BodyText>
             </section>
 
             <section className="space-y-2">
-              <Heading2>7. Disclaimer</Heading2>
+              <Heading2>8. Disclaimer</Heading2>
               <BodyText>
                 The service is provided "as is" and "as available." We make no warranties, expressed or implied, about its availability, accuracy, or fitness for any particular purpose.
               </BodyText>
             </section>
 
             <section className="space-y-2">
-              <Heading2>8. Limitation of Liability</Heading2>
+              <Heading2>9. Limitation of Liability</Heading2>
               <BodyText>
-                We are not liable for any damages arising from your use of, or inability to use, the service, including loss of locally stored data.
+                We are not liable for any damages arising from your use of, or inability to use, the service, including loss of locally stored conversation data.
               </BodyText>
             </section>
 
             <section className="space-y-2">
-              <Heading2>9. Termination</Heading2>
+              <Heading2>10. Termination</Heading2>
               <BodyText>
-                We may suspend or discontinue the service at any time, for any reason, without prior notice.
+                We may suspend or terminate your account or discontinue the service at any time, for any reason, without prior notice.
               </BodyText>
             </section>
 

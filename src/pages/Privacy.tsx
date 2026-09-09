@@ -16,7 +16,7 @@ export default function Privacy() {
             <div>
               <Heading1>Privacy Policy</Heading1>
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-0.5">
-                <Clock className="w-3.5 h-3.5" /> Last updated: August 23, 2026
+                <Clock className="w-3.5 h-3.5" /> Last updated: September 9, 2026
               </div>
             </div>
           </div>
@@ -29,50 +29,77 @@ export default function Privacy() {
               </BodyText>
             </section>
 
-            <section className="space-y-2">
-              <Heading2>2. Data We Collect</Heading2>
-              <ul className="space-y-1.5 list-disc pl-5 text-[var(--text-muted)]">
-                <li><strong className="text-[var(--text-primary)]">Companion Data:</strong> your name preference, companion settings, and conversation history, stored locally on your device.</li>
-                <li><strong className="text-[var(--text-primary)]">Memory Data:</strong> summarized facts Lyra remembers about your conversations over time, also stored locally on your device.</li>
-                <li><strong className="text-[var(--text-primary)]">Message Content:</strong> the text of what you say to Lyra, sent to Google's Gemini API to generate her responses.</li>
-              </ul>
-              <BodyText className="mt-3">
-                We do not currently require an account, and we do not collect your name, email, or identity through any sign-up process, there isn't one yet.
-              </BodyText>
+            <section className="space-y-4">
+              <Heading2>2. What We Store</Heading2>
+
+              <div className="space-y-1">
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Account Information</h3>
+                <BodyText>
+                  When you create an account (via Google or email), we store your email address and a securely hashed password (if you signed up with email), handled by our authentication provider, Supabase. If you sign in with Google, we receive your name and email address from your Google account.
+                </BodyText>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Profile and Memory Data</h3>
+                <BodyText>
+                  Your preferred name, conversational preferences, chosen outfit, voice preset, and the things Lyra remembers about you are stored securely in our database, tied to your account, protected so that only you can ever access your own data.
+                </BodyText>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Conversation History</h3>
+                <BodyText>
+                  Your actual message history stays local to your device and browser only. It is never uploaded to our servers. If you switch devices or clear your browser data, your conversation history will not transfer, though your profile and memories will, since your account carries those with it.
+                </BodyText>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Message Processing</h3>
+                <BodyText>
+                  Only the text of your messages is sent to Google's Gemini API to generate Lyra's responses, this has not changed.
+                </BodyText>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Deleting Your Data</h3>
+                <BodyText>
+                  You can reset your conversations and memories, or wipe all local app data, at any time from Settings. To delete your account entirely, including your profile and all associated data, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a> and we'll process the request promptly.
+                </BodyText>
+              </div>
             </section>
 
             <section className="space-y-2">
               <Heading2>3. How We Use Your Data</Heading2>
               <BodyText>
-                Your companion settings and memory data stay on your device and are used only to make conversations with Lyra feel continuous. Message content is sent to Google's Gemini API solely to generate her response to you, that is the only data that ever leaves your device in the current version of the app.
+                Your account information, profile settings, and memory data are used to authenticate you and keep your companion interactions consistent and continuous across sessions. Your full conversation history stays on your device. Message content is sent to Google's Gemini API solely to generate her response to you.
               </BodyText>
             </section>
 
             <section className="space-y-2">
               <Heading2>4. Data Storage and Security</Heading2>
               <BodyText>
-                Everything except message content sent for a response stays in your browser's local storage (IndexedDB). Nothing is stored on our servers in the current version of Lyra, because we don't operate one, there's nothing to secure on our end beyond what Google secures on theirs for the Gemini API call itself.
+                Your profile and memory data are stored securely in our database powered by Supabase, tied to your account and protected so that only you can access your own data. Conversation history is kept in your device's local storage (IndexedDB) and is never uploaded to our servers. Authentication credentials are secure and handled via Supabase Auth.
               </BodyText>
             </section>
 
             <section className="space-y-2">
               <Heading2>5. Data Sharing</Heading2>
               <BodyText>
-                We do not sell your data. The only third party your data ever touches is Google, via the Gemini API, and only the message text needed to generate a response.
+                We do not sell your data. We share data only with the third-party providers essential for operating Lyra: Supabase (for secure user authentication and cloud profile/memory storage) and Google (via the Gemini API solely for the message text needed to generate responses).
               </BodyText>
             </section>
 
             <section className="space-y-2">
               <Heading2>6. Your Rights</Heading2>
               <BodyText>
-                You can delete all of your data at any time from Settings, this is immediate and irreversible. If you have questions about what's stored or want help removing something, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a>.
+                You can delete your local conversation history and reset memories at any time from Settings. To delete your account entirely, including your profile and all associated data, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a> and we'll process the request promptly.
               </BodyText>
             </section>
 
             <section className="space-y-2">
               <Heading2>7. Age Requirement</Heading2>
               <BodyText>
-                Lyra is intended for adults 18 and older. We do not knowingly collect data from anyone under 18, and we do not ask for or store your age or date of birth anywhere in the app.
+                Lyra is intended for adults 18 and older. You must be 18 or older to create an account and use Lyra. We do not knowingly collect data from anyone under 18.
               </BodyText>
             </section>
 
