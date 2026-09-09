@@ -1,22 +1,46 @@
 /**
- * StorageAdapter interface, implement this exactly for any future backend swap:
- * getCompanion(): Promise<Companion|null>
- * saveCompanion(data): Promise<void>
- * saveMessage(msg): Promise<void>
- * getMessages(limit?): Promise<Message[]>
- * saveMemory(mem): Promise<void>
- * getMemories(): Promise<Memory[]>
- * deleteMemory(id): Promise<void>
- 
- 
- * getNotificationPreferences(): Promise<NotifPrefs|null>
- * saveNotificationPreferences(data): Promise<void>
- * getLocalProfile(): Promise<LocalProfile|null>
- * saveLocalProfile(data): Promise<void>
+ * Lyra Three-Layer Personalization Storage Architecture
+ * 
+ * Layer 1: Profile - structured, small, permanent until explicitly reset.
+ * Layer 2: Memories - distilled, durable facts, short (<= 20 words), timestamped.
+ * Layer 3: Recent Context - the last several messages of the current conversation.
+ * 
+ * Future Supabase Interface Boundary:
+ * All storage operations must go through these exported storage functions so swapping 
+ * the storage backend touches only this module and no consuming components.
  */
 
+export interface Profile {
+  preferredName: string;
+  conversationalVibe: string; // from onboarding
+  topics: string[]; // from onboarding
+  activeOutfit: string;
+  voicePresetId: string;
+}
+
+export interface Memory {
+  id: string;
+  text: string; // one plain sentence, 20 words or fewer
+  createdAt: string; // ISOString
+}
+
+export interface RecentMessage {
+  id?: string;
+  sender: 'user' | 'Lyra';
+  text: string;
+  timestamp?: number;
+}
+
 const DB_NAME = 'lyra-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+const DEFAULT_PROFILE: Profile = {
+  preferredName: 'Friend',
+  conversationalVibe: 'Warm & Gentle',
+  topics: ['Daily Life', 'Mindfulness'],
+  activeOutfit: '/models/lyra.vrm',
+  voicePresetId: 'soft-calm',
+};
 
 function withMeta<T>(record: T & { id?: string; updatedAt?: string }): T & { id: string; updatedAt: string } {
   return {
@@ -36,6 +60,9 @@ function openLyraDB(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains('profile')) {
+        db.createObjectStore('profile');
+      }
       if (!db.objectStoreNames.contains('companion')) {
         db.createObjectStore('companion');
       }
@@ -55,28 +82,231 @@ function openLyraDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function getCompanion(): Promise<any> {
+// ==========================================
+// LAYER 1: PROFILE
+// ==========================================
+
+export async function getLocalProfileData(): Promise<Profile> {
   const db = await openLyraDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('companion', 'readonly');
-    const store = tx.objectStore('companion');
-    const req = store.get('current');
-    req.onsuccess = () => resolve(req.result || null);
+  return new Promise<Profile>((resolve, reject) => {
+    const tx = db.transaction(['profile', 'companion', 'localProfile'], 'readonly');
+    const profileStore = tx.objectStore('profile');
+    const req = profileStore.get('current');
+
+    req.onsuccess = () => {
+      if (req.result) {
+        resolve({
+          preferredName: req.result.preferredName || DEFAULT_PROFILE.preferredName,
+          conversationalVibe: req.result.conversationalVibe || DEFAULT_PROFILE.conversationalVibe,
+          topics: Array.isArray(req.result.topics) ? req.result.topics : DEFAULT_PROFILE.topics,
+          activeOutfit: req.result.activeOutfit || DEFAULT_PROFILE.activeOutfit,
+          voicePresetId: req.result.voicePresetId || DEFAULT_PROFILE.voicePresetId,
+        });
+        return;
+      }
+
+      // Fallback migration check from legacy companion / localProfile stores
+      const compReq = tx.objectStore('companion').get('current');
+      compReq.onsuccess = () => {
+        const comp = compReq.result || {};
+        const localReq = tx.objectStore('localProfile').get('current');
+        localReq.onsuccess = () => {
+          const local = localReq.result || {};
+          const fallback: Profile = {
+            preferredName: comp.userPreferredName || comp.userName || local.name || DEFAULT_PROFILE.preferredName,
+            conversationalVibe: comp.conversationalVibe || comp.vibe || DEFAULT_PROFILE.conversationalVibe,
+            topics: Array.isArray(comp.interests) ? comp.interests : (Array.isArray(comp.topics) ? comp.topics : DEFAULT_PROFILE.topics),
+            activeOutfit: comp.outfit || DEFAULT_PROFILE.activeOutfit,
+            voicePresetId: comp.voicePreset || comp.voiceUri || DEFAULT_PROFILE.voicePresetId,
+          };
+          resolve(fallback);
+        };
+        localReq.onerror = () => resolve(DEFAULT_PROFILE);
+      };
+      compReq.onerror = () => resolve(DEFAULT_PROFILE);
+    };
+
     req.onerror = () => reject(req.error);
   });
 }
 
-export async function saveCompanion(data: any): Promise<void> {
+export async function saveLocalProfileData(profile: Partial<Profile>): Promise<void> {
+  const db = await openLyraDB();
+  const current = await getLocalProfileData();
+  const updated: Profile = {
+    preferredName: profile.preferredName ?? current.preferredName,
+    conversationalVibe: profile.conversationalVibe ?? current.conversationalVibe,
+    topics: Array.isArray(profile.topics) ? profile.topics : current.topics,
+    activeOutfit: profile.activeOutfit ?? current.activeOutfit,
+    voicePresetId: profile.voicePresetId ?? current.voicePresetId,
+  };
+
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(['profile', 'companion', 'localProfile'], 'readwrite');
+    const profileStore = tx.objectStore('profile');
+    profileStore.put(withMeta(updated), 'current');
+
+    // Also keep legacy stores in sync for backwards compatibility
+    const compStore = tx.objectStore('companion');
+    const compReq = compStore.get('current');
+    compReq.onsuccess = () => {
+      const existing = compReq.result || {};
+      compStore.put(withMeta({
+        ...existing,
+        name: 'Lyra',
+        userName: updated.preferredName,
+        userPreferredName: updated.preferredName,
+        conversationalVibe: updated.conversationalVibe,
+        vibe: updated.conversationalVibe,
+        interests: updated.topics,
+        topics: updated.topics,
+        outfit: updated.activeOutfit,
+        voicePreset: updated.voicePresetId,
+      }), 'current');
+    };
+
+    const localStore = tx.objectStore('localProfile');
+    const localReq = localStore.get('current');
+    localReq.onsuccess = () => {
+      const existing = localReq.result || {};
+      localStore.put(withMeta({
+        ...existing,
+        name: updated.preferredName,
+      }), 'current');
+    };
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ==========================================
+// LAYER 2: MEMORIES
+// ==========================================
+
+export function validateMemory(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const wordCount = text.trim().split(/\s+/).length;
+  if (wordCount > 20) {
+    console.warn('Memory too long, truncating or rejecting:', text);
+    return false;
+  }
+  return true;
+}
+
+export function sanitizeMemoryText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  let clean = text.trim();
+  // Remove bullet points and surrounding quotes
+  clean = clean.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim();
+  const words = clean.split(/\s+/);
+  if (words.length > 20) {
+    clean = words.slice(0, 20).join(' ') + '.';
+  }
+  if (!/[.!?]$/.test(clean)) {
+    clean += '.';
+  }
+  return clean;
+}
+
+export async function getLocalMemories(): Promise<Memory[]> {
+  const db = await openLyraDB();
+  return new Promise<Memory[]>((resolve, reject) => {
+    const tx = db.transaction('memories', 'readonly');
+    const store = tx.objectStore('memories');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      const rawList = req.result || [];
+      const normalized: Memory[] = rawList.map((m: any) => {
+        const textVal = m.text || m.factSummary || m.content || '';
+        return {
+          id: m.id || crypto.randomUUID(),
+          text: sanitizeMemoryText(textVal),
+          createdAt: m.createdAt || m.timestamp || new Date().toISOString(),
+        };
+      }).filter((m: Memory) => m.text.length > 0);
+
+      // Sort newest first
+      normalized.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      resolve(normalized);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function saveLocalMemory(memory: string | { id?: string; text?: string; content?: string; factSummary?: string; createdAt?: string | number; [key: string]: any }): Promise<void> {
+  let memObj = typeof memory === 'string' ? { text: memory } : memory;
+  const rawText = memObj.text || memObj.factSummary || memObj.content || '';
+  if (!validateMemory(rawText)) {
+    const sanitized = sanitizeMemoryText(rawText);
+    if (!sanitized) {
+      console.warn('Rejected invalid memory entry:', memory);
+      return;
+    }
+  }
+
+  const cleanText = sanitizeMemoryText(rawText);
   const db = await openLyraDB();
   return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('companion', 'readwrite');
-    const store = tx.objectStore('companion');
-    const payload = withMeta(data);
-    const req = store.put(payload, 'current');
+    const tx = db.transaction('memories', 'readwrite');
+    const store = tx.objectStore('memories');
+    const createdAtStr = typeof memObj.createdAt === 'number' 
+      ? new Date(memObj.createdAt).toISOString() 
+      : (memObj.createdAt || new Date().toISOString());
+
+    const payload: Memory = {
+      id: memObj.id || crypto.randomUUID(),
+      text: cleanText,
+      createdAt: createdAtStr,
+    };
+    const req = store.put(payload);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
 }
+
+export async function deleteLocalMemory(id: string): Promise<void> {
+  const db = await openLyraDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('memories', 'readwrite');
+    const store = tx.objectStore('memories');
+    const req = store.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ==========================================
+// LAYER 3: RECENT CONTEXT
+// ==========================================
+
+export async function getRecentMessages(limit: number = 10): Promise<RecentMessage[]> {
+  const db = await openLyraDB();
+  return new Promise<RecentMessage[]>((resolve, reject) => {
+    const tx = db.transaction('messages', 'readonly');
+    const store = tx.objectStore('messages');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      let results = req.result || [];
+      results.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      if (limit > 0 && results.length > limit) {
+        results = results.slice(-limit);
+      }
+      const mapped: RecentMessage[] = results.map((m: any) => ({
+        id: m.id,
+        sender: (m.role === 'user' ? 'user' : 'Lyra') as 'user' | 'Lyra',
+        text: String(m.content || m.text || '').trim(),
+        timestamp: m.timestamp || (m.createdAt ? new Date(m.createdAt).getTime() : Date.now()),
+      })).filter((m: RecentMessage) => m.text.length > 0);
+      resolve(mapped);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ==========================================
+// COMPANION / MESSAGE COMPATIBILITY HELPERS
+// ==========================================
 
 export async function saveMessage(msg: any): Promise<void> {
   const db = await openLyraDB();
@@ -85,7 +315,7 @@ export async function saveMessage(msg: any): Promise<void> {
     const store = tx.objectStore('messages');
     const payload = withMeta({
       timestamp: msg.timestamp || Date.now(),
-      ...msg
+      ...msg,
     });
     const req = store.put(payload);
     req.onsuccess = () => resolve();
@@ -111,43 +341,39 @@ export async function getMessages(limit?: number): Promise<any[]> {
   });
 }
 
-export async function saveMemory(mem: any): Promise<void> {
+export async function getCompanion(): Promise<any> {
+  const db = await openLyraDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('companion', 'readonly');
+    const store = tx.objectStore('companion');
+    const req = store.get('current');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function saveCompanion(data: any): Promise<void> {
   const db = await openLyraDB();
   return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('memories', 'readwrite');
-    const store = tx.objectStore('memories');
-    const payload = withMeta({
-      createdAt: mem.createdAt || new Date().toISOString(),
-      ...mem
-    });
-    const req = store.put(payload);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    const tx = db.transaction(['companion', 'profile'], 'readwrite');
+    const store = tx.objectStore('companion');
+    const payload = withMeta(data);
+    store.put(payload, 'current');
+
+    // Keep profile store synced
+    const profileStore = tx.objectStore('profile');
+    profileStore.put(withMeta({
+      preferredName: data.userPreferredName || data.userName || DEFAULT_PROFILE.preferredName,
+      conversationalVibe: data.conversationalVibe || data.vibe || DEFAULT_PROFILE.conversationalVibe,
+      topics: data.interests || data.topics || DEFAULT_PROFILE.topics,
+      activeOutfit: data.outfit || DEFAULT_PROFILE.activeOutfit,
+      voicePresetId: data.voicePreset || data.voiceUri || DEFAULT_PROFILE.voicePresetId,
+    }), 'current');
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
-
-export async function getMemories(): Promise<any[]> {
-  const db = await openLyraDB();
-  return new Promise<any[]>((resolve, reject) => {
-    const tx = db.transaction('memories', 'readonly');
-    const store = tx.objectStore('memories');
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function deleteMemory(id: string): Promise<void> {
-  const db = await openLyraDB();
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('memories', 'readwrite');
-    const store = tx.objectStore('memories');
-    const req = store.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
 
 export async function getNotificationPreferences(): Promise<any> {
   const db = await openLyraDB();
@@ -195,12 +421,32 @@ export async function saveLocalProfile(data: any): Promise<void> {
   });
 }
 
-export async function migrateIndexedDBToSupabase(_userId?: string) {}
-
-export async function clearAllData(): Promise<void> {
+export async function clearAllMessages(): Promise<void> {
   const db = await openLyraDB();
-  const stores = ['companion', 'messages', 'memories', 'notificationPreferences', 'localProfile'];
-  for (const storeName of stores) {
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('messages', 'readwrite');
+    const store = tx.objectStore('messages');
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function clearLocalMemories(): Promise<void> {
+  const db = await openLyraDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('memories', 'readwrite');
+    const store = tx.objectStore('memories');
+    const req = store.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function clearLocalProfile(): Promise<void> {
+  const db = await openLyraDB();
+  const profileStores = ['profile', 'companion', 'localProfile', 'notificationPreferences'];
+  for (const storeName of profileStores) {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(storeName, 'readwrite');
       const store = tx.objectStore(storeName);
@@ -211,25 +457,150 @@ export async function clearAllData(): Promise<void> {
   }
 }
 
+// ==========================================
+// SUPABASE / LOCAL FALLBACK WRAPPERS
+// ==========================================
+
+import { supabase } from './supabaseClient';
+
+export async function getProfile() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    if (error) throw error;
+    // Map snake_case to camelCase
+    return {
+      preferredName: data.preferred_name,
+      conversationalVibe: data.conversational_vibe,
+      topics: data.topics,
+      activeOutfit: data.active_outfit,
+      voicePresetId: data.voice_preset_id
+    };
+  }
+
+  return getLocalProfileData();
+}
+
+export async function saveProfile(updates: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        preferred_name: updates.preferredName,
+        conversational_vibe: updates.conversationalVibe,
+        topics: updates.topics,
+        active_outfit: updates.activeOutfit,
+        voice_preset_id: updates.voicePresetId,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', session.user.id);
+    if (error) throw error;
+    return;
+  }
+
+  return saveLocalProfileData(updates);
+}
+
+export async function getMemories() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    const { data, error } = await supabase
+      .from('memories')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map((d: any) => ({
+      id: d.id,
+      text: d.text,
+      createdAt: d.created_at
+    }));
+  }
+
+  return getLocalMemories();
+}
+
+export async function saveMemory(textOrObj: any) {
+  const text = typeof textOrObj === 'string' ? textOrObj : (textOrObj.text || textOrObj.content || textOrObj.factSummary || '');
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    const { error } = await supabase
+      .from('memories')
+      .insert({ user_id: session.user.id, text });
+    if (error) throw error;
+    return;
+  }
+
+  return saveLocalMemory(textOrObj);
+}
+
+export async function deleteMemory(id: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    const { error } = await supabase.from('memories').delete().eq('id', id);
+    if (error) throw error;
+    return;
+  }
+
+  return deleteLocalMemory(id);
+}
+
+export async function resetChatAndMemory() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  await clearAllMessages(); // always local, chat history never lives in Supabase
+
+  if (session) {
+    await supabase.from('memories').delete().eq('user_id', session.user.id);
+  } else {
+    await clearLocalMemories();
+  }
+}
+
+export async function wipeAllData() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  await clearAllMessages();
+
+  if (session) {
+    await supabase.from('memories').delete().eq('user_id', session.user.id);
+    await supabase.from('profiles').update({
+      preferred_name: null,
+      conversational_vibe: null,
+      topics: [],
+      active_outfit: 'lyra',
+      voice_preset_id: 'soft-calm',
+      onboarding_completed: false,
+    }).eq('id', session.user.id);
+  } else {
+    await clearLocalMemories();
+    await clearLocalProfile();
+  }
+}
+
+export async function clearAllData(): Promise<void> {
+  await clearAllMessages();
+  await clearLocalMemories();
+  await clearLocalProfile();
+}
+
 export async function resetCompanionHistory(): Promise<void> {
-  const db = await openLyraDB();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('messages', 'readwrite');
-    const store = tx.objectStore('messages');
-    const req = store.clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('memories', 'readwrite');
-    const store = tx.objectStore('memories');
-    const req = store.clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+  await clearAllMessages();
+  await clearLocalMemories();
 }
 
 export async function exportAllData(): Promise<string> {
+  const profile = await getProfile();
   const companion = await getCompanion();
   const messages = await getMessages();
   const memories = await getMemories();
@@ -237,8 +608,9 @@ export async function exportAllData(): Promise<string> {
   const localProfile = await getLocalProfile();
 
   const payload = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
+    profile,
     companion,
     messages,
     memories,
@@ -257,6 +629,7 @@ export async function importAllData(jsonString: string): Promise<void> {
 
   await clearAllData();
 
+  if (data.profile) await saveProfile(data.profile);
   if (data.companion) await saveCompanion(data.companion);
   if (Array.isArray(data.messages)) {
     for (const msg of data.messages) {
@@ -273,17 +646,36 @@ export async function importAllData(jsonString: string): Promise<void> {
 }
 
 export const storage = {
-  getCompanion,
-  saveCompanion,
+  // Layer 1: Profile
+  getProfile,
+  saveProfile,
+
+  // Layer 2: Memories
+  getMemories,
+  saveMemory,
+  deleteMemory,
+  validateMemory,
+  sanitizeMemoryText,
+
+  // Layer 3: Recent Context
+  getRecentMessages,
+
+  // Supporting storage methods
   saveMessage,
   getMessages,
-  saveMemory,
-  getMemories,
-  deleteMemory,
+  getCompanion,
+  saveCompanion,
   getNotificationPreferences,
   saveNotificationPreferences,
   getLocalProfile,
   saveLocalProfile,
-  
-  
+  clearAllMessages,
+  clearLocalMemories,
+  clearLocalProfile,
+  resetChatAndMemory,
+  wipeAllData,
+  clearAllData,
+  resetCompanionHistory,
+  exportAllData,
+  importAllData,
 };

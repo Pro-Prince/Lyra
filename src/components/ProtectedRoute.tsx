@@ -1,13 +1,13 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Sparkles } from 'lucide-react';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, isLoading, isConfigured, isGuestMode } = useAuth();
+  const { isAuthed, loading, isGuestMode } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen w-full bg-[var(--bg-base)] flex flex-col items-center justify-center text-[var(--text-primary)]">
         <div className="relative flex flex-col items-center gap-4">
@@ -22,18 +22,9 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  // 1. If Supabase is configured: require real authenticated user
-  if (isConfigured) {
-    if (!user) {
-      return <Navigate to="/" state={{ from: location }} replace />;
-    }
-    return <>{children}</>;
+  if (!isAuthed && !isGuestMode) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Fallback mode (Supabase not yet configured): check if user confirmed age/guest mode
-  if (user || isGuestMode) {
-    return <>{children}</>;
-  }
-
-  return <Navigate to="/" state={{ from: location }} replace />;
+  return <>{children}</>;
 }

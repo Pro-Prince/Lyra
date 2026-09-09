@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getCompanion, saveCompanion, getLocalProfile } from "../lib/storage";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import { getOutfitLabel, getOutfitUrl, isSameOutfit } from "../lib/companionRenderer";
 import { 
@@ -148,7 +148,7 @@ function OutfitShowcase() {
 export default function Landing() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isGuestMode, continueAsGuest } = useAuth();
+  const { isAuthed, isGuestMode, continueAsGuest } = useAuth();
 
   const [, setCanGoToChat] = useState(false);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
@@ -185,10 +185,13 @@ export default function Landing() {
   }, []);
 
   const handleCTAClick = async () => {
-    const isAuthenticated = user || isGuestMode;
-    if (!isAuthenticated) {
-      await continueAsGuest();
+    if (!isAuthed && !isGuestMode) {
+      // By default if they click get started, send to signup. 
+      // Guest mode can be triggered from signup page.
+      navigate("/signup");
+      return;
     }
+    
     const profile = await getLocalProfile();
     const companion = await getCompanion();
     

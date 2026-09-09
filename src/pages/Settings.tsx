@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory } from "../lib/storage";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, clearAllMessages, storage } from "../lib/storage";
 import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
@@ -10,12 +10,13 @@ import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from ".
 import { VoicePicker } from "../components/VoicePicker";
 import { useToast } from "../hooks/useToast";
 import Button from "../components/Button";
-import { useMockAuthState } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Settings() {
   const navigate = useNavigate();
   const { showInfo, showError } = useToast();
-  const { isMockAuthed, mockUser } = useMockAuthState();
+  const { isAuthed, session } = useAuth();
+  const mockUser = session?.user ? { email: session.user.email, name: session.user.user_metadata?.full_name || '' } : null;
   const [memories, setMemories] = useState<any[]>([]);
   
   // Customization
@@ -23,7 +24,7 @@ export default function Settings() {
 
   // Destructive Action Confirmation strings
   const [resetConfirm, setResetConfirm] = useState("");
-  const [clearConfirm, setClearConfirm] = useState("");
+  const [wipeConfirm, setWipeConfirm] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -50,19 +51,21 @@ export default function Settings() {
     };
   }, []);
 
-  const handleClear = async () => {
-    if (clearConfirm === "CLEAR") {
-      await clearAllData();
-      showInfo("All app data wiped");
-      navigate("/");
+  const handleResetChatAndMemory = async () => {
+    if (resetConfirm === "RESET") {
+      await storage.resetChatAndMemory();
+      // profile (name, vibe, topics, outfit, voice) is NOT touched
+      showInfo("Chat history and memories reset");
+      navigate('/chat'); // she should greet fresh, but still know the user's name and preferences
     }
   };
 
-  const handleResetCompanion = async () => {
-    if (resetConfirm === "RESET") {
-      await resetCompanionHistory();
-      showInfo("Chat history and memories reset");
-      navigate("/chat");
+  const handleWipeAllData = async () => {
+    if (wipeConfirm === "WIPE") {
+      await storage.wipeAllData();
+      localStorage.clear(); // any onboarding-completion flags, install-banner dismissal, etc.
+      showInfo("All app data wiped");
+      navigate('/onboarding'); // full first-time experience again
     }
   };
 
@@ -160,7 +163,7 @@ export default function Settings() {
                   type="text" 
                   defaultValue={mockUser?.name} 
                   placeholder="What should she call you?" 
-                  disabled={!isMockAuthed} 
+                  disabled={!isAuthed} 
                   className="disabled:opacity-50"
                 />
               </div>
@@ -179,7 +182,7 @@ export default function Settings() {
             {/* Bottom Section */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 sm:pt-6 border-t border-[var(--text-primary)]/[0.06]">
               <div className="hidden sm:block">
-                {!isMockAuthed && (
+                {!isAuthed && (
                   <p className="text-sm text-[var(--text-muted)] flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
                     <span>
@@ -192,7 +195,7 @@ export default function Settings() {
                 variant="primary" 
                 size="sm" 
                 type="submit" 
-                disabled={!isMockAuthed} 
+                disabled={!isAuthed} 
                 className="h-10 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-5 w-full sm:w-auto justify-center"
               >
                 Save Changes
@@ -284,7 +287,7 @@ export default function Settings() {
                     <div className="h-5 sm:h-6 flex items-center justify-center shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]/60" />
                     </div>
-                    <p className="text-xs sm:text-sm text-[var(--text-primary)]/90 leading-5 sm:leading-6 font-body break-words">{mem.content}</p>
+                    <p className="text-xs sm:text-sm text-[var(--text-primary)]/90 leading-5 sm:leading-6 font-body break-words">{mem.text || mem.content || mem.factSummary}</p>
                   </div>
                   <button 
                     type="button"
@@ -332,7 +335,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
-                  Clears chat and memories while preserving preferences and wardrobe.
+                  She'll forget your conversations and everything she's learned about you, but she'll still know your name and how you like to talk.
                 </p>
               </div>
 
@@ -351,13 +354,13 @@ export default function Settings() {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={handleResetCompanion}
+                    onClick={handleResetChatAndMemory}
                     disabled={resetConfirm !== "RESET"}
                     className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
                     icon={RotateCcw}
                     iconPlacement="left"
                   >
-                    Reset Chat
+                    Reset Chat & Memory
                   </Button>
                 </div>
               </div>
@@ -375,32 +378,32 @@ export default function Settings() {
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
-                  Permanently deletes all stored messages, avatars, and settings.
+                  Everything resets completely, as if you're meeting her for the first time.
                 </p>
               </div>
 
               <div className="pt-3.5 sm:pt-4 border-t border-[var(--text-primary)]/[0.06] flex flex-col gap-2 sm:gap-2.5">
                 <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-body">
-                  Type <span className="font-mono font-semibold text-[var(--text-primary)]">CLEAR</span> to confirm
+                  Type <span className="font-mono font-semibold text-[var(--text-primary)]">WIPE</span> to confirm
                 </span>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
                   <input 
                     type="text" 
-                    value={clearConfirm}
-                    onChange={(e) => setClearConfirm(e.target.value)}
-                    placeholder="CLEAR"
+                    value={wipeConfirm}
+                    onChange={(e) => setWipeConfirm(e.target.value)}
+                    placeholder="WIPE"
                     className="!h-10 !py-0 w-full text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
                   />
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={handleClear}
-                    disabled={clearConfirm !== "CLEAR"}
+                    onClick={handleWipeAllData}
+                    disabled={wipeConfirm !== "WIPE"}
                     className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
                     icon={Trash2}
                     iconPlacement="left"
                   >
-                    Wipe All
+                    Wipe All App Data
                   </Button>
                 </div>
               </div>

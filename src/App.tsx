@@ -17,7 +17,7 @@ import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
-import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
 import { preloadAllOutfits } from "./lib/outfitCache";
@@ -47,10 +47,26 @@ function AnimatedRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/auth" element={<LoginPage />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/account" element={<Settings />} />
+        <Route path="/onboarding" element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        } />
+        <Route path="/chat" element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+        <Route path="/account" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
@@ -112,16 +128,14 @@ export default function App() {
 
   return (
     <AppSplash>
-      <AuthProvider>
-        <ToastProvider>
-          <Router>
-            <ScrollToTop />
-            <AppHeader />
-            <AnimatedRoutes />
-            <InstallBanner />
-          </Router>
-        </ToastProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <Router>
+          <ScrollToTop />
+          <AppHeader />
+          <AnimatedRoutes />
+          <InstallBanner />
+        </Router>
+      </ToastProvider>
     </AppSplash>
   );
 }

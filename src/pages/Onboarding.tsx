@@ -4,12 +4,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Volume2, Sparkles, ArrowRight, ArrowLeft, X, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
 import { Heading2, BodyText } from "../components/Typography";
 import Button from "../components/Button";
-import { getLocalProfile, saveLocalProfile, getCompanion, saveCompanion, saveMemory, saveMessage } from "../lib/storage";
+import { getLocalProfile, saveLocalProfile, getProfile, saveProfile, saveMemory, saveMessage } from "../lib/storage";
 import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
-import { useMockAuthState } from "../context/AuthContext";
 
 const VIBE_OPTIONS = [
   { id: "Warm & Gentle", label: "Warm & Gentle", icon: Heart },
@@ -28,7 +27,6 @@ const INTEREST_TAGS = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { setMockAuthed } = useMockAuthState();
   const [adultConfirmed, setAdultConfirmed] = useState<boolean | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -163,46 +161,49 @@ export default function Onboarding() {
     const finalName = userName.trim() || "Friend";
 
     async function saveOnboardingContext({ name, vibe, topics }: { name: string; vibe: string; topics: string[] }) {
+      // Layer 1: Profile
+      await saveProfile({
+        preferredName: name,
+        conversationalVibe: vibe,
+        topics: topics,
+        activeOutfit: "/models/lyra.vrm",
+        voicePresetId: selectedVoiceUri || "soft-calm",
+      });
+
+      // Layer 2: Memories (Distilled, durable facts - 20 words or fewer)
       await saveMemory({
-        factSummary: `User prefers to be called "${name}".`,
-        category: 'identity',
+        id: crypto.randomUUID(),
+        text: `Prefers to be called "${name}".`,
+        createdAt: new Date().toISOString(),
       });
       await saveMemory({
-        factSummary: `User enjoys topics related to: ${topics.join(', ')}. Preferred conversational vibe: ${vibe}.`,
-        category: 'preferences',
-      });
-      
-      const existingCompanion = await getCompanion();
-      await saveCompanion({
-        ...existingCompanion,
-        name: "Lyra",
-        userName: name,
-        userPreferredName: name, // Structured field
-        conversationalVibe: vibe, // Structured field
-        vibe: vibe,
-        interests: topics,
-        voiceUri: selectedVoiceUri,
-        voicePreset: "soft-calm",
-        pitch: 1.05,
-        rate: 0.98,
-        language: "en-US",
-        initialized: true,
-        outfit: existingCompanion?.outfit || "/models/lyra.vrm"
+        id: crypto.randomUUID(),
+        text: `Interested in ${topics.join(', ')}.`,
+        createdAt: new Date().toISOString(),
       });
     }
 
     async function generateFirstMessage({ name, vibe, topics }: { name: string; vibe: string; topics: string[] }) {
-      const specialPrompt = `
-This is the very first message to a brand new user, right after they finished onboarding.
-Their name is "${name}". Their preferred vibe is "${vibe}".
-They said they're interested in: ${topics.join(', ')}.
-Greet them warmly for the very first time, in a tone that genuinely matches their chosen vibe.
-If it fits naturally, you can reference one of their interests, don't list all of them mechanically.
-Keep it to 2-3 sentences. This should feel like an actual first hello, not a form letter.
-      `.trim();
+      const profile = {
+        preferredName: name,
+        conversationalVibe: vibe,
+        topics: topics,
+        activeOutfit: "/models/lyra.vrm",
+        voicePresetId: selectedVoiceUri || "soft-calm",
+      };
+      const initialMemories = [
+        { id: '1', text: `Prefers to be called "${name}".`, createdAt: new Date().toISOString() },
+        { id: '2', text: `Interested in ${topics.join(', ')}.`, createdAt: new Date().toISOString() },
+      ];
+
+      // Build 3-Layer prompt for the first greeting
+      const systemPrompt = buildSystemPrompt(profile, initialMemories, []);
 
       // Use the real AI pipeline
-      const response = await sendMessage([], specialPrompt);
+      const response = await sendMessage([{
+        role: 'user',
+        parts: [{ text: "Hi Lyra, I just finished setting things up." }]
+      }], systemPrompt);
       return response;
     }
 
@@ -244,11 +245,9 @@ Keep it to 2-3 sentences. This should feel like an actual first hello, not a for
         (window as any).playGesture("nod");
       }
 
-      setMockAuthed(true);
       navigate("/chat");
     } catch (error) {
       console.error("Onboarding finish error:", error);
-      setMockAuthed(true);
       navigate("/chat");
     } finally {
       setIsFinishing(false);

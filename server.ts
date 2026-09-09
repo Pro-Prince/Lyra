@@ -152,7 +152,7 @@ async function startServer() {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, companionProfile, isCallMode, memories } = req.body;
+      const { messages, companionProfile, isCallMode, memories, recentMessages, profile, systemPrompt } = req.body;
 
       const currentMessageObj = messages[messages.length - 1];
       const userText = currentMessageObj?.content || "";
@@ -170,24 +170,41 @@ async function startServer() {
 
       const aiClient = getAI();
 
-      const lengthGuideline = isCallMode 
-        ? "- You are on a live voice call. Keep responses EXTREMELY short (1-2 brief sentences), like a real spoken conversation."
-        : "- Keep responses short (under 3 sentences) so it reads naturally at spoken pace.";
-        
-      const memoryGuideline = memories && memories.length > 0 
-        ? `\nRecent things you remember about the user: ${memories.map((m: any) => m.content || m.factSummary).join('; ')}.`
-        : "";
+      let systemInstruction = systemPrompt;
 
-      const outfitRaw = String(companionProfile?.outfit || '').toLowerCase();
-      const currentOutfitDescription = outfitRaw.includes('casual')
-        ? 'Casual look (comfortable, relaxed knitwear)'
-        : outfitRaw.includes('dress')
-          ? 'Elegant evening dress'
-          : 'Signature Default tailored outfit';
+      if (!systemInstruction) {
+        // Build 3-Layer System Prompt:
+        // Layer 1: Profile
+        const activeProfile = profile || companionProfile || {};
+        const preferredName = activeProfile.preferredName || activeProfile.userPreferredName || activeProfile.userName || 'Friend';
+        const conversationalVibe = activeProfile.conversationalVibe || activeProfile.vibe || 'Warm & Gentle';
+        const topics = Array.isArray(activeProfile.topics) ? activeProfile.topics.join(', ') : (Array.isArray(activeProfile.interests) ? activeProfile.interests.join(', ') : 'Daily Life, Mindfulness');
 
-      const systemInstruction = `You are Lyra. The user prefers to be called "${companionProfile?.userPreferredName || companionProfile?.userName || 'Friend'}".
-Their preferred conversational vibe is: ${companionProfile?.conversationalVibe || companionProfile?.vibe || 'Warm & Gentle'}.${memoryGuideline}
-Currently wearing: You are currently wearing your ${currentOutfitDescription}. If the user asks what you are wearing or mentions your look, you know what you have on right now.
+        // Layer 2: Memories (distilled, durable facts)
+        const memArray = Array.isArray(memories) ? memories : [];
+        const memoryTexts = memArray.map((m: any) => (m.text || m.content || m.factSummary || '').trim()).filter(Boolean);
+        const memoriesStr = memoryTexts.length > 0 ? memoryTexts.join('; ') : 'None yet';
+
+        // Layer 3: Recent Context
+        const recentConvoList = Array.isArray(recentMessages) && recentMessages.length > 0
+          ? recentMessages
+          : (Array.isArray(messages) ? messages.slice(-10).map((m: any) => ({ sender: m.role === 'assistant' || m.role === 'model' ? 'Lyra' : 'user', text: m.content || '' })) : []);
+        const recentConvoStr = recentConvoList.length > 0
+          ? recentConvoList.map((m: any) => `${m.sender || (m.role === 'user' ? 'user' : 'Lyra')}: ${m.text || m.content || ''}`).join('\n')
+          : 'No recent messages.';
+
+        const lengthGuideline = isCallMode 
+          ? "- You are on a live voice call. Keep responses EXTREMELY short (1-2 brief sentences), like a real spoken conversation."
+          : "- Keep responses short (under 3 sentences) so it reads naturally at spoken pace.";
+
+        systemInstruction = `You are Lyra. The user prefers to be called "${preferredName}".
+Their preferred conversational vibe is: ${conversationalVibe}.
+They're interested in: ${topics}.
+
+Things you remember about them: ${memoriesStr}.
+
+Recent conversation:
+${recentConvoStr}
 
 Permanent Safety Constraints:
 - Adults-only framing (18+ companion experience).
@@ -203,7 +220,10 @@ ${lengthGuideline}
 Hard constraints:
 - NEVER claim to be human if asked directly.
 - NEVER generate sexual or explicit content.
-- ALWAYS remain respectful regardless of conversational tone.`;
+- ALWAYS remain respectful regardless of conversational tone.`.trim();
+      }
+
+      console.log("[Lyra Server /api/chat] Active 3-Layer System Instruction:\n", systemInstruction);
 
       // Convert messages to Gemini format with empty/null safety
       const validMessages = Array.isArray(messages) ? messages.filter((m: any) => m && m.content) : [];
@@ -240,8 +260,18 @@ Hard constraints:
             break;
           } catch (error: any) {
             const errorString = (error?.message || error?.statusText || "").toString();
-            const is503 = error?.status === 503 || error?.status === "UNAVAILABLE" || errorString.includes("503") || errorString.includes("high demand") || errorString.includes("temporarily overloaded") || errorString.includes("UNAVAILABLE");
-            const is429 = error?.status === 429 || error?.status === "RESOURCE_EXHAUSTED" || errorString.includes("429") || errorString.includes("Too Many Requests") || errorString.includes("Quota exceeded") || errorString.includes("quota");
+            const is503 = error?.status === 503 || 
+                          error?.status === "UNAVAILABLE" || 
+                          errorString.includes("503") || 
+                          errorString.includes("high demand") || 
+                          errorString.includes("temporarily overloaded") || 
+                          errorString.includes("UNAVAILABLE");
+            const is429 = error?.status === 429 || 
+                          error?.status === "RESOURCE_EXHAUSTED" || 
+                          errorString.includes("429") || 
+                          errorString.includes("Too Many Requests") || 
+                          errorString.includes("Quota exceeded") || 
+                          errorString.includes("quota");
             
             console.error(`[Gemini API Stream Error] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
               status: error?.status,
@@ -306,11 +336,14 @@ Hard constraints:
       }
 
       const aiClient = getAI();
-      const prompt = `Review the following recent conversation between a user and their companion. 
-Extract durable facts about the user (preferences, people, plans, recurring topics, personal details) that would be useful to remember for future conversations.
-Do NOT extract transient details like greetings, immediate reactions, or context-specific small talk.
-Return ONLY a valid JSON array of strings, where each string is a clear, concise fact. Examples:
-["User loves black coffee", "User's brother is named Alex", "User is planning a trip to Japan next month"]
+      const prompt = `Review the following recent conversation between a user and Lyra.
+Extract distilled, durable facts about the user (preferences, background, relationships, hobbies, plans) that should be remembered.
+RULES FOR EACH FACT:
+1. Write like a person's private note about another person (e.g. "Prefers to be called Prince.", "Interested in tech and music.", "Loves black coffee.").
+2. Each fact MUST be exactly ONE plain sentence of 20 words or fewer.
+3. NEVER write paragraphs, multiple sentences, conversational excerpts, or greetings.
+4. If there are no clear new durable facts, return an empty array [].
+Return ONLY a valid JSON array of strings.
 
 Conversation:
 ${validMessages.map((m: any) => `${(m.role || 'USER').toUpperCase()}: ${String(m.content || '')}`).join('\n')}`;
@@ -346,14 +379,29 @@ ${validMessages.map((m: any) => `${(m.role || 'USER').toUpperCase()}: ${String(m
 
       const cleanFacts: string[] = candidates
         .map((item: any) => {
-          if (typeof item === 'string') return item.trim();
-          if (item && typeof item === 'object') {
+          let text = '';
+          if (typeof item === 'string') text = item.trim();
+          else if (item && typeof item === 'object') {
             const val = item.fact || item.content || item.memory || item.summary || item.text || item.value;
-            if (typeof val === 'string') return val.trim();
+            if (typeof val === 'string') text = val.trim();
           }
-          return '';
+          if (!text) return '';
+          
+          // Remove bullets or surrounding quotes
+          text = text.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim();
+          
+          // Enforce 20-word constraint at point of creation
+          const words = text.split(/\s+/);
+          if (words.length > 20) {
+            console.warn('[Server Memory Extraction] Truncating memory exceeding 20 words:', text);
+            text = words.slice(0, 20).join(' ') + '.';
+          }
+          if (!/[.!?]$/.test(text)) {
+            text += '.';
+          }
+          return text;
         })
-        .filter((fact: string) => Boolean(fact && fact.length > 2));
+        .filter((fact: string) => Boolean(fact && fact.length > 3));
 
       res.json({ facts: cleanFacts });
     } catch (error: any) {

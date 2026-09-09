@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, User, LogOut, Menu, X } from "lucide-react";
-import { motion } from "motion/react";
-import { useAuth, useMockAuthState } from "../context/AuthContext";
+import { motion, AnimatePresence } from "motion/react";
+import { useAuth } from "../hooks/useAuth";
 import Button from "./Button";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { supabase } from "../lib/supabaseClient";
 
 function NavItem({
   to,
@@ -52,14 +53,12 @@ function NavItem({
 }
 
 function MobileNavDropdown({ onClose }: { onClose: () => void }) {
-  const { isMockAuthed, setMockAuthed } = useMockAuthState();
-  const { signOut } = useAuth();
+  const { isAuthed } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
-    setMockAuthed(false);
-    await signOut();
+    await supabase.auth.signOut();
     onClose();
     navigate("/");
   };
@@ -94,7 +93,7 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
         </Link>
 
         {/* CHAT ITEM (ONLY VISIBLE WHEN SIGNED IN) */}
-        {isMockAuthed && (
+        {isAuthed && (
           <Link
             to="/chat"
             onClick={onClose}
@@ -111,7 +110,7 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
         {/* SUBTLE DIVIDER */}
         <div className="nav-dropdown-divider" />
 
-        {isMockAuthed ? (
+        {isAuthed ? (
           <>
             <Link
               to="/account"
@@ -150,20 +149,61 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
               Login
             </Link>
 
-            {/* SIGN UP ITEM */}
+            {/* SIGN UP BUTTON (Prominent) */}
             <Link
               to="/signup"
               onClick={onClose}
-              className={`block px-4 py-2.5 rounded-xl text-[15px] font-body transition-all ${
-                isSignUp
-                  ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--accent-primary)] hover:brightness-110 hover:bg-[var(--accent-primary)]/10 font-medium"
-              }`}
+              className="mt-2 block w-full px-4 py-2.5 rounded-xl text-[15px] font-body font-semibold text-center bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-colors"
             >
               Sign Up
             </Link>
           </>
         )}
+      </motion.div>
+    </>
+  );
+}
+
+function AccountDropdown({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    onClose();
+    navigate("/");
+  };
+
+  return (
+    <>
+      <div className="nav-dropdown-backdrop" onClick={onClose} />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: -6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: -6 }}
+        transition={{ duration: 0.16, ease: "easeOut" }}
+        className="nav-dropdown !w-56"
+      >
+        <div className="px-4 py-3 border-b border-[var(--text-primary)]/[0.06]">
+          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Signed in as</p>
+          <p className="text-sm font-medium text-[var(--text-primary)] truncate" title={session?.user?.email || "User"}>{session?.user?.email || "User"}</p>
+        </div>
+
+        <div className="p-1.5">
+          <NavItem to="/account" icon={<User className="w-4 h-4" />} onClick={onClose}>
+            Account Settings
+          </NavItem>
+        </div>
+        
+        <div className="p-1.5 border-t border-[var(--text-primary)]/[0.06]">
+          <NavItem 
+            onClick={handleLogout} 
+            icon={<LogOut className="w-4 h-4" />} 
+            className="!text-[var(--text-danger)] hover:!bg-[var(--text-danger)]/10"
+          >
+            Log Out
+          </NavItem>
+        </div>
       </motion.div>
     </>
   );
@@ -188,7 +228,9 @@ function MobileHeaderMenu() {
         {menuOpen ? <X className="w-5.5 h-5.5 stroke-[2.2]" /> : <Menu className="w-5.5 h-5.5 stroke-[2.2]" />}
       </button>
 
-      {menuOpen && <MobileNavDropdown onClose={() => setMenuOpen(false)} />}
+      <AnimatePresence>
+        {menuOpen && <MobileNavDropdown onClose={() => setMenuOpen(false)} />}
+      </AnimatePresence>
     </>
   );
 }
@@ -196,18 +238,15 @@ function MobileHeaderMenu() {
 function DesktopNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
-  const { isMockAuthed, setMockAuthed } = useMockAuthState();
+  const { isAuthed } = useAuth();
 
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
-  // Close desktop dropdown on location change
   useEffect(() => {
     setIsAccountOpen(false);
   }, [location.pathname]);
 
-  // Close desktop dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
@@ -227,8 +266,7 @@ function DesktopNav() {
 
   const handleLogout = async () => {
     setIsAccountOpen(false);
-    setMockAuthed(false);
-    await signOut();
+    await supabase.auth.signOut();
     navigate("/");
   };
 
@@ -254,7 +292,7 @@ function DesktopNav() {
       </Link>
 
       {/* CHAT LINK (ONLY VISIBLE WHEN SIGNED IN) */}
-      {isMockAuthed && (
+      {isAuthed && (
         <Link
           to="/chat"
           className={`h-full relative flex items-center px-2.5 sm:px-3.5 text-xs sm:text-sm font-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-inset ${
@@ -274,7 +312,7 @@ function DesktopNav() {
         </Link>
       )}
 
-      {isMockAuthed ? (
+      {isAuthed ? (
         <>
           {/* ACCOUNT DROPDOWN */}
           <div ref={accountRef} className="relative h-full flex items-center">
@@ -305,26 +343,13 @@ function DesktopNav() {
             </button>
 
             {/* DESKTOP DROPDOWN MENU */}
-            {isAccountOpen && (
-              <div className="absolute right-0 top-[calc(100%+6px)] w-56 bg-[var(--bg-surface)] border border-[var(--text-muted)]/20 rounded-xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <Link
-                  to="/account"
-                  onClick={() => setIsAccountOpen(false)}
-                  className="flex min-h-[44px] items-center gap-3 px-3.5 py-2.5 rounded-lg text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] transition-colors font-medium text-sm font-body"
-                >
-                  <User className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
-                  <span>Account Settings</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[var(--text-danger)] hover:bg-[var(--text-danger)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-danger)] transition-colors font-medium text-sm font-body text-left"
-                >
-                  <LogOut className="w-4 h-4 text-[var(--text-danger)] shrink-0" />
-                  <span>Log Out</span>
-                </button>
-              </div>
-            )}
+            <AnimatePresence>
+              {isAccountOpen && (
+                <div className="absolute right-0 top-[calc(100%+6px)] w-56 bg-[var(--bg-surface)] border border-[var(--text-muted)]/20 rounded-xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <AccountDropdown onClose={() => setIsAccountOpen(false)} />
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         </>
       ) : (

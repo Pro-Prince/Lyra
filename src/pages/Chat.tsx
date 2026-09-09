@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getLocalProfile, saveLocalProfile } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage } from "../lib/storage";
+import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
 import WardrobeGrid from "../components/WardrobeGrid";
@@ -15,7 +16,7 @@ import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
 import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThumbnails } from "../lib/outfitCache";
 import { pageCrossfadeVariants } from "../lib/motion";
-import { useAuth, useMockAuthState } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
 
@@ -122,16 +123,16 @@ const drawLyraLogoWatermark = (
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo } = useToast();
-  const { isMockAuthed } = useMockAuthState();
+  const { isAuthed, isGuestMode, signOut } = useAuth();
   const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
   const [tooManyRequestsCount, setTooManyRequestsCount] = useState(0);
   const rateLimitCountRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!isMockAuthed) {
+    if (!isAuthed && !isGuestMode) {
       navigate('/login', { replace: true });
     }
-  }, [isMockAuthed, navigate]);
+  }, [isAuthed, isGuestMode, navigate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -237,9 +238,6 @@ export default function Chat() {
   const [activeTab, setActiveTab] = useState<'chat' | 'about'>('chat');
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  const { signOut } = useAuth();
-  const { setMockAuthed } = useMockAuthState();
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -803,8 +801,19 @@ export default function Chat() {
     let modelMsgId: string | null = null;
 
     try {
+      // 1. Layer 1: Profile (who they are)
+      const profile = await getProfile();
+      
+      // 2. Layer 2: Memories (distilled durable facts)
+      const freshMemories = await getMemories();
+      
+      // 3. Layer 3: Recent Context (what's happening right now)
+      const recentMessages = await getRecentMessages(10);
+
+      // Build structured 3-layer system prompt
+      const systemPrompt = buildSystemPrompt(profile, freshMemories, recentMessages);
+
       const companionProfile = companionProfileRef.current || {};
-      const topMemories = memories.slice(0, 5);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -812,8 +821,11 @@ export default function Chat() {
         body: JSON.stringify({
           messages: [...currentMessages, userMsg],
           companionProfile,
-          isCallMode: isCallModeRef.current,
-          memories: topMemories
+          profile,
+          memories: freshMemories,
+          recentMessages,
+          systemPrompt,
+          isCallMode: isCallModeRef.current
         }),
         signal: abortControllerRef.current.signal
       });
@@ -944,6 +956,49 @@ export default function Chat() {
         content: finalDisplayContent,
         timestamp: Date.now()
       });
+
+      // Async post-response memory extraction (Quality Enforced: 1 plain sentence <= 20 words)
+      (async () => {
+        try {
+          const freshRecent = await getRecentMessages(6);
+          const extractRes = await fetch('/api/extract-memory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: freshRecent.map(m => ({
+                role: m.sender === 'user' ? 'user' : 'model',
+                content: m.text
+              }))
+            })
+          });
+          if (extractRes.ok) {
+            const data = await extractRes.json();
+            if (Array.isArray(data.facts) && data.facts.length > 0) {
+              let addedAny = false;
+              for (const fact of data.facts) {
+                if (validateMemory(fact)) {
+                  const currentMems = await getMemories();
+                  const exists = currentMems.some(m => m.text.toLowerCase() === fact.toLowerCase());
+                  if (!exists) {
+                    await saveMemory({
+                      id: crypto.randomUUID(),
+                      text: fact,
+                      createdAt: new Date().toISOString()
+                    });
+                    addedAny = true;
+                  }
+                }
+              }
+              if (addedAny) {
+                const updatedMemories = await getMemories();
+                setMemories(updatedMemories);
+              }
+            }
+          }
+        } catch (memErr) {
+          console.warn("[Lyra Async Memory Extraction Warning]:", memErr);
+        }
+      })();
 
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -1938,7 +1993,6 @@ export default function Chat() {
                 <button
                   onClick={async () => {
                     setIsMobileMenuOpen(false);
-                    setMockAuthed(false);
                     await signOut();
                     navigate("/");
                   }}
