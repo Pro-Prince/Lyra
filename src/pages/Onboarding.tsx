@@ -50,7 +50,9 @@ export default function Onboarding() {
     async function checkExisting() {
       const completed = await isOnboardingCompleted();
       if (completed) {
-        sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+        const intent = sessionStorage.getItem('lyra_auth_intent');
+        const toastMsg = intent === 'signup' ? 'Account created successfully!' : 'Successfully logged in!';
+        sessionStorage.setItem('lyra_auth_toast_message', toastMsg);
         sessionStorage.removeItem('lyra_auth_intent');
         navigate("/chat", { replace: true });
       }

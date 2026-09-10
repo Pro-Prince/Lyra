@@ -20,7 +20,7 @@ export default function SignUpPage() {
     if (!authLoading && isAuthed) {
       isOnboardingCompleted().then((completed) => {
         if (completed) {
-          sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+          sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
           navigate('/chat', { replace: true });
         } else {
           navigate('/onboarding', { replace: true });
@@ -66,7 +66,7 @@ export default function SignUpPage() {
 
       const completed = await isOnboardingCompleted();
       if (completed) {
-        sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+        sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
         navigate('/chat', { replace: true });
       } else {
         navigate('/onboarding', { replace: true });
