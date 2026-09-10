@@ -75,18 +75,18 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
     <>
       <div className="nav-dropdown-backdrop" onClick={onClose} />
       <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: -6 }}
+        initial={{ opacity: 0, scale: 0.94, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: -6 }}
-        transition={{ duration: 0.16, ease: "easeOut" }}
+        exit={{ opacity: 0, scale: 0.94, y: -8 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
         className="nav-dropdown"
       >
         {isAuthed ? (
           /* AFTER LOGIN (MOBILE) */
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {session?.user?.email && (
-              <div className="px-3 py-1.5 mb-0.5 border-b border-[var(--text-primary)]/10">
-                <p className="text-[11px] font-medium text-[var(--text-muted)] truncate">
+              <div className="px-3 pt-1.5 pb-2 text-center border-b border-white/[0.08] dark:border-white/[0.08]">
+                <p className="text-xs font-normal text-[var(--text-muted)] truncate max-w-[200px] mx-auto">
                   {session.user.email}
                 </p>
               </div>
@@ -96,13 +96,13 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
             <Link
               to="/"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body transition-all cursor-pointer ${
                 isHome
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/18 text-[var(--accent-primary)] font-semibold shadow-sm"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-white/[0.06] font-medium"
               }`}
             >
-              <Home className={`w-4 h-4 shrink-0 ${isHome ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <Home className={`w-5 h-5 shrink-0 ${isHome ? "text-[var(--accent-primary)] stroke-[2.2]" : "text-[var(--text-muted)] stroke-[2]"}`} />
               <span>Home</span>
             </Link>
 
@@ -110,13 +110,13 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
             <Link
               to="/chat"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body transition-all cursor-pointer ${
                 isChat
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/18 text-[var(--accent-primary)] font-semibold shadow-sm"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-white/[0.06] font-medium"
               }`}
             >
-              <MessageSquare className={`w-4 h-4 shrink-0 ${isChat ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <MessageSquare className={`w-5 h-5 shrink-0 ${isChat ? "text-[var(--accent-primary)] stroke-[2.2]" : "text-[var(--text-muted)] stroke-[2]"}`} />
               <span>Chat</span>
             </Link>
 
@@ -124,43 +124,40 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
             <Link
               to="/account"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body transition-all cursor-pointer ${
                 isAccount
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/18 text-[var(--accent-primary)] font-semibold shadow-sm"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-white/[0.06] font-medium"
               }`}
             >
-              <User className={`w-4 h-4 shrink-0 ${isAccount ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <User className={`w-5 h-5 shrink-0 ${isAccount ? "text-[var(--accent-primary)] stroke-[2.2]" : "text-[var(--text-muted)] stroke-[2]"}`} />
               <span>Account</span>
             </Link>
-
-            {/* SUBTLE CLEAN DIVIDER */}
-            <div className="nav-dropdown-divider my-0.5" />
 
             {/* LOG OUT */}
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium text-red-400/90 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left cursor-pointer active:scale-[0.98]"
+              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body font-medium text-[#ff647c] dark:text-[#ff6b8b] hover:text-[#ff4f6a] hover:bg-red-500/10 transition-colors text-left cursor-pointer active:scale-[0.98] mt-0.5"
             >
-              <LogOut className="w-4 h-4 shrink-0 text-red-400/90" />
+              <LogOut className="w-5 h-5 shrink-0 text-[#ff647c] dark:text-[#ff6b8b] stroke-[2]" />
               <span>Log Out</span>
             </button>
           </div>
         ) : (
           /* BEFORE LOGIN / LOGGED OUT (MOBILE) */
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {/* HOME */}
             <Link
               to="/"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body transition-all cursor-pointer ${
                 isHome
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/18 text-[var(--accent-primary)] font-semibold shadow-sm"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-white/[0.06] font-medium"
               }`}
             >
-              <Home className={`w-4 h-4 shrink-0 ${isHome ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <Home className={`w-5 h-5 shrink-0 ${isHome ? "text-[var(--accent-primary)] stroke-[2.2]" : "text-[var(--text-muted)] stroke-[2]"}`} />
               <span>Home</span>
             </Link>
 
@@ -168,26 +165,26 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
             <Link
               to="/login"
               onClick={onClose}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-[15px] font-body transition-all cursor-pointer ${
                 isLogin
-                  ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] font-semibold"
-                  : "text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--accent-primary)]/18 text-[var(--accent-primary)] font-semibold shadow-sm"
+                  : "text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-white/[0.06] font-medium"
               }`}
             >
-              <LogIn className={`w-4 h-4 shrink-0 ${isLogin ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]/75"}`} />
+              <LogIn className={`w-5 h-5 shrink-0 ${isLogin ? "text-[var(--accent-primary)] stroke-[2.2]" : "text-[var(--text-muted)] stroke-[2]"}`} />
               <span>Login</span>
             </Link>
 
             {/* SUBTLE CLEAN DIVIDER */}
-            <div className="nav-dropdown-divider my-0.5" />
+            <div className="h-[1px] bg-white/[0.08] dark:bg-white/[0.08] my-1 mx-1" />
 
-            {/* SIGN UP BUTTON (Prominent, High-Contrast Luxury Design) */}
+            {/* SIGN UP BUTTON */}
             <Link
               to="/signup"
               onClick={onClose}
-              className="mt-0.5 flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-body font-semibold text-center bg-[var(--accent-primary)] text-[#160F17] hover:bg-[#ff7eb6] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(255,143,192,0.25)]"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-2xl text-[15px] font-body font-semibold text-center bg-[var(--accent-primary)] text-[#160F17] hover:bg-[#ff7eb6] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(255,143,192,0.25)]"
             >
-              <UserPlus className="w-4 h-4 shrink-0 text-[#160F17]" />
+              <UserPlus className="w-4 h-4 shrink-0 text-[#160F17] stroke-[2.2]" />
               <span>Sign Up</span>
             </Link>
           </div>
