@@ -18,13 +18,19 @@ export default function SignUpPage() {
   useEffect(() => {
     if (!authLoading && isAuthed) {
       isOnboardingCompleted().then((completed) => {
-        navigate(completed ? '/chat' : '/onboarding', { replace: true });
+        if (completed) {
+          sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+          navigate('/chat', { replace: true });
+        } else {
+          navigate('/onboarding', { replace: true });
+        }
       });
     }
   }, [isAuthed, authLoading, navigate]);
 
   const handleGoogleLogin = async () => {
     try {
+      sessionStorage.setItem('lyra_auth_intent', 'signup');
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/onboarding` },
@@ -40,6 +46,7 @@ export default function SignUpPage() {
     setError(null);
 
     try {
+      sessionStorage.setItem('lyra_auth_intent', 'signup');
       const { data, error } = await supabase.auth.signUp({ email, password });
       setLoading(false);
 
@@ -49,7 +56,12 @@ export default function SignUpPage() {
       }
 
       const completed = await isOnboardingCompleted();
-      navigate(completed ? '/chat' : '/onboarding', { replace: true });
+      if (completed) {
+        sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+        navigate('/chat', { replace: true });
+      } else {
+        navigate('/onboarding', { replace: true });
+      }
     } catch (err: any) {
       setLoading(false);
       setError(err?.message || 'Sign up failed. Please try again.');

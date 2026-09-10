@@ -50,6 +50,8 @@ export default function Onboarding() {
     async function checkExisting() {
       const completed = await isOnboardingCompleted();
       if (completed) {
+        sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+        sessionStorage.removeItem('lyra_auth_intent');
         navigate("/chat", { replace: true });
       }
     }
@@ -231,6 +233,11 @@ export default function Onboarding() {
       localStorage.setItem("lyra_onboarding_completed", "true");
       localStorage.setItem("lyra_user_name", finalName);
 
+      const intent = sessionStorage.getItem('lyra_auth_intent');
+      const toastMessage = intent === 'signup' ? 'Account created successfully!' : 'Successfully logged in!';
+      sessionStorage.setItem('lyra_auth_toast_message', toastMessage);
+      sessionStorage.removeItem('lyra_auth_intent');
+
       navigate("/chat", { replace: true });
     } catch (error) {
       console.error("Onboarding skip error:", error);
@@ -348,6 +355,11 @@ export default function Onboarding() {
       if ((window as any).playGesture) {
         (window as any).playGesture("nod");
       }
+
+      const intent = sessionStorage.getItem('lyra_auth_intent');
+      const toastMessage = intent === 'signup' ? 'Account created successfully!' : 'Successfully logged in!';
+      sessionStorage.setItem('lyra_auth_toast_message', toastMessage);
+      sessionStorage.removeItem('lyra_auth_intent');
 
       navigate("/chat", { replace: true });
     } catch (error) {

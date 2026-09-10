@@ -122,11 +122,19 @@ const drawLyraLogoWatermark = (
 
 export default function Chat() {
   const navigate = useNavigate();
-  const { showError, showInfo } = useToast();
+  const { showError, showInfo, showSuccess } = useToast();
   const { isAuthed, isGuestMode, signOut } = useAuth();
   const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
   const [tooManyRequestsCount, setTooManyRequestsCount] = useState(0);
   const rateLimitCountRef = useRef<number>(0);
+
+  useEffect(() => {
+    const toastMsg = sessionStorage.getItem('lyra_auth_toast_message');
+    if (toastMsg) {
+      showSuccess(toastMsg);
+      sessionStorage.removeItem('lyra_auth_toast_message');
+    }
+  }, [showSuccess]);
 
   useEffect(() => {
     if (!isAuthed && !isGuestMode) {
