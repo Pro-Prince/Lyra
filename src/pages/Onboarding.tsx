@@ -9,6 +9,8 @@ import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
+import { VoicePicker } from "../components/VoicePicker";
+import { WardrobeGrid } from "../components/WardrobeGrid";
 import { useAuth } from "../hooks/useAuth";
 
 const VIBE_OPTIONS = [
@@ -30,18 +32,19 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const [adultConfirmed, setAdultConfirmed] = useState<boolean | null>(null);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // User input states
   const [userName, setUserName] = useState("");
-  const [selectedVibe, setSelectedVibe] = useState("Warm & Gentle");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(["Daily Life", "Mindfulness"]);
+  const [selectedVibe, setSelectedVibe] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   // TTS Voice State
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceUri, setSelectedVoiceUri] = useState("");
+  const [selectedOutfit, setSelectedOutfit] = useState("");
 
   const hasGreetedRef = useRef(false);
 
@@ -171,8 +174,13 @@ export default function Onboarding() {
   };
 
   const handleNext = () => {
-    if (step < 4) {
-      const nextStep = (step + 1) as 1 | 2 | 3 | 4;
+    if (step === 2 && !userName.trim()) return;
+    if (step === 3 && !selectedVibe) return;
+    if (step === 5 && !selectedVoiceUri) return;
+    if (step === 6 && !selectedOutfit) return;
+    
+    if (step < 6) {
+      const nextStep = (step + 1) as 1 | 2 | 3 | 4 | 5 | 6;
       setStep(nextStep);
     } else {
       handleFinish();
@@ -181,7 +189,7 @@ export default function Onboarding() {
 
   const handleBack = () => {
     if (step > 1) {
-      setStep((step - 1) as 1 | 2 | 3 | 4);
+      setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6);
     }
   };
 
@@ -197,10 +205,10 @@ export default function Onboarding() {
       // 1. Save profile
       await saveProfile({
         preferredName: finalName,
-        conversationalVibe: selectedVibe || "Warm & Gentle",
-        topics: selectedInterests.length > 0 ? selectedInterests : ["Daily Life", "Mindfulness"],
-        activeOutfit: "/models/lyra.vrm",
-        voicePresetId: selectedVoiceUri || "soft-calm",
+        conversationalVibe: selectedVibe || "",
+        topics: selectedInterests,
+        activeOutfit: selectedOutfit || "",
+        voicePresetId: selectedVoiceUri || "",
         onboardingCompleted: true,
       });
 
@@ -220,8 +228,8 @@ export default function Onboarding() {
         name: "Lyra",
         userName: finalName,
         userPreferredName: finalName,
-        vibe: selectedVibe || "Warm & Gentle",
-        interests: selectedInterests.length > 0 ? selectedInterests : ["Daily Life", "Mindfulness"],
+        vibe: selectedVibe || "",
+        interests: selectedInterests,
         initialized: true,
       });
 
@@ -263,8 +271,8 @@ export default function Onboarding() {
         preferredName: name,
         conversationalVibe: vibe,
         topics: topics,
-        activeOutfit: "/models/lyra.vrm",
-        voicePresetId: selectedVoiceUri || "soft-calm",
+        activeOutfit: selectedOutfit || "",
+        voicePresetId: selectedVoiceUri || "",
         onboardingCompleted: true,
       });
 
@@ -698,7 +706,88 @@ export default function Onboarding() {
                     icon={ArrowRight}
                     onClick={handleNext}
                     className="w-full"
-                    disabled={isFinishing}
+                    disabled={isFinishing || selectedInterests.length === 0}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {adultConfirmed && step === 5 && (
+              <motion.div
+                key="step-5"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
+                className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
+              >
+                <div className="mb-4 sm:mb-5">
+                  <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
+                    Choose Lyra's voice
+                  </Heading2>
+                  <BodyText className="text-[var(--text-muted)] text-xs sm:text-sm">
+                    Select how Lyra should sound during conversations.
+                  </BodyText>
+                </div>
+
+                <div className="mb-5 sm:mb-6">
+                  <VoicePicker 
+                    preventSave={true} 
+                    selectedPresetId={selectedVoiceUri} 
+                    onSelect={(id) => setSelectedVoiceUri(id)} 
+                  />
+                </div>
+
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    icon={ArrowRight}
+                    onClick={handleNext}
+                    className="w-full"
+                    disabled={isFinishing || !selectedVoiceUri}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {adultConfirmed && step === 6 && (
+              <motion.div
+                key="step-6"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
+                className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
+              >
+                <div className="mb-4 sm:mb-5">
+                  <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
+                    Choose an outfit
+                  </Heading2>
+                  <BodyText className="text-[var(--text-muted)] text-xs sm:text-sm">
+                    Pick Lyra's visual appearance. You can change this later.
+                  </BodyText>
+                </div>
+
+                <div className="mb-5 sm:mb-6 h-64 overflow-y-auto pr-2">
+                  <WardrobeGrid 
+                    selectedOutfit={selectedOutfit} 
+                    onSelect={(id) => setSelectedOutfit(id)} 
+                  />
+                </div>
+
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    icon={Sparkles}
+                    onClick={handleNext}
+                    className="w-full"
+                    disabled={isFinishing || !selectedOutfit}
                   >
                     {isFinishing ? "Preparing Lyra..." : "Begin"}
                   </Button>

@@ -20,22 +20,27 @@ export const VOICE_PRESETS: VoicePreset[] = [
 interface VoicePickerProps {
   className?: string;
   onSelect?: (presetId: string) => void;
+  preventSave?: boolean;
+  selectedPresetId?: string;
 }
 
-export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerProps) {
+export function VoicePicker({ className = "space-y-3", onSelect, preventSave, selectedPresetId }: VoicePickerProps) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedPreset, setSelectedPreset] = useState<string>('soft-calm');
+  const [localPreset, setLocalPreset] = useState<string>('soft-calm');
   const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const activePreset = selectedPresetId !== undefined ? selectedPresetId : localPreset;
 
   useEffect(() => {
     async function init() {
+      if (preventSave) return;
       const comp = await getCompanion();
       if (comp?.voicePreset) {
-        setSelectedPreset(comp.voicePreset);
+        setLocalPreset(comp.voicePreset);
       }
     }
     init();
-  }, []);
+  }, [preventSave]);
 
   useEffect(() => {
     const updateVoices = () => {
@@ -51,19 +56,23 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
   }, []);
 
   const handleSelectPreset = async (presetId: string) => {
-    setSelectedPreset(presetId);
-    const preset = VOICE_PRESETS.find(p => p.id === presetId) || VOICE_PRESETS[0];
-    const chosenVoice = getVoiceForPreset(presetId, voices) || getDefaultFemaleVoice(voices) || voices[0];
-
-    const comp = await getCompanion() || {};
-    await saveCompanion({
-      ...comp,
-      voicePreset: presetId,
-      voiceUri: chosenVoice?.voiceURI || "",
-      pitch: preset.pitch,
-      rate: preset.rate,
-      language: 'en-US'
-    });
+    setLocalPreset(presetId);
+    
+    if (!preventSave) {
+      const preset = VOICE_PRESETS.find(p => p.id === presetId) || VOICE_PRESETS[0];
+      const chosenVoice = getVoiceForPreset(presetId, voices) || getDefaultFemaleVoice(voices) || voices[0];
+      
+      const comp = await getCompanion() || {};
+      await saveCompanion({
+        ...comp,
+        voicePreset: presetId,
+        voiceUri: chosenVoice?.voiceURI || "",
+        pitch: preset.pitch,
+        rate: preset.rate,
+        language: 'en-US'
+      });
+    }
+    
     if (onSelect) {
       onSelect(presetId);
     }
@@ -90,7 +99,7 @@ export function VoicePicker({ className = "space-y-3", onSelect }: VoicePickerPr
   return (
     <div className={className}>
       {VOICE_PRESETS.map((preset) => {
-        const isSelected = selectedPreset === preset.id;
+        const isSelected = activePreset === preset.id;
         const isThisPlaying = playingId === preset.id;
         return (
           <div
