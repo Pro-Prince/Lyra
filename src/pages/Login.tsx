@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { isOnboardingCompleted } from '../lib/storage';
 import Button from '../components/Button';
+import { SplashScreen } from '../components/AppSplash';
 import { motion } from 'motion/react';
 import { pageCrossfadeVariants } from '../lib/motion';
 
@@ -27,6 +28,14 @@ export default function LoginPage() {
       });
     }
   }, [isAuthed, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-[var(--bg-base)]">
+        <SplashScreen />
+      </div>
+    );
+  }
 
   const handleGoogleLogin = async () => {
     try {

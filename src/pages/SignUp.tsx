@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Button from '../components/Button';
+import { SplashScreen } from '../components/AppSplash';
 import { motion } from 'motion/react';
 import { pageCrossfadeVariants } from '../lib/motion';
 import { useAuth } from '../hooks/useAuth';
@@ -27,6 +28,14 @@ export default function SignUpPage() {
       });
     }
   }, [isAuthed, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 z-[99999] bg-[var(--bg-base)]">
+        <SplashScreen />
+      </div>
+    );
+  }
 
   const handleGoogleLogin = async () => {
     try {
