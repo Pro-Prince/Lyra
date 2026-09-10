@@ -613,27 +613,32 @@ export async function saveProfile(updates: any) {
 }
 
 export async function isOnboardingCompleted(): Promise<boolean> {
-  if (typeof window !== 'undefined' && localStorage.getItem('lyra_onboarding_completed') === 'true') {
-    return true;
-  }
-
   try {
     const { data: { session } } = await supabase.auth.getSession();
+    
+    // If authenticated, Supabase is the absolute source of truth
     if (session) {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('preferred_name, onboarding_completed')
+        .select('onboarding_completed')
         .eq('id', session.user.id)
         .maybeSingle();
 
       if (!error && profile) {
-        if (profile.onboarding_completed || (profile.preferred_name && profile.preferred_name !== 'Friend')) {
-          if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
-          return true;
+        const isCompleted = Boolean(profile.onboarding_completed);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lyra_onboarding_completed', isCompleted ? 'true' : 'false');
         }
+        return isCompleted;
       }
+      return false;
     }
   } catch {}
+
+  // For guest mode
+  if (typeof window !== 'undefined' && localStorage.getItem('lyra_onboarding_completed') === 'true') {
+    return true;
+  }
 
   try {
     const localProfile = await getLocalProfile();

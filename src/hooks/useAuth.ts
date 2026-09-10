@@ -74,6 +74,7 @@ export function useAuth() {
       console.warn('[useAuth] Sign out error:', err);
     }
     localStorage.removeItem("lyra_guest_mode");
+    localStorage.removeItem("lyra_onboarding_completed");
     setIsGuestMode(false);
     setSession(null);
   };
