@@ -16,6 +16,7 @@ export interface Profile {
   topics: string[]; // from onboarding
   activeOutfit: string;
   voicePresetId: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface Memory {
@@ -343,18 +344,49 @@ export async function getMessages(limit?: number): Promise<any[]> {
 
 export async function getCompanion(): Promise<any> {
   const db = await openLyraDB();
-  return new Promise((resolve, reject) => {
+  const local: any = await new Promise((resolve, reject) => {
     const tx = db.transaction('companion', 'readonly');
     const store = tx.objectStore('companion');
     const req = store.get('current');
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
+
+  if (local && (local.outfit || local.userPreferredName || local.voiceUri)) {
+    return local;
+  }
+
+  // If local store is empty or missing outfit (e.g. user logged in on a new device),
+  // hydrate directly from cloud profile in Supabase
+  try {
+    const profile = await getProfile();
+    if (profile && (profile.activeOutfit || profile.preferredName)) {
+      const compData = {
+        name: 'Lyra',
+        userName: profile.preferredName,
+        userPreferredName: profile.preferredName,
+        vibe: profile.conversationalVibe,
+        conversationalVibe: profile.conversationalVibe,
+        interests: profile.topics,
+        topics: profile.topics,
+        outfit: profile.activeOutfit,
+        voiceUri: profile.voicePresetId,
+        voicePreset: profile.voicePresetId,
+        initialized: true,
+      };
+      await saveCompanion(compData);
+      return compData;
+    }
+  } catch (err) {
+    console.warn('[storage] Could not hydrate companion from profile:', err);
+  }
+
+  return local || null;
 }
 
 export async function saveCompanion(data: any): Promise<void> {
   const db = await openLyraDB();
-  return new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(['companion', 'profile'], 'readwrite');
     const store = tx.objectStore('companion');
     const payload = withMeta(data);
@@ -373,6 +405,20 @@ export async function saveCompanion(data: any): Promise<void> {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
+
+  // Automatically sync changes to Supabase public.profiles table
+  const profileSync: Record<string, any> = {};
+  if (data.outfit) profileSync.activeOutfit = data.outfit;
+  if (data.voicePreset || data.voicePresetId || data.voiceUri) profileSync.voicePresetId = data.voicePreset || data.voicePresetId || data.voiceUri;
+  if (data.userPreferredName || data.userName) profileSync.preferredName = data.userPreferredName || data.userName;
+  if (data.conversationalVibe || data.vibe) profileSync.conversationalVibe = data.conversationalVibe || data.vibe;
+  if (data.interests || data.topics) profileSync.topics = data.interests || data.topics;
+
+  if (Object.keys(profileSync).length > 0) {
+    saveProfile(profileSync).catch((err) => {
+      console.warn('[storage] Companion sync to profile warning:', err);
+    });
+  }
 }
 
 export async function getNotificationPreferences(): Promise<any> {
@@ -472,36 +518,30 @@ export async function getProfile() {
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
-      if (!error && data && data.preferred_name) {
-        return {
-          preferredName: data.preferred_name,
-          conversationalVibe: data.conversational_vibe || 'Warm & Gentle',
-          topics: data.topics || ['Daily Life', 'Mindfulness'],
-          activeOutfit: data.active_outfit || '/models/lyra.vrm',
-          voicePresetId: data.voice_preset_id || 'soft-calm',
+        .maybeSingle();
+
+      if (!error && data) {
+        const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+        const preferredName = data.preferred_name || googleName || '';
+
+        const profileData = {
+          preferredName: preferredName || DEFAULT_PROFILE.preferredName,
+          conversationalVibe: data.conversational_vibe || DEFAULT_PROFILE.conversationalVibe,
+          topics: Array.isArray(data.topics) && data.topics.length > 0 ? data.topics : DEFAULT_PROFILE.topics,
+          activeOutfit: data.active_outfit || DEFAULT_PROFILE.activeOutfit,
+          voicePresetId: data.voice_preset_id || DEFAULT_PROFILE.voicePresetId,
+          onboardingCompleted: Boolean(data.onboarding_completed),
         };
+
+        // Cache locally for offline availability & immediate rendering
+        try {
+          await saveLocalProfileData(profileData);
+        } catch {}
+
+        return profileData;
       }
 
-      // Check companion table fallback
-      try {
-        const { data: comp } = await supabase
-          .from('companions')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        if (comp && comp.user_name) {
-          return {
-            preferredName: comp.user_name,
-            conversationalVibe: comp.vibe || 'Warm & Gentle',
-            topics: comp.interests || ['Daily Life', 'Mindfulness'],
-            activeOutfit: comp.outfit || '/models/lyra.vrm',
-            voicePresetId: comp.voice_uri || 'soft-calm',
-          };
-        }
-      } catch {}
-
-      // Check Google account name metadata
+      // Check Google account name metadata fallback
       const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
       if (googleName) {
         const local = await getLocalProfileData();
@@ -523,37 +563,35 @@ export async function saveProfile(updates: any) {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-      const payload: any = {
+      // ONLY valid columns for public.profiles:
+      // (id, preferred_name, conversational_vibe, topics, active_outfit, voice_preset_id, onboarding_completed, updated_at)
+      const payload: Record<string, any> = {
         id: session.user.id,
-        email: session.user.email,
-        is_adult_confirmed: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      if (updates.preferredName !== undefined) payload.preferred_name = updates.preferredName;
-      if (updates.conversationalVibe !== undefined) payload.conversational_vibe = updates.conversationalVibe;
-      if (updates.topics !== undefined) payload.topics = updates.topics;
-      if (updates.activeOutfit !== undefined) payload.active_outfit = updates.activeOutfit;
-      if (updates.voicePresetId !== undefined) payload.voice_preset_id = updates.voicePresetId;
-      if (updates.onboardingCompleted !== undefined) payload.onboarding_completed = updates.onboardingCompleted;
 
-      // Upsert profile record in Supabase
-      await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+      const preferredName = updates.preferredName ?? updates.preferred_name;
+      if (preferredName !== undefined) payload.preferred_name = preferredName;
 
-      // Also keep companions table synced in Supabase
-      try {
-        await supabase.from('companions').upsert({
-          user_id: session.user.id,
-          name: 'Lyra',
-          user_name: updates.preferredName,
-          vibe: updates.conversationalVibe || 'Warm & Gentle',
-          interests: updates.topics || ['Daily Life', 'Mindfulness'],
-          outfit: updates.activeOutfit || '/models/lyra.vrm',
-          voice_uri: updates.voicePresetId || 'soft-calm',
-          initialized: true,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
-      } catch (cErr) {
-        console.warn('[storage] Companion sync warning:', cErr);
+      const conversationalVibe = updates.conversationalVibe ?? updates.conversational_vibe ?? updates.vibe;
+      if (conversationalVibe !== undefined) payload.conversational_vibe = conversationalVibe;
+
+      const topics = updates.topics ?? updates.interests;
+      if (topics !== undefined) payload.topics = Array.isArray(topics) ? topics : [];
+
+      const activeOutfit = updates.activeOutfit ?? updates.active_outfit ?? updates.outfit;
+      if (activeOutfit !== undefined) payload.active_outfit = activeOutfit;
+
+      const voicePresetId = updates.voicePresetId ?? updates.voice_preset_id ?? updates.voicePreset ?? updates.voiceUri;
+      if (voicePresetId !== undefined) payload.voice_preset_id = voicePresetId;
+
+      const onboardingCompleted = updates.onboardingCompleted ?? updates.onboarding_completed;
+      if (onboardingCompleted !== undefined) payload.onboarding_completed = Boolean(onboardingCompleted);
+
+      // Upsert profile record in Supabase matching public.profiles schema
+      const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+      if (error) {
+        console.error('[storage] Supabase profiles upsert error:', error);
       }
     }
   } catch (err) {
@@ -561,11 +599,13 @@ export async function saveProfile(updates: any) {
   }
 
   if (typeof window !== 'undefined') {
-    if (updates.preferredName) {
-      localStorage.setItem('lyra_user_name', updates.preferredName);
+    const pName = updates.preferredName ?? updates.preferred_name;
+    if (pName) {
+      localStorage.setItem('lyra_user_name', pName);
     }
-    if (updates.onboardingCompleted) {
-      localStorage.setItem('lyra_onboarding_completed', 'true');
+    const oComp = updates.onboardingCompleted ?? updates.onboarding_completed;
+    if (oComp !== undefined) {
+      localStorage.setItem('lyra_onboarding_completed', oComp ? 'true' : 'false');
     }
   }
 
@@ -578,36 +618,29 @@ export async function isOnboardingCompleted(): Promise<boolean> {
   }
 
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('preferred_name, onboarding_completed')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!error && profile) {
+        if (profile.onboarding_completed || (profile.preferred_name && profile.preferred_name !== 'Friend')) {
+          if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
+          return true;
+        }
+      }
+    }
+  } catch {}
+
+  try {
     const localProfile = await getLocalProfile();
     const companion = await getCompanion();
     if (localProfile?.initialized && companion?.initialized && (localProfile?.name || companion?.userName)) {
       if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
       return true;
-    }
-  } catch {}
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferred_name, onboarding_completed')
-        .eq('id', session.user.id)
-        .single();
-      if (profile?.onboarding_completed || (profile?.preferred_name && profile.preferred_name !== 'Friend')) {
-        if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
-        return true;
-      }
-
-      const { data: comp } = await supabase
-        .from('companions')
-        .select('initialized, user_name')
-        .eq('user_id', session.user.id)
-        .single();
-      if (comp?.initialized && comp?.user_name) {
-        if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
-        return true;
-      }
     }
   } catch {}
 
@@ -621,15 +654,35 @@ export async function getMemories() {
     if (session) {
       const { data, error } = await supabase
         .from('memories')
-        .select('*')
+        .select('id, user_id, text, created_at')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
+
       if (!error && data) {
-        return data.map((d: any) => ({
+        const mapped = data.map((d: any) => ({
           id: d.id,
           text: d.text,
-          createdAt: d.created_at
+          createdAt: d.created_at,
         }));
+
+        // Mirror directly into local IndexedDB
+        try {
+          const db = await openLyraDB();
+          const tx = db.transaction('memories', 'readwrite');
+          const store = tx.objectStore('memories');
+          await new Promise<void>((res, rej) => {
+            const clearReq = store.clear();
+            clearReq.onsuccess = () => res();
+            clearReq.onerror = () => rej(clearReq.error);
+          });
+          for (const m of mapped) {
+            store.put(withMeta(m), m.id);
+          }
+        } catch (mErr) {
+          console.warn('[storage] Local memories cache update warning:', mErr);
+        }
+
+        return mapped;
       }
     }
   } catch (err) {
@@ -641,20 +694,47 @@ export async function getMemories() {
 
 export async function saveMemory(textOrObj: any) {
   const text = typeof textOrObj === 'string' ? textOrObj : (textOrObj.text || textOrObj.content || textOrObj.factSummary || '');
+  if (!text || !text.trim()) return;
+  const cleanText = text.trim();
+
+  let memoryId = (textOrObj && typeof textOrObj === 'object' && textOrObj.id) ? textOrObj.id : crypto.randomUUID();
+  let createdAt = (textOrObj && typeof textOrObj === 'object' && textOrObj.createdAt) ? textOrObj.createdAt : new Date().toISOString();
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-      const { error } = await supabase
+      const payload: Record<string, any> = {
+        user_id: session.user.id,
+        text: cleanText,
+      };
+      if (typeof memoryId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(memoryId)) {
+        payload.id = memoryId;
+      }
+
+      const { data: inserted, error } = await supabase
         .from('memories')
-        .insert({ user_id: session.user.id, text });
-      if (!error) return;
+        .insert(payload)
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        memoryId = inserted.id;
+        createdAt = inserted.created_at;
+      } else if (error) {
+        console.warn('[storage] Supabase memory insert error:', error);
+      }
     }
   } catch (err) {
     console.warn('[storage] Remote memory save failed, using local:', err);
   }
 
-  return saveLocalMemory(textOrObj);
+  // Always keep local IndexedDB in sync
+  return saveLocalMemory({
+    id: memoryId,
+    text: cleanText,
+    createdAt,
+  });
 }
 
 export async function deleteMemory(id: string) {
@@ -662,8 +742,15 @@ export async function deleteMemory(id: string) {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-      const { error } = await supabase.from('memories').delete().eq('id', id);
-      if (!error) return;
+      const { error } = await supabase
+        .from('memories')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.warn('[storage] Supabase memory delete error:', error);
+      }
     }
   } catch (err) {
     console.warn('[storage] Remote memory delete failed, using local:', err);
@@ -678,8 +765,13 @@ export async function resetChatAndMemory() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      await supabase.from('memories').delete().eq('user_id', session.user.id);
-      return;
+      const { error } = await supabase
+        .from('memories')
+        .delete()
+        .eq('user_id', session.user.id);
+      if (error) {
+        console.warn('[storage] Supabase memories reset error:', error);
+      }
     }
   } catch (err) {
     console.warn('[storage] Remote reset failed, clearing local:', err);
@@ -694,7 +786,10 @@ export async function wipeAllData() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
+      // 1. Delete all user memories
       await supabase.from('memories').delete().eq('user_id', session.user.id);
+
+      // 2. Reset profiles table in Supabase
       await supabase.from('profiles').update({
         preferred_name: null,
         conversational_vibe: null,
@@ -702,8 +797,8 @@ export async function wipeAllData() {
         active_outfit: 'lyra',
         voice_preset_id: 'soft-calm',
         onboarding_completed: false,
+        updated_at: new Date().toISOString(),
       }).eq('id', session.user.id);
-      return;
     }
   } catch (err) {
     console.warn('[storage] Remote wipe failed, clearing local:', err);
@@ -715,12 +810,24 @@ export async function wipeAllData() {
 
 export async function clearAllData(): Promise<void> {
   await clearAllMessages();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('memories').delete().eq('user_id', session.user.id);
+    }
+  } catch {}
   await clearLocalMemories();
   await clearLocalProfile();
 }
 
 export async function resetCompanionHistory(): Promise<void> {
   await clearAllMessages();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('memories').delete().eq('user_id', session.user.id);
+    }
+  } catch {}
   await clearLocalMemories();
 }
 

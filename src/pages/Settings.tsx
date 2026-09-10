@@ -87,6 +87,7 @@ export default function Settings() {
     const comp = await getCompanion() || {};
     comp.outfit = modelUrl;
     await saveCompanion(comp);
+    await saveProfile({ activeOutfit: modelUrl });
     setCurrentOutfit(modelUrl);
     window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
     const label = getOutfitLabel(outfitId);

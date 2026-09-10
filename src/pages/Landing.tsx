@@ -36,37 +36,37 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "real-person",
     icon: Sparkles,
     question: "Is Lyra a real person?",
-    answer: "No. She's an AI companion, for adults 18 and up, and she says so herself."
+    answer: "No. Lyra is an AI companion designed for thoughtful conversations for adults 18 and up."
   },
   {
     id: "what-to-talk-about",
     icon: MessageSquare,
     question: "What can I talk to Lyra about?",
-    answer: "Whatever's on your mind. She's built to listen, remember details about your conversations, and respond thoughtfully, not to complete tasks or answer factual questions like a search engine."
+    answer: "Anything on your mind—she listens, remembers details, and responds thoughtfully."
   },
   {
     id: "account",
     icon: User,
     question: "Do I need to create an account?",
-    answer: "Yes. An account (via Google or email) is required to talk with Lyra, this keeps your profile and her memory of you tied securely to you across sessions."
+    answer: "Yes, signing in secures your profile, chosen outfit, and memories across devices."
   },
   {
     id: "privacy",
     icon: ShieldCheck,
     question: "Is my data private?",
-    answer: "Your account and profile data are stored securely and are only ever accessible to you. Your full conversation history never leaves your device, only the message text itself is sent to Google's Gemini API to generate responses."
+    answer: "Your profile and memories sync to your private cloud; full chat logs stay on your device."
   },
   {
     id: "delete",
     icon: Trash2,
     question: "Can I delete my data?",
-    answer: "Yes. You can reset your conversations and memories, or wipe all local data, anytime from Settings. To delete your account entirely, contact us and we'll take care of it."
+    answer: "Yes. Resetting or wiping data in Settings erases your cloud memories and clears local storage."
   },
   {
     id: "mobile",
     icon: Smartphone,
     question: "Does it work on mobile?",
-    answer: "Yes, it's installable as an app on both phone and desktop."
+    answer: "Yes, it works smoothly in mobile browsers and is installable as a PWA on phones."
   }
 ];
 

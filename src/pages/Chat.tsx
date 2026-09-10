@@ -720,6 +720,7 @@ export default function Chat() {
     const comp = await getCompanion() || {};
     comp.outfit = modelUrl;
     await saveCompanion(comp);
+    await saveProfile({ activeOutfit: modelUrl });
     companionProfileRef.current = comp;
     window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
     
