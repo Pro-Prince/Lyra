@@ -20,7 +20,6 @@ import SignUpPage from "./pages/SignUp";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
-import { preloadAllOutfits } from "./lib/outfitCache";
 import { useTheme } from "./hooks/useTheme";
 import AppSplash from "./components/AppSplash";
 
@@ -79,9 +78,6 @@ export default function App() {
   useTheme();
 
   useEffect(() => {
-    // Preload all outfits once at startup
-    preloadAllOutfits('App.tsx').catch(err => console.warn('[App] Outfit preload warning:', err));
-
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }

@@ -386,7 +386,7 @@ export default function Onboarding() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
+      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden"
     >
       {/* Top Segmented Progress Bar Section (Aligned with the edges of the onboarding card section) */}
       <div className="absolute top-0 left-0 right-0 w-full max-w-xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center z-50">

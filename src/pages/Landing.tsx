@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
-import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
+import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import IconBadge from "../components/IconBadge";
@@ -119,15 +119,11 @@ function OutfitShowcase() {
   };
 
   return (
-    <motion.section 
+    <section 
       id="wardrobe"
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-      variants={groupVariants}
       className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
-      <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
+      <div className="text-center mb-8 sm:mb-10">
         <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)] mb-2 inline-block">
           Wardrobe
         </span>
@@ -137,10 +133,10 @@ function OutfitShowcase() {
         <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
           Select an outfit to change what Lyra is currently wearing across your entire companion experience.
         </p>
-      </motion.div>
+      </div>
 
       <WardrobeGrid selectedOutfit={activeOutfit} onSelect={handleOutfitWear} size="large" />
-    </motion.section>
+    </section>
   );
 }
 
@@ -221,11 +217,7 @@ export default function Landing() {
         <div className="w-full max-w-6xl mx-auto px-6">
           {/* Centered Hero Text Layout */}
           <div className="hero hero-single-column">
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={entranceVariants}
+            <div 
               className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
@@ -263,24 +255,19 @@ export default function Landing() {
                   {t("landing_disclaimer")}
                 </span>
               </div>
-            </motion.div>
+            </div>
           </div>
 
           {/* Wardrobe Outfit Showcase */}
           <OutfitShowcase />
 
           {/* Feature Cards Grid: Left-aligned, top-left badge */}
-          <motion.div 
+          <div 
             id="features"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-            variants={groupVariants}
             className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
             {/* Card 1: Voice & Vibe */}
-            <motion.div 
-              variants={entranceVariants}
+            <div 
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -292,11 +279,10 @@ export default function Landing() {
                   {t("card1_desc")}
                 </p>
               </div>
-            </motion.div>
+            </div>
 
             {/* Card 2: 3D Live Companion Stage */}
-            <motion.div 
-              variants={entranceVariants}
+            <div 
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -308,11 +294,10 @@ export default function Landing() {
                   {t("card2_desc")}
                 </p>
               </div>
-            </motion.div>
+            </div>
 
             {/* Card 3: Reflective Memory */}
-            <motion.div 
-              variants={entranceVariants}
+            <div 
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -324,37 +309,32 @@ export default function Landing() {
                   {t("card3_desc")}
                 </p>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
       <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-12 sm:py-20 md:py-24">
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-40px" }}
-            variants={groupVariants}
+          <div 
             aria-label="Frequently Asked Questions"
           >
-            <motion.div variants={entranceVariants} className="text-center mb-6 sm:mb-10">
+            <div className="text-center mb-6 sm:mb-10">
               <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-1.5 inline-block">
                 FAQ
               </span>
               <h2 className="font-heading font-semibold text-xl sm:text-2xl md:text-3xl text-[var(--text-primary)] tracking-tight">
                 Common Questions
               </h2>
-            </motion.div>
+            </div>
 
-            <motion.div variants={groupVariants} className="faq-list space-y-3 sm:space-y-4">
+            <div className="faq-list space-y-3 sm:space-y-4">
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
-                  <motion.div 
+                  <div 
                     key={faq.id} 
-                    variants={entranceVariants}
                     className={`faq-row cursor-pointer rounded-2xl border p-4 sm:p-5 ${
                       isOpen
                         ? "selected bg-[var(--bg-surface)]"
@@ -408,11 +388,11 @@ export default function Landing() {
                         </AnimatePresence>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </div>
       </section>
 
