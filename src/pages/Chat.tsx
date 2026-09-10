@@ -123,7 +123,7 @@ const drawLyraLogoWatermark = (
 export default function Chat() {
   const navigate = useNavigate();
   const { showError, showInfo, showSuccess } = useToast();
-  const { isAuthed, isGuestMode, signOut } = useAuth();
+  const { isAuthed, isGuestMode, signOut, loading } = useAuth();
   const [isAdultVerified, setIsAdultVerified] = useState<boolean>(true);
   const [tooManyRequestsCount, setTooManyRequestsCount] = useState(0);
   const rateLimitCountRef = useRef<number>(0);
@@ -137,6 +137,8 @@ export default function Chat() {
   }, [showSuccess]);
 
   useEffect(() => {
+    if (loading) return;
+
     if (!isAuthed && !isGuestMode) {
       navigate('/login', { replace: true });
       return;
@@ -149,7 +151,7 @@ export default function Chat() {
         }
       });
     }
-  }, [isAuthed, isGuestMode, navigate]);
+  }, [isAuthed, isGuestMode, navigate, loading]);
 
   useEffect(() => {
     let isMounted = true;
