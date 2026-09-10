@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, clearAllMessages, storage } from "../lib/storage";
+import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, clearAllMessages, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory } from "../lib/storage";
 import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
@@ -16,7 +16,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const { showInfo, showError } = useToast();
   const { isAuthed, session } = useAuth();
-  const mockUser = session?.user ? { email: session.user.email, name: session.user.user_metadata?.full_name || '' } : null;
+  const [userName, setUserName] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [memories, setMemories] = useState<any[]>([]);
   
   // Customization
@@ -35,6 +36,12 @@ export default function Settings() {
       if (comp && comp.outfit) {
         setCurrentOutfit(comp.outfit);
       }
+
+      const profile = await getProfile();
+      const localProfile = await getLocalProfile();
+      const googleName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
+      const currentName = profile?.preferredName || comp?.userName || comp?.userPreferredName || localProfile?.name || googleName || '';
+      setUserName(currentName);
     }
     load();
 
@@ -49,7 +56,7 @@ export default function Settings() {
       window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
       window.removeEventListener('focus', load);
     };
-  }, []);
+  }, [session]);
 
   const handleResetChatAndMemory = async () => {
     if (resetConfirm === "RESET") {
@@ -107,9 +114,46 @@ export default function Settings() {
     showInfo("Voice preferences saved");
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    showInfo("Profile updated");
+    const trimmed = userName.trim();
+    if (!trimmed) {
+      showError("Please enter a name");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      // 1. Remote and local profile sync
+      await saveProfile({ preferredName: trimmed });
+
+      // 2. Local profile store sync
+      const existingLocal = await getLocalProfile();
+      await saveLocalProfile({ ...existingLocal, name: trimmed });
+
+      // 3. Companion store sync
+      const existingComp = await getCompanion() || {};
+      await saveCompanion({
+        ...existingComp,
+        userName: trimmed,
+        userPreferredName: trimmed,
+      });
+
+      // 4. Memory context sync for Lyra's active memory
+      await saveMemory({
+        id: crypto.randomUUID(),
+        text: `Prefers to be called "${trimmed}".`,
+        createdAt: new Date().toISOString(),
+      });
+
+      localStorage.setItem("lyra_user_name", trimmed);
+      showInfo("Profile updated");
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      showError("Failed to update profile");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   return (
@@ -161,9 +205,10 @@ export default function Settings() {
                 <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Full Name</label>
                 <input 
                   type="text" 
-                  defaultValue={mockUser?.name} 
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
                   placeholder="What should she call you?" 
-                  disabled={!isAuthed} 
+                  disabled={!isAuthed || isSavingProfile} 
                   className="disabled:opacity-50"
                 />
               </div>
@@ -172,7 +217,8 @@ export default function Settings() {
                 <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Email Address</label>
                 <input 
                   type="email" 
-                  defaultValue={mockUser?.email} 
+                  value={session?.user?.email || ""} 
+                  readOnly
                   disabled 
                   className="opacity-50 text-xs py-1.5 px-3 w-full"
                 />
@@ -195,10 +241,10 @@ export default function Settings() {
                 variant="primary" 
                 size="sm" 
                 type="submit" 
-                disabled={!isAuthed} 
+                disabled={!isAuthed || isSavingProfile} 
                 className="h-10 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-5 w-full sm:w-auto justify-center"
               >
-                Save Changes
+                {isSavingProfile ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

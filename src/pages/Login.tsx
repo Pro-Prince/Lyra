@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../hooks/useAuth';
+import { isOnboardingCompleted } from '../lib/storage';
 import Button from '../components/Button';
 import { motion } from 'motion/react';
 import { pageCrossfadeVariants } from '../lib/motion';
@@ -11,12 +13,21 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isAuthed, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && isAuthed) {
+      isOnboardingCompleted().then((completed) => {
+        navigate(completed ? '/chat' : '/onboarding', { replace: true });
+      });
+    }
+  }, [isAuthed, authLoading, navigate]);
 
   const handleGoogleLogin = async () => {
     try {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/chat` },
+        options: { redirectTo: `${window.location.origin}/onboarding` },
       });
     } catch (err: any) {
       setError(err?.message || 'Google sign in failed');
@@ -34,7 +45,8 @@ export default function LoginPage() {
         setError(error.message); 
         return; 
       }
-      navigate('/chat');
+      const completed = await isOnboardingCompleted();
+      navigate(completed ? '/chat' : '/onboarding', { replace: true });
     } catch (err: any) {
       setLoading(false);
       setError(err?.message || 'Login failed. Please try again.');

@@ -473,13 +473,41 @@ export async function getProfile() {
         .select('*')
         .eq('id', session.user.id)
         .single();
-      if (!error && data) {
+      if (!error && data && data.preferred_name) {
         return {
           preferredName: data.preferred_name,
-          conversationalVibe: data.conversational_vibe,
-          topics: data.topics,
-          activeOutfit: data.active_outfit,
-          voicePresetId: data.voice_preset_id
+          conversationalVibe: data.conversational_vibe || 'Warm & Gentle',
+          topics: data.topics || ['Daily Life', 'Mindfulness'],
+          activeOutfit: data.active_outfit || '/models/lyra.vrm',
+          voicePresetId: data.voice_preset_id || 'soft-calm',
+        };
+      }
+
+      // Check companion table fallback
+      try {
+        const { data: comp } = await supabase
+          .from('companions')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        if (comp && comp.user_name) {
+          return {
+            preferredName: comp.user_name,
+            conversationalVibe: comp.vibe || 'Warm & Gentle',
+            topics: comp.interests || ['Daily Life', 'Mindfulness'],
+            activeOutfit: comp.outfit || '/models/lyra.vrm',
+            voicePresetId: comp.voice_uri || 'soft-calm',
+          };
+        }
+      } catch {}
+
+      // Check Google account name metadata
+      const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
+      if (googleName) {
+        const local = await getLocalProfileData();
+        return {
+          ...local,
+          preferredName: local.preferredName && local.preferredName !== 'Friend' ? local.preferredName : googleName,
         };
       }
     }
@@ -495,24 +523,95 @@ export async function saveProfile(updates: any) {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          preferred_name: updates.preferredName,
-          conversational_vibe: updates.conversationalVibe,
-          topics: updates.topics,
-          active_outfit: updates.activeOutfit,
-          voice_preset_id: updates.voicePresetId,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', session.user.id);
-      if (!error) return;
+      const payload: any = {
+        id: session.user.id,
+        email: session.user.email,
+        is_adult_confirmed: true,
+        updated_at: new Date().toISOString()
+      };
+      if (updates.preferredName !== undefined) payload.preferred_name = updates.preferredName;
+      if (updates.conversationalVibe !== undefined) payload.conversational_vibe = updates.conversationalVibe;
+      if (updates.topics !== undefined) payload.topics = updates.topics;
+      if (updates.activeOutfit !== undefined) payload.active_outfit = updates.activeOutfit;
+      if (updates.voicePresetId !== undefined) payload.voice_preset_id = updates.voicePresetId;
+      if (updates.onboardingCompleted !== undefined) payload.onboarding_completed = updates.onboardingCompleted;
+
+      // Upsert profile record in Supabase
+      await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+
+      // Also keep companions table synced in Supabase
+      try {
+        await supabase.from('companions').upsert({
+          user_id: session.user.id,
+          name: 'Lyra',
+          user_name: updates.preferredName,
+          vibe: updates.conversationalVibe || 'Warm & Gentle',
+          interests: updates.topics || ['Daily Life', 'Mindfulness'],
+          outfit: updates.activeOutfit || '/models/lyra.vrm',
+          voice_uri: updates.voicePresetId || 'soft-calm',
+          initialized: true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      } catch (cErr) {
+        console.warn('[storage] Companion sync warning:', cErr);
+      }
     }
   } catch (err) {
     console.warn('[storage] Remote profile save failed, using local:', err);
   }
 
+  if (typeof window !== 'undefined') {
+    if (updates.preferredName) {
+      localStorage.setItem('lyra_user_name', updates.preferredName);
+    }
+    if (updates.onboardingCompleted) {
+      localStorage.setItem('lyra_onboarding_completed', 'true');
+    }
+  }
+
   return saveLocalProfileData(updates);
+}
+
+export async function isOnboardingCompleted(): Promise<boolean> {
+  if (typeof window !== 'undefined' && localStorage.getItem('lyra_onboarding_completed') === 'true') {
+    return true;
+  }
+
+  try {
+    const localProfile = await getLocalProfile();
+    const companion = await getCompanion();
+    if (localProfile?.initialized && companion?.initialized && (localProfile?.name || companion?.userName)) {
+      if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
+      return true;
+    }
+  } catch {}
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('preferred_name, onboarding_completed')
+        .eq('id', session.user.id)
+        .single();
+      if (profile?.onboarding_completed || (profile?.preferred_name && profile.preferred_name !== 'Friend')) {
+        if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
+        return true;
+      }
+
+      const { data: comp } = await supabase
+        .from('companions')
+        .select('initialized, user_name')
+        .eq('user_id', session.user.id)
+        .single();
+      if (comp?.initialized && comp?.user_name) {
+        if (typeof window !== 'undefined') localStorage.setItem('lyra_onboarding_completed', 'true');
+        return true;
+      }
+    }
+  } catch {}
+
+  return false;
 }
 
 export async function getMemories() {
@@ -675,6 +774,7 @@ export const storage = {
   // Layer 1: Profile
   getProfile,
   saveProfile,
+  isOnboardingCompleted,
 
   // Layer 2: Memories
   getMemories,

@@ -199,7 +199,6 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
 
 function AccountDropdown({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
-  const { session } = useAuth();
   
   const handleLogout = async () => {
     try {
@@ -218,13 +217,8 @@ function AccountDropdown({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: -6 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
-        className="nav-dropdown !w-56"
+        className="nav-dropdown !w-48"
       >
-        <div className="px-4 py-3 border-b border-[var(--text-primary)]/[0.06]">
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Signed in as</p>
-          <p className="text-sm font-medium text-[var(--text-primary)] truncate" title={session?.user?.email || "User"}>{session?.user?.email || "User"}</p>
-        </div>
-
         <div className="p-1.5">
           <NavItem to="/account" icon={<User className="w-4 h-4" />} onClick={onClose}>
             Account Settings

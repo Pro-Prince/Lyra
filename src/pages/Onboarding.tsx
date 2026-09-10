@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { Volume2, Sparkles, ArrowRight, ArrowLeft, X, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
 import { Heading2, BodyText } from "../components/Typography";
 import Button from "../components/Button";
-import { getLocalProfile, saveLocalProfile, getProfile, saveProfile, saveMemory, saveMessage } from "../lib/storage";
+import { getLocalProfile, saveLocalProfile, getProfile, saveProfile, saveMemory, saveMessage, getCompanion, saveCompanion, isOnboardingCompleted } from "../lib/storage";
 import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
+import { useAuth } from "../hooks/useAuth";
 
 const VIBE_OPTIONS = [
   { id: "Warm & Gentle", label: "Warm & Gentle", icon: Heart },
@@ -27,6 +28,7 @@ const INTEREST_TAGS = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [adultConfirmed, setAdultConfirmed] = useState<boolean | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -42,6 +44,29 @@ export default function Onboarding() {
   const [selectedVoiceUri, setSelectedVoiceUri] = useState("");
 
   const hasGreetedRef = useRef(false);
+
+  // If already onboarded, send to chat
+  useEffect(() => {
+    async function checkExisting() {
+      const completed = await isOnboardingCompleted();
+      if (completed) {
+        navigate("/chat", { replace: true });
+      }
+    }
+    checkExisting();
+  }, [navigate]);
+
+  // Pre-fill user name with Google account name if available
+  useEffect(() => {
+    if (session?.user) {
+      const gName = session.user.user_metadata?.full_name || 
+                    session.user.user_metadata?.name || 
+                    "";
+      if (gName && !userName) {
+        setUserName(gName);
+      }
+    }
+  }, [session, userName]);
 
   useEffect(() => {
     async function checkProfile() {
@@ -156,9 +181,72 @@ export default function Onboarding() {
     }
   };
 
+  const handleSkip = async () => {
+    setIsFinishing(true);
+    try {
+      const googleName = session?.user?.user_metadata?.full_name || 
+                         session?.user?.user_metadata?.name || 
+                         session?.user?.email?.split('@')[0] || 
+                         "Friend";
+      const finalName = userName.trim() || googleName;
+
+      // 1. Save profile
+      await saveProfile({
+        preferredName: finalName,
+        conversationalVibe: selectedVibe || "Warm & Gentle",
+        topics: selectedInterests.length > 0 ? selectedInterests : ["Daily Life", "Mindfulness"],
+        activeOutfit: "/models/lyra.vrm",
+        voicePresetId: selectedVoiceUri || "soft-calm",
+        onboardingCompleted: true,
+      });
+
+      // 2. Save local profile
+      const existingProfile = await getLocalProfile();
+      await saveLocalProfile({
+        ...existingProfile,
+        name: finalName,
+        initialized: true,
+        adultConfirmed: true,
+      });
+
+      // 3. Save companion
+      const existingComp = await getCompanion() || {};
+      await saveCompanion({
+        ...existingComp,
+        name: "Lyra",
+        userName: finalName,
+        userPreferredName: finalName,
+        vibe: selectedVibe || "Warm & Gentle",
+        interests: selectedInterests.length > 0 ? selectedInterests : ["Daily Life", "Mindfulness"],
+        initialized: true,
+      });
+
+      // 4. Save memory for context
+      await saveMemory({
+        id: crypto.randomUUID(),
+        text: `Prefers to be called "${finalName}".`,
+        createdAt: new Date().toISOString(),
+      });
+
+      localStorage.setItem("lyra_onboarding_completed", "true");
+      localStorage.setItem("lyra_user_name", finalName);
+
+      navigate("/chat", { replace: true });
+    } catch (error) {
+      console.error("Onboarding skip error:", error);
+      navigate("/chat", { replace: true });
+    } finally {
+      setIsFinishing(false);
+    }
+  };
+
   const handleFinish = async () => {
     setIsFinishing(true);
-    const finalName = userName.trim() || "Friend";
+    const googleName = session?.user?.user_metadata?.full_name || 
+                       session?.user?.user_metadata?.name || 
+                       session?.user?.email?.split('@')[0] || 
+                       "Friend";
+    const finalName = userName.trim() || googleName;
 
     async function saveOnboardingContext({ name, vibe, topics }: { name: string; vibe: string; topics: string[] }) {
       // Layer 1: Profile
@@ -168,6 +256,7 @@ export default function Onboarding() {
         topics: topics,
         activeOutfit: "/models/lyra.vrm",
         voicePresetId: selectedVoiceUri || "soft-calm",
+        onboardingCompleted: true,
       });
 
       // Layer 2: Memories (Distilled, durable facts - 20 words or fewer)
@@ -217,21 +306,36 @@ export default function Onboarding() {
         adultConfirmed: true
       });
 
-      // 2. Save onboarding context
+      // 2. Save companion
+      const existingComp = await getCompanion() || {};
+      await saveCompanion({
+        ...existingComp,
+        name: "Lyra",
+        userName: finalName,
+        userPreferredName: finalName,
+        vibe: selectedVibe,
+        interests: selectedInterests,
+        initialized: true,
+      });
+
+      // 3. Save onboarding context
       await saveOnboardingContext({
         name: finalName,
         vibe: selectedVibe,
         topics: selectedInterests
       });
 
-      // 3. Generate first message through AI
+      localStorage.setItem("lyra_onboarding_completed", "true");
+      localStorage.setItem("lyra_user_name", finalName);
+
+      // 4. Generate first message through AI
       const aiResponse = await generateFirstMessage({
         name: finalName,
         vibe: selectedVibe,
         topics: selectedInterests
       });
 
-      // 4. Save the AI message to history
+      // 5. Save the AI message to history
       await saveMessage({
         id: crypto.randomUUID(),
         role: 'model',
@@ -245,10 +349,10 @@ export default function Onboarding() {
         (window as any).playGesture("nod");
       }
 
-      navigate("/chat");
+      navigate("/chat", { replace: true });
     } catch (error) {
       console.error("Onboarding finish error:", error);
-      navigate("/chat");
+      navigate("/chat", { replace: true });
     } finally {
       setIsFinishing(false);
     }
@@ -303,10 +407,10 @@ export default function Onboarding() {
           {/* Close/Skip Button Slot (Aligned with right edge of the section card) */}
           <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-end shrink-0">
             <button
-              onClick={() => navigate("/")}
+              onClick={handleSkip}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-95 transition-all cursor-pointer"
-              title="Skip to home"
-              aria-label="Skip to home"
+              title="Skip onboarding"
+              aria-label="Skip onboarding"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -446,17 +550,23 @@ export default function Onboarding() {
                   />
                 </div>
 
-                <div className="flex flex-col items-center gap-4 w-full">
+                <div className="flex flex-col items-center gap-3 w-full">
                   <Button
                     variant="primary"
                     size="lg"
                     icon={ArrowRight}
                     onClick={handleNext}
-                    disabled={!userName.trim()}
                     className="w-full"
                   >
                     Continue
                   </Button>
+                  <button
+                    type="button"
+                    onClick={handleSkip}
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1 cursor-pointer"
+                  >
+                    Skip for now
+                  </button>
                 </div>
               </motion.div>
             )}

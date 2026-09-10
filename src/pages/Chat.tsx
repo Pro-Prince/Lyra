@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted } from "../lib/storage";
 import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
@@ -131,6 +131,15 @@ export default function Chat() {
   useEffect(() => {
     if (!isAuthed && !isGuestMode) {
       navigate('/login', { replace: true });
+      return;
+    }
+
+    if (!isGuestMode) {
+      isOnboardingCompleted().then((completed) => {
+        if (!completed) {
+          navigate('/onboarding', { replace: true });
+        }
+      });
     }
   }, [isAuthed, isGuestMode, navigate]);
 
