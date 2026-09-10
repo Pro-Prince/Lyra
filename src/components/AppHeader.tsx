@@ -22,10 +22,10 @@ function NavItem({
 }) {
   const content = (
     <div
-      className={`flex items-center min-h-[44px] gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-colors hover:bg-[var(--accent-primary)]/10 text-[var(--text-primary)] cursor-pointer ${className}`}
+      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium transition-colors hover:bg-[var(--accent-primary)]/10 text-[var(--text-primary)] cursor-pointer whitespace-nowrap ${className}`}
     >
-      {icon}
-      <span>{children}</span>
+      <span className="shrink-0 flex items-center justify-center">{icon}</span>
+      <span className="whitespace-nowrap leading-none">{children}</span>
     </div>
   );
 
@@ -210,32 +210,36 @@ function AccountDropdown({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <>
-      <div className="nav-dropdown-backdrop" onClick={onClose} />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: -6 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: -6 }}
-        transition={{ duration: 0.16, ease: "easeOut" }}
-        className="nav-dropdown !w-48"
-      >
-        <div className="p-1.5">
-          <NavItem to="/account" icon={<User className="w-4 h-4" />} onClick={onClose}>
-            Account Settings
-          </NavItem>
-        </div>
-        
-        <div className="p-1.5 border-t border-[var(--text-primary)]/[0.06]">
-          <NavItem 
-            onClick={handleLogout} 
-            icon={<LogOut className="w-4 h-4" />} 
-            className="!text-[var(--text-danger)] hover:!bg-[var(--text-danger)]/10"
-          >
-            Log Out
-          </NavItem>
-        </div>
-      </motion.div>
-    </>
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.96, y: -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, y: -4 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="account-dropdown-card absolute right-0 top-[calc(100%+8px)] w-[196px] sm:w-[204px] rounded-2xl p-1.5 backdrop-blur-xl z-50 overflow-hidden text-left"
+    >
+      <div className="flex flex-col gap-0.5">
+        <Link
+          to="/account"
+          onClick={onClose}
+          className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/12 hover:text-[var(--accent-primary)] active:scale-[0.98] transition-all cursor-pointer group"
+        >
+          <User className="w-4 h-4 shrink-0 text-[var(--text-primary)]/80 group-hover:text-[var(--accent-primary)] transition-colors stroke-[2]" />
+          <span className="whitespace-nowrap leading-none font-medium">Account Settings</span>
+        </Link>
+
+        {/* Clean Divider */}
+        <div className="my-1 border-t border-[var(--text-primary)]/[0.08] dark:border-white/[0.08]" />
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-body font-medium text-[#EF4444] dark:text-[#F87171] hover:text-[#DC2626] dark:hover:text-[#EF4444] hover:bg-red-500/10 active:scale-[0.98] transition-all text-left cursor-pointer group"
+        >
+          <LogOut className="w-4 h-4 shrink-0 text-[#EF4444] dark:text-[#F87171] group-hover:text-[#DC2626] dark:group-hover:text-[#EF4444] transition-colors stroke-[2]" />
+          <span className="whitespace-nowrap leading-none font-medium">Log Out</span>
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -283,8 +287,17 @@ function DesktopNav() {
         setIsAccountOpen(false);
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAccountOpen(false);
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const pathname = location.pathname;
@@ -378,9 +391,7 @@ function DesktopNav() {
             {/* DESKTOP DROPDOWN MENU */}
             <AnimatePresence>
               {isAccountOpen && (
-                <div className="absolute right-0 top-[calc(100%+6px)] w-56 bg-[var(--bg-surface)] border border-[var(--text-muted)]/20 rounded-xl p-1.5 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <AccountDropdown onClose={() => setIsAccountOpen(false)} />
-                </div>
+                <AccountDropdown onClose={() => setIsAccountOpen(false)} />
               )}
             </AnimatePresence>
           </div>
