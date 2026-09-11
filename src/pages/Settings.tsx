@@ -156,7 +156,7 @@ export default function Settings() {
       className="flex flex-col min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] p-4 sm:p-8 font-body"
     >
       {/* Top Title */}
-      <div className="mb-6 sm:mb-10 max-w-6xl mx-auto w-full pt-2 sm:pt-6">
+      <div className="mb-6 sm:mb-10 max-w-4xl mx-auto w-full pt-2 sm:pt-6">
         <h1 className="text-2xl sm:text-4xl font-heading font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
         <p className="text-xs sm:text-base text-[var(--text-muted)] mt-1.5 sm:mt-2 font-body max-w-2xl leading-relaxed">
           Manage your account preferences, profile, and companion settings.
@@ -168,7 +168,7 @@ export default function Settings() {
         initial="hidden"
         animate="visible"
         variants={groupVariants}
-        className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 max-w-6xl mx-auto w-full pb-12 sm:pb-16"
+        className="grid grid-cols-1 gap-5 sm:gap-6 lg:gap-8 max-w-4xl mx-auto w-full pb-12 sm:pb-16"
       >
         
         {/* PROFILE INFORMATION (Span 12) */}
@@ -244,7 +244,7 @@ export default function Settings() {
         {/* VOICE & AUDIO (Span 12) */}
         <motion.section 
           variants={entranceVariants}
-          className="account-panel md:col-span-12 shadow-sm flex flex-col"
+          className="account-panel shadow-sm flex flex-col"
         >
           <div>
             <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
@@ -407,7 +407,7 @@ export default function Settings() {
       </motion.div>
 
       {/* Privacy Note */}
-      <footer className="mt-auto max-w-6xl mx-auto w-full pt-4 pb-8 font-body">
+      <footer className="mt-auto max-w-4xl mx-auto w-full pt-4 pb-8 font-body">
         <div className="flex items-start justify-center gap-2 max-w-md sm:max-w-none mx-auto px-4">
           <div className="h-5 flex items-center justify-center shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />

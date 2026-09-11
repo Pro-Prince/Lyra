@@ -1126,14 +1126,14 @@ h3, .heading-3 {
   background: var(--bg-surface);
   border: 1px solid rgba(var(--text-primary-rgb), 0.08);
   border-radius: 20px;
-  padding: 32px;
+  padding: 20px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (max-width: 640px) {
   .account-panel {
     border-radius: 16px;
-    padding: 20px 16px;
+    padding: 16px;
   }
 }
 
