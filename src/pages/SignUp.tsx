@@ -27,42 +27,6 @@ export default function SignUpPage() {
         }
       });
     }
-
-    const handleMessage = async (event: MessageEvent) => {
-      // Validate origin is from same app or run.app / localhost
-      const origin = event.origin;
-      if (origin && !origin.endsWith('.run.app') && !origin.includes('localhost') && origin !== window.location.origin) {
-        return;
-      }
-
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        setLoading(true);
-        try {
-          if (event.data.accessToken && event.data.refreshToken) {
-            await supabase.auth.setSession({
-              access_token: event.data.accessToken,
-              refresh_token: event.data.refreshToken
-            });
-          }
-          const completed = await isOnboardingCompleted();
-          if (completed) {
-            sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
-            navigate('/chat', { replace: true });
-          } else {
-            navigate('/onboarding', { replace: true });
-          }
-        } catch (err) {
-          console.warn('[SignUp] Error applying OAuth session:', err);
-          navigate('/onboarding', { replace: true });
-        }
-      } else if (event.data?.type === 'OAUTH_AUTH_ERROR') {
-        setError(event.data.error || 'Google sign up was cancelled or failed.');
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
   }, [isAuthed, authLoading, navigate]);
 
   if (authLoading) {
@@ -74,50 +38,14 @@ export default function SignUpPage() {
   }
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
     try {
       sessionStorage.setItem('lyra_auth_intent', 'signup');
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true
-        },
+        options: { redirectTo: `${window.location.origin}/onboarding` },
       });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-
-      if (data?.url) {
-        const popup = window.open(
-          data.url,
-          'google_oauth_popup',
-          'width=550,height=680,top=100,left=100,toolbar=no,menubar=no'
-        );
-
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          if (window.self === window.top) {
-            window.location.href = data.url;
-          } else {
-            setError('Popup was blocked by the browser. Please allow popups for this site or open the app in a new tab.');
-            setLoading(false);
-          }
-        } else {
-          const timer = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(timer);
-              setLoading(false);
-            }
-          }, 1000);
-        }
-      }
     } catch (err: any) {
       setError(err?.message || 'Google sign up failed');
-      setLoading(false);
     }
   };
 
@@ -129,44 +57,19 @@ export default function SignUpPage() {
     try {
       sessionStorage.setItem('lyra_auth_intent', 'signup');
       const { data, error } = await supabase.auth.signUp({ email, password });
+      setLoading(false);
 
       if (error) { 
-        setLoading(false);
         setError(error.message); 
         return; 
       }
 
-      // If session is immediately active
-      if (data?.session) {
-        setLoading(false);
-        const completed = await isOnboardingCompleted();
-        if (completed) {
-          sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
-          navigate('/chat', { replace: true });
-        } else {
-          navigate('/onboarding', { replace: true });
-        }
-        return;
-      }
-
-      // Try automatic sign in if session wasn't returned
-      const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-
-      if (signInErr) {
-        // Confirmation required or pending
-        setError('Account created! Please check your email to confirm your account, then sign in.');
-        return;
-      }
-
-      if (signInData?.session) {
-        const completed = await isOnboardingCompleted();
-        if (completed) {
-          sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
-          navigate('/chat', { replace: true });
-        } else {
-          navigate('/onboarding', { replace: true });
-        }
+      const completed = await isOnboardingCompleted();
+      if (completed) {
+        sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
+        navigate('/chat', { replace: true });
+      } else {
+        navigate('/onboarding', { replace: true });
       }
     } catch (err: any) {
       setLoading(false);

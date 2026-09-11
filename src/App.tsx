@@ -17,7 +17,6 @@ import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
-import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
@@ -48,8 +47,6 @@ function AnimatedRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/auth" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/auth/callback/" element={<AuthCallback />} />
         <Route path="/onboarding" element={
           <ProtectedRoute>
             <Onboarding />
