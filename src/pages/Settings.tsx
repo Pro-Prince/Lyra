@@ -214,17 +214,12 @@ export default function Settings() {
             {/* Bottom Section */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 sm:pt-6 border-t border-[var(--text-primary)]/[0.06]">
               <div>
-                {!isAuthed ? (
+                {!isAuthed && (
                   <p className="text-xs sm:text-sm text-[var(--text-muted)] flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                     <span>
                       Guest mode active. <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Sign in</Link> to sync across devices.
                     </span>
-                  </p>
-                ) : (
-                  <p className="text-xs sm:text-sm text-[var(--text-muted)] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    <span>Profile synced with cloud account.</span>
                   </p>
                 )}
               </div>
@@ -233,7 +228,7 @@ export default function Settings() {
                 size="sm" 
                 type="submit" 
                 disabled={isSavingProfile} 
-                className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center"
+                className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center sm:ml-auto"
               >
                 {isSavingProfile ? "Saving..." : "Save Changes"}
               </Button>
