@@ -7,6 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { motion, AnimatePresence } from 'motion/react';
+import { RotateCcw } from 'lucide-react';
 
 import { useToast } from '../hooks/useToast';
 import { useCompanionMovement } from '../hooks/useCompanionMovement';
@@ -1039,18 +1040,19 @@ function CompanionStageComponent({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-base font-semibold text-white">Model File Not Found</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Could not load <code className="bg-black/50 px-1.5 py-0.5 rounded text-red-300 font-mono text-[11px]">{activeModelId}</code>. Please place your exported <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[11px]">lyra.vrm</code> file into <code className="bg-black/50 px-1.5 py-0.5 rounded text-amber-300 font-mono text-[11px]">public/models/</code>.
+              <h3 className="text-base font-semibold text-white">Couldn't Load Outfit</h3>
+              <p className="text-xs text-neutral-300 leading-relaxed max-w-xs">
+                We ran into a problem loading this look. Tap below to reload.
               </p>
               <button
                 onClick={() => {
                   retryCount.current = 0;
                   handleRetry();
                 }}
-                className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:brightness-110 text-white text-xs font-medium shadow-lg transition-all active:scale-95 cursor-pointer"
+                className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:brightness-110 text-white text-xs font-medium shadow-lg transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
-                Retry Loading Model
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Try Again</span>
               </button>
             </div>
           </motion.div>

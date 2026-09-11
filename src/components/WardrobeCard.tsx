@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { ArrowRight, Check, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Loader2, RotateCcw } from 'lucide-react';
 import { loadCompanionModel, safeUpdateVRM } from '../lib/companionRenderer';
 import { frameOutfit, applyRestPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
@@ -139,6 +139,7 @@ export function WardrobeCard({
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
   function handleDrag(deltaX: number) {
@@ -146,6 +147,13 @@ export function WardrobeCard({
   }
 
   const dragHandlers = useDragRotate(handleDrag);
+
+  const handleRetry = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setError(null);
+    setLoading(true);
+    setRetryKey(prev => prev + 1);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -231,12 +239,16 @@ export function WardrobeCard({
       sceneRef.current = null;
       cameraRef.current = null;
     };
-  }, [modelId]);
+  }, [modelId, retryKey]);
 
   const { hasDragged, ...pointerHandlers } = dragHandlers;
 
   const handleClick = () => {
     if (hasDragged()) return; // Don't trigger select if user was dragging to rotate
+    if (error) {
+      handleRetry();
+      return;
+    }
     if (onSelect) onSelect();
   };
 
@@ -264,18 +276,26 @@ export function WardrobeCard({
           </div>
         )}
 
-        {/* Error Fallback */}
+        {/* Error Fallback with Try Again button */}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] p-3 text-center z-10">
-            <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mb-1.5">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/95 p-3 text-center z-10">
+            <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-1.5">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <span className="text-[11px] font-medium text-red-300 mb-1">Model Missing</span>
-            <span className="text-[9px] text-[var(--text-muted)] leading-tight max-w-[120px]">
-              Upload <code className="text-amber-300 font-mono">{modelId.replace('/models/', '')}</code> to <code className="text-amber-300 font-mono">public/models/</code>
+            <span className="text-[11px] font-medium text-rose-300 mb-0.5">Could not load preview</span>
+            <span className="text-[9px] text-[var(--text-muted)] mb-2 max-w-[120px] leading-tight">
+              Tap below to retry loading
             </span>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="px-2.5 py-1 rounded-lg bg-[var(--accent-primary)]/15 hover:bg-[var(--accent-primary)]/25 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] text-[11px] font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Try Again</span>
+            </button>
           </div>
         )}
 
