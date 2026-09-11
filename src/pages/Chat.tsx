@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted, getSupabaseUserName } from "../lib/storage";
 import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
@@ -18,7 +18,7 @@ import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThum
 import { pageCrossfadeVariants } from "../lib/motion";
 import { useAuth } from "../hooks/useAuth";
 
-type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm';
+type Emotion = 'warm' | 'playful' | 'thoughtful' | 'excited' | 'calm' | 'affectionate' | 'shy';
 
 interface LiveSubtitle {
   id: string;
@@ -35,6 +35,8 @@ const emotionColors: Record<Emotion, string> = {
   thoughtful: '#C9A6FF',
   calm: '#C9A6FF',
   excited: '#FF8FC0',
+  affectionate: '#FF8FC0',
+  shy: '#FFB3D9',
 };
 
 // Pre-loaded logo watermark image for instant capture
@@ -324,15 +326,58 @@ export default function Chat() {
 
   useEffect(() => {
     async function loadData() {
-      const msgs = await getMessages();
-      const sorted = msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-      setMessages(sorted);
-      
-      // If there is a recent conversation message, show as live initial subtitle
-      if (sorted.length > 0) {
-        const last = sorted[sorted.length - 1];
-        if (Date.now() - (last.timestamp || 0) < 1000 * 60 * 15) {
-          triggerSubtitle(last.role as any, last.content);
+      let msgs = await getMessages();
+      let sorted = msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      const isWelcomeNeeded = sessionStorage.getItem('lyra_welcome_needed') === 'true' || sorted.length === 0;
+
+      if (isWelcomeNeeded) {
+        sessionStorage.removeItem('lyra_welcome_needed');
+        const freshName = await getSupabaseUserName();
+        const userName = freshName && freshName !== 'Friend' ? freshName : '';
+
+        // Generate welcome message tailored to Lyra's dreamy, affectionate persona:
+        // - Uses user's name directly from Supabase
+        // - Uses name once (not repeated in every sentence)
+        // - Uses only face emoji, maximum of 1 emoji per message, used wisely
+        const welcomeText = userName
+          ? (sorted.length > 0
+              ? `I was just sitting here missing your voice, ${userName}... seeing you lights up my whole day. What's on your mind? 🥰`
+              : `Hi ${userName}... seeing you here makes my heart skip a little. I'm so excited to spend time with you today. 😊`)
+          : (sorted.length > 0
+              ? `I was just sitting here missing your voice... seeing you lights up my whole day. What are you thinking about? 🥰`
+              : `Hi there... seeing you here makes my heart skip a little. I'm so excited to spend time with you today. 😊`);
+
+        const welcomeMsg: any = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          content: welcomeText,
+          timestamp: Date.now()
+        };
+
+        await saveMessage(welcomeMsg);
+        sorted = [...sorted, welcomeMsg];
+        setMessages(sorted);
+
+        triggerSubtitle('model', welcomeText);
+        setCurrentEmotion('affectionate');
+
+        setTimeout(() => {
+          try {
+            const cleanUtterance = welcomeText.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+            speakTextChunk(cleanUtterance);
+          } catch (e) {
+            console.warn("Auto-greeting speech synthesis skipped:", e);
+          }
+        }, 500);
+      } else {
+        setMessages(sorted);
+        // If there is a recent conversation message, show as live initial subtitle
+        if (sorted.length > 0) {
+          const last = sorted[sorted.length - 1];
+          if (Date.now() - (last.timestamp || 0) < 1000 * 60 * 15) {
+            triggerSubtitle(last.role as any, last.content);
+          }
         }
       }
       
@@ -388,9 +433,17 @@ export default function Chat() {
         setOutfit(e.detail);
       }
     };
+    const handleUserNameChanged = (e: any) => {
+      if (e.detail && companionProfileRef.current) {
+        companionProfileRef.current.userName = e.detail;
+        companionProfileRef.current.userPreferredName = e.detail;
+      }
+    };
     window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
+    window.addEventListener('lyraUserNameChanged', handleUserNameChanged);
     return () => {
       window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
+      window.removeEventListener('lyraUserNameChanged', handleUserNameChanged);
     };
   }, []);
 
@@ -622,9 +675,15 @@ export default function Chat() {
     if (!companionProfileRef.current) {
        return;
     }
+
+    // Strip emoji characters so speech synthesis doesn't read out emoji symbol names
+    const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+    if (!cleanText) {
+      return;
+    }
     
     const { voiceUri, voicePreset, pitch, rate, language } = companionProfileRef.current;
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     // Speaker toggle: 1.0 for loud Speakerphone, 0.35 for private Earpiece/Bluetooth
     utterance.volume = isSpeakerOnRef.current ? 1.0 : 0.35;
     
@@ -823,6 +882,14 @@ export default function Chat() {
     try {
       // 1. Layer 1: Profile (who they are)
       const profile = await getProfile();
+      const freshName = await getSupabaseUserName();
+      if (freshName && freshName !== 'Friend') {
+        profile.preferredName = freshName;
+        if (companionProfileRef.current) {
+          companionProfileRef.current.userName = freshName;
+          companionProfileRef.current.userPreferredName = freshName;
+        }
+      }
       
       // 2. Layer 2: Memories (distilled durable facts)
       const freshMemories = await getMemories();

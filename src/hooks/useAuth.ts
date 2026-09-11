@@ -52,6 +52,11 @@ export function useAuth() {
           if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
             clearAllMessages().catch(console.warn);
           }
+          if (event === 'SIGNED_IN') {
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('lyra_welcome_needed', 'true');
+            }
+          }
           setSession(session);
           setLoading(false);
         }

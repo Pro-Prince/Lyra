@@ -21,6 +21,7 @@ export default function SignUpPage() {
       isOnboardingCompleted().then((completed) => {
         if (completed) {
           sessionStorage.setItem('lyra_auth_toast_message', 'Account created successfully!');
+          sessionStorage.setItem('lyra_welcome_needed', 'true');
           navigate('/chat', { replace: true });
         } else {
           navigate('/onboarding', { replace: true });

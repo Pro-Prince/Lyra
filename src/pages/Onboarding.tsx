@@ -277,22 +277,7 @@ export default function Onboarding() {
       localStorage.setItem("lyra_onboarding_completed", "true");
       localStorage.setItem("lyra_user_name", finalName);
 
-      // 4. Generate first message through AI
-      const aiResponse = await generateFirstMessage({
-        name: finalName,
-        vibe: selectedVibe,
-        topics: selectedInterests
-      });
-
-      // 5. Save the AI message to history
-      await saveMessage({
-        id: crypto.randomUUID(),
-        role: 'model',
-        content: aiResponse.text,
-        emotionTag: aiResponse.emotionTag,
-        actionTag: aiResponse.actionTag,
-        timestamp: Date.now()
-      });
+      sessionStorage.setItem('lyra_welcome_needed', 'true');
 
       if ((window as any).playGesture) {
         (window as any).playGesture("nod");

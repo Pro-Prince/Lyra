@@ -138,6 +138,7 @@ export default function Settings() {
       });
 
       localStorage.setItem("lyra_user_name", trimmed);
+      window.dispatchEvent(new CustomEvent('lyraUserNameChanged', { detail: trimmed }));
       showInfo("Profile updated");
     } catch (err) {
       console.error("Failed to update profile:", err);

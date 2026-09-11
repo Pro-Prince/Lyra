@@ -509,6 +509,77 @@ export async function clearLocalProfile(): Promise<void> {
 
 import { supabase } from './supabaseClient';
 
+/**
+ * Directly fetches the user's latest name from Supabase.
+ * Checks:
+ * 1. Supabase public.profiles table (preferred_name)
+ * 2. Supabase auth user metadata (full_name, name, preferred_name)
+ * 3. Supabase auth user email prefix
+ * 4. Local storage fallback
+ */
+export async function getSupabaseUserName(): Promise<string> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      // 1. Direct query to Supabase profiles table for preferred_name (holds updated name if changed)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('preferred_name')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!error && data?.preferred_name && data.preferred_name.trim()) {
+        const name = data.preferred_name.trim();
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lyra_user_name', name);
+        }
+        return name;
+      }
+
+      // 2. Direct Supabase auth user metadata (Google OAuth or Signup metadata)
+      const meta = session.user.user_metadata;
+      const metaName = meta?.full_name || meta?.name || meta?.preferred_name || meta?.first_name;
+      if (metaName && typeof metaName === 'string' && metaName.trim()) {
+        const name = metaName.trim();
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lyra_user_name', name);
+        }
+        return name;
+      }
+
+      // 3. Email prefix fallback
+      if (session.user.email) {
+        const emailPrefix = session.user.email.split('@')[0];
+        if (emailPrefix && emailPrefix !== 'user') {
+          const capitalized = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+          return capitalized;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[storage] Error getting user name from Supabase:', err);
+  }
+
+  // 4. Fallback to localStorage
+  if (typeof window !== 'undefined') {
+    const localName = localStorage.getItem('lyra_user_name');
+    if (localName && localName.trim() && localName !== 'Friend') {
+      return localName.trim();
+    }
+  }
+
+  // 5. Fallback to local profile
+  try {
+    const localProfile = await getLocalProfile();
+    if (localProfile?.name && localProfile.name.trim() && localProfile.name !== 'Friend') {
+      return localProfile.name.trim();
+    }
+  } catch {}
+
+  return 'Friend';
+}
+
 export async function getProfile() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -521,8 +592,9 @@ export async function getProfile() {
         .maybeSingle();
 
       if (!error && data) {
+        const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
         const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-        const preferredName = data.preferred_name || googleName || '';
+        const preferredName = data.preferred_name || localStoredName || googleName || '';
 
         const profileData = {
           preferredName: preferredName || DEFAULT_PROFILE.preferredName,
@@ -543,11 +615,12 @@ export async function getProfile() {
 
       // Check Google account name metadata fallback
       const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
-      if (googleName) {
+      const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
+      if (googleName || localStoredName) {
         const local = await getLocalProfileData();
         return {
           ...local,
-          preferredName: local.preferredName && local.preferredName !== 'Friend' ? local.preferredName : googleName,
+          preferredName: localStoredName || (local.preferredName && local.preferredName !== 'Friend' ? local.preferredName : googleName) || DEFAULT_PROFILE.preferredName,
         };
       }
     }
@@ -555,7 +628,15 @@ export async function getProfile() {
     console.warn('[storage] Remote profile fetch failed, using local:', err);
   }
 
-  return getLocalProfileData();
+  const local = await getLocalProfileData();
+  const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
+  if (localStoredName && (!local.preferredName || local.preferredName === 'Friend')) {
+    return {
+      ...local,
+      preferredName: localStoredName,
+    };
+  }
+  return local;
 }
 
 export async function saveProfile(updates: any) {
@@ -886,6 +967,7 @@ export const storage = {
   // Layer 1: Profile
   getProfile,
   saveProfile,
+  getSupabaseUserName,
   isOnboardingCompleted,
 
   // Layer 2: Memories
