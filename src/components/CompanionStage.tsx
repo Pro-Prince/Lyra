@@ -1019,7 +1019,7 @@ function CompanionStageComponent({
     setVrmSceneRef(null);
   }, [activeModelId]);
 
-  const showOpaqueBg = !transparentBg && !effectivePortraitMode;
+  const showOpaqueBg = !transparentBg;
 
   if (hasFailed && silentError) {
     return null;
@@ -1027,14 +1027,9 @@ function CompanionStageComponent({
 
   return (
     <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
-      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-1000 bg-[#ede2dc]" />}
+      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#ede2dc]" />}
       
       <AnimatePresence>
-        {!isLoaded && !hasFailed && (
-          <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
-            <div className="presence-glow" />
-          </div>
-        )}
         {hasFailed && !silentError && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -1065,11 +1060,11 @@ function CompanionStageComponent({
         )}
       </AnimatePresence>
 
-      {/* Model Reveal: fade in over 500ms, opacity 0 to 1, scale 0.98 to 1 once fully posed & idle-animating */}
+      {/* Smooth Canvas Container: smoothly mounts room without any loading spinners */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 0.98 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 w-full h-full"
       >
         <Canvas shadows 
@@ -1078,17 +1073,18 @@ function CompanionStageComponent({
           camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
           gl={{ 
             preserveDrawingBuffer: true,
-            alpha: true, 
+            alpha: false, 
             antialias: true, 
             powerPreference: "default",
             stencil: false,
             depth: true,
             failIfMajorPerformanceCaveat: false
           }}
-          onCreated={({ gl, size, gl: { domElement } }) => {
-            domElement.id = 'companion-webgl-canvas';
-            console.log('CompanionStage Canvas size at mount:', size.width, size.height);
-            console.log('CompanionStage DOM Element size:', domElement.clientWidth, domElement.clientHeight);
+          onCreated={({ gl, scene }) => {
+            gl.domElement.id = 'companion-webgl-canvas';
+            gl.setClearColor(new THREE.Color('#ede2dc'), 1);
+            scene.background = new THREE.Color('#ede2dc');
+            scene.fog = new THREE.Fog('#eddcd4', 16, 45);
             gl.shadowMap.enabled = true;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.outputColorSpace = THREE.SRGBColorSpace;
@@ -1097,6 +1093,8 @@ function CompanionStageComponent({
           }}
           dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >
+          <color attach="background" args={['#ede2dc']} />
+          <fog attach="fog" args={['#eddcd4', 16, 45]} />
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
@@ -1122,8 +1120,8 @@ function CompanionStageComponent({
           </Suspense>
         </Canvas>
         
-        {/* Cinematic Vignette Overlay */}
-        <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%)' }} />
+        {/* Soft Warm Vignette Overlay (eliminates harsh dark edges) */}
+        <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 75%, rgba(60,40,45,0.08) 100%)' }} />
       </motion.div>
     </div>
   );

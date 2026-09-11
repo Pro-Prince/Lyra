@@ -112,17 +112,17 @@ function SunbeamShafts() {
       beamRef.current.children.forEach((child, idx) => {
         const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
         if (mat) {
-          mat.opacity = 0.04 + Math.sin(t * 0.6 + idx * 1.5) * 0.01;
+          mat.opacity = 0.045 + Math.sin(t * 0.6 + idx * 1.5) * 0.012;
         }
       });
     }
   });
 
   return (
-    <group ref={beamRef} position={[-4.8, 2.4, -2.5]} rotation={[0.25, 0.45, -0.3]}>
+    <group ref={beamRef} position={[-11.5, 3.4, -1.5]} rotation={[0.2, 0.45, -0.32]}>
       {/* Sunbeam Angle Plane 1 */}
-      <mesh position={[1.8, -1.2, 1.4]} rotation={[-Math.PI / 2 + 0.35, 0, 0.3]}>
-        <planeGeometry args={[1.6, 5.5]} />
+      <mesh position={[4.5, -1.8, 2.2]} rotation={[-Math.PI / 2 + 0.35, 0, 0.3]}>
+        <planeGeometry args={[3.2, 10.5]} />
         <meshBasicMaterial
           color="#ffeedb"
           transparent
@@ -133,8 +133,8 @@ function SunbeamShafts() {
         />
       </mesh>
       {/* Sunbeam Angle Plane 2 */}
-      <mesh position={[1.4, -1.0, 1.0]} rotation={[-Math.PI / 2 + 0.38, 0, 0.25]}>
-        <planeGeometry args={[1.2, 4.8]} />
+      <mesh position={[3.8, -1.5, 1.6]} rotation={[-Math.PI / 2 + 0.38, 0, 0.25]}>
+        <planeGeometry args={[2.5, 9.2]} />
         <meshBasicMaterial
           color="#ffe0c4"
           transparent
@@ -298,26 +298,22 @@ function WallSconce({ position = [0, 0, 0], rotation = [0, 0, 0] }: { position?:
   );
 }
 
-// Main Stylized Anime Sanctuary Room Environment - FULLY ENCLOSED ARCHITECTURE
+// Main Stylized Anime Sanctuary Room Environment - FULLY ENCLOSED EXPANSIVE ARCHITECTURE
 export function RoomEnvironment() {
   return (
     <group>
-      {/* Seamless Warm Pastel Clear Color & Horizon Fog (Zero Black Borders Anywhere) */}
-      <color attach="background" args={['#ede2dc']} />
-      <fog attach="fog" args={['#eddcd4', 10, 32]} />
-
       {/* ========================================================= */}
       {/* 1. BALANCED STYLIZED LIGHTING RIG                         */}
       {/* ========================================================= */}
 
       {/* Ambient Fill: Gentle warm cream fill prevents harsh dark shadow areas */}
-      <ambientLight color="#fbf0ea" intensity={0.45} />
+      <ambientLight color="#fcf2ec" intensity={0.55} />
 
       {/* Main Key Sunlight (Soft window light streaming into the room) */}
       <directionalLight
-        color="#fff3e6"
-        intensity={0.78}
-        position={[-4.5, 4.2, 1.0]}
+        color="#fff4e8"
+        intensity={0.82}
+        position={[-8.5, 5.5, 1.0]}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -326,19 +322,28 @@ export function RoomEnvironment() {
 
       {/* Anime Character Rim & Front Fill (Warm Rose Glow) */}
       <directionalLight
-        color="#ffe8ef"
-        intensity={0.34}
-        position={[2.0, 2.5, 3.0]}
+        color="#ffeef3"
+        intensity={0.38}
+        position={[2.0, 2.5, 3.5]}
       />
 
-      {/* Subtle floor bounce light (Soft Peach Honey) */}
+      {/* Floor bounce light (Soft Peach Honey) */}
       <directionalLight
         color="#fedcb5"
-        intensity={0.15}
+        intensity={0.2}
         position={[0, -1, 1]}
       />
 
-      {/* Gentle Floating Sakura Petals instead of noisy sparkles */}
+      {/* Ceiling Warm Ambient Glow */}
+      <pointLight
+        color="#ffe8dc"
+        intensity={0.45}
+        position={[0, 5.8, 0]}
+        distance={16}
+        decay={1.5}
+      />
+
+      {/* Gentle Floating Sakura Petals */}
       <DriftingSakuraPetals />
 
       {/* Dreamy Volumetric Sunbeam Rays from Window */}
@@ -348,20 +353,22 @@ export function RoomEnvironment() {
       {/* 2. FULL SEAMLESS STYLIZED WOODEN FLOOR (Wall-to-Wall)     */}
       {/* ========================================================= */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[14, 14]} />
+        <planeGeometry args={[60, 60]} />
         <meshStandardMaterial
           color="#c89f81"
           roughness={0.45}
           metalness={0.04}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
       {/* Decorative Satin Parquet Inset Borders */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, -0.6]} receiveShadow>
-        <planeGeometry args={[8.5, 8.5]} />
+        <planeGeometry args={[18, 18]} />
         <meshStandardMaterial
           color="#ba9173"
           roughness={0.5}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
@@ -371,70 +378,69 @@ export function RoomEnvironment() {
       <group position={[0, 0.004, 0.15]}>
         {/* Outer rug circle with soft blush border */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <circleGeometry args={[1.55, 48]} />
-          <meshStandardMaterial color="#f7dbe3" roughness={0.9} />
+          <circleGeometry args={[1.6, 48]} />
+          <meshStandardMaterial color="#f7dbe3" roughness={0.9} side={THREE.DoubleSide} />
         </mesh>
         {/* Inner plush cream circle */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} receiveShadow>
-          <circleGeometry args={[1.42, 48]} />
-          <meshStandardMaterial color="#fef5f7" roughness={0.95} />
+          <circleGeometry args={[1.45, 48]} />
+          <meshStandardMaterial color="#fef5f7" roughness={0.95} side={THREE.DoubleSide} />
         </mesh>
         {/* Soft contact shadow beneath Lyra's standing area */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, -0.15]}>
           <circleGeometry args={[0.55, 32]} />
-          <meshBasicMaterial color="#50283b" transparent opacity={0.16} />
+          <meshBasicMaterial color="#50283b" transparent opacity={0.16} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
       {/* ========================================================= */}
-      {/* 4. SEAMLESS CEILING (Closes the top of the room)         */}
+      {/* 4. SEAMLESS CEILING (Expansive ceiling enclosing the top) */}
       {/* ========================================================= */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 4.6, 0]} receiveShadow>
-        <planeGeometry args={[14, 14]} />
-        <meshStandardMaterial color="#faf2ee" roughness={0.9} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 7.5, 0]} receiveShadow>
+        <planeGeometry args={[60, 60]} />
+        <meshStandardMaterial color="#faf2ee" roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Ceiling Crown Molding Trim on all 4 top wall junctions */}
-      {/* Back Crown */}
-      <mesh position={[0, 4.54, -4.9]}>
-        <boxGeometry args={[10.2, 0.12, 0.12]} />
-        <meshStandardMaterial color="#e5d5cc" roughness={0.4} />
+      {/* Ceiling Crown Molding Trim on Back Wall Junction */}
+      <mesh position={[0, 7.42, -4.92]}>
+        <boxGeometry args={[60, 0.16, 0.16]} />
+        <meshStandardMaterial color="#e5d5cc" roughness={0.4} side={THREE.DoubleSide} />
       </mesh>
       {/* Left Crown */}
-      <mesh position={[-4.9, 4.54, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[10.2, 0.12, 0.12]} />
-        <meshStandardMaterial color="#e5d5cc" roughness={0.4} />
+      <mesh position={[-11.92, 7.42, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[60, 0.16, 0.16]} />
+        <meshStandardMaterial color="#e5d5cc" roughness={0.4} side={THREE.DoubleSide} />
       </mesh>
       {/* Right Crown */}
-      <mesh position={[4.9, 4.54, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[10.2, 0.12, 0.12]} />
-        <meshStandardMaterial color="#e5d5cc" roughness={0.4} />
+      <mesh position={[11.92, 7.42, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[60, 0.16, 0.16]} />
+        <meshStandardMaterial color="#e5d5cc" roughness={0.4} side={THREE.DoubleSide} />
       </mesh>
 
       {/* ========================================================= */}
-      {/* 5. SEAMLESS BACK WALL & ARCH NICHE                       */}
+      {/* 5. EXPANSIVE SEAMLESS BACK WALL & ARCH NICHE             */}
       {/* ========================================================= */}
       
       {/* Main Creamy Blush Back Wall */}
-      <mesh position={[0, 2.3, -4.95]} receiveShadow>
-        <planeGeometry args={[10.2, 4.6]} />
-        <meshStandardMaterial color="#ede2dd" roughness={0.85} />
+      <mesh position={[0, 7.5, -4.95]} receiveShadow>
+        <planeGeometry args={[60, 15]} />
+        <meshStandardMaterial color="#ede2dd" roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Lower Wainscoting Paneling (Warm Soft Rose-Beige) */}
-      <mesh position={[0, 0.65, -4.93]} receiveShadow>
-        <planeGeometry args={[10.2, 1.3]} />
-        <meshStandardMaterial color="#dfd0c9" roughness={0.7} />
+      <mesh position={[0, 0.7, -4.93]} receiveShadow>
+        <planeGeometry args={[60, 1.4]} />
+        <meshStandardMaterial color="#dfd0c9" roughness={0.7} side={THREE.DoubleSide} />
       </mesh>
       {/* Wainscot Top Molding Trim */}
-      <mesh position={[0, 1.3, -4.91]}>
-        <boxGeometry args={[10.2, 0.06, 0.05]} />
-        <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+      <mesh position={[0, 1.4, -4.91]}>
+        <boxGeometry args={[60, 0.06, 0.05]} />
+        <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
       {/* Baseboard Floor Trim */}
-      <mesh position={[0, 0.07, -4.91]}>
-        <boxGeometry args={[10.2, 0.14, 0.05]} />
-        <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+      <mesh position={[0, 0.08, -4.91]}>
+        <boxGeometry args={[60, 0.16, 0.05]} />
+        <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
 
       {/* --------------------------------------------------------- */}
@@ -562,141 +568,149 @@ export function RoomEnvironment() {
       </group>
 
       {/* ========================================================= */}
-      {/* 6. FULL LEFT WALL WITH INTEGRATED AESTHETIC WINDOW        */}
+      {/* 6. EXPANSIVE LEFT WALL WITH INTEGRATED AESTHETIC WINDOW   */}
       {/* ========================================================= */}
-      <group position={[-4.95, 2.3, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-12.0, 7.5, 0]} rotation={[0, Math.PI / 2, 0]}>
         {/* Main Cream Left Wall */}
         <mesh receiveShadow>
-          <planeGeometry args={[10.2, 4.6]} />
-          <meshStandardMaterial color="#ebe0db" roughness={0.85} />
+          <planeGeometry args={[60, 15]} />
+          <meshStandardMaterial color="#ebe0db" roughness={0.85} side={THREE.DoubleSide} />
         </mesh>
         {/* Lower Wainscoting Paneling */}
-        <mesh position={[0, -1.65, 0.02]} receiveShadow>
-          <planeGeometry args={[10.2, 1.3]} />
-          <meshStandardMaterial color="#ded0c9" roughness={0.7} />
+        <mesh position={[0, -6.8, 0.02]} receiveShadow>
+          <planeGeometry args={[60, 1.4]} />
+          <meshStandardMaterial color="#ded0c9" roughness={0.7} side={THREE.DoubleSide} />
         </mesh>
         {/* Wainscot Top Trim */}
-        <mesh position={[0, -1.0, 0.04]}>
-          <boxGeometry args={[10.2, 0.06, 0.05]} />
-          <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+        <mesh position={[0, -6.1, 0.04]}>
+          <boxGeometry args={[60, 0.06, 0.05]} />
+          <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
         </mesh>
         {/* Baseboard Trim */}
-        <mesh position={[0, -2.23, 0.04]}>
-          <boxGeometry args={[10.2, 0.14, 0.05]} />
-          <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+        <mesh position={[0, -7.42, 0.04]}>
+          <boxGeometry args={[60, 0.16, 0.05]} />
+          <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
         </mesh>
 
         {/* Integrated Window Rig at Left Wall Center-Back */}
-        <group position={[-1.2, 0.1, 0.05]}>
+        <group position={[-1.5, -4.5, 0.05]}>
           {/* Warm Sunlight Sky Plane Outside Window */}
           <mesh position={[0, 0, -0.1]}>
-            <planeGeometry args={[2.0, 2.8]} />
-            <meshBasicMaterial color="#ffe8d1" />
+            <planeGeometry args={[2.4, 3.2]} />
+            <meshBasicMaterial color="#ffe8d1" side={THREE.DoubleSide} />
           </mesh>
           
           {/* Gentle Sunset Soft Sky Gradient Clouds */}
           <mesh position={[0.2, 0.4, -0.08]}>
-            <circleGeometry args={[0.55, 32]} />
+            <circleGeometry args={[0.65, 32]} />
             <meshBasicMaterial color="#ffd4aa" transparent opacity={0.8} />
           </mesh>
           <mesh position={[0, -0.4, -0.08]}>
-            <planeGeometry args={[1.9, 0.9]} />
+            <planeGeometry args={[2.2, 1.1]} />
             <meshBasicMaterial color="#ffc4b2" transparent opacity={0.6} />
           </mesh>
 
           {/* Wooden Window Frame Outer */}
-          <mesh castShadow receiveShadow position={[-0.85, 0, 0.04]}>
-            <boxGeometry args={[0.07, 2.8, 0.08]} />
+          <mesh castShadow receiveShadow position={[-1.0, 0, 0.04]}>
+            <boxGeometry args={[0.08, 3.2, 0.08]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
-          <mesh castShadow receiveShadow position={[0.85, 0, 0.04]}>
-            <boxGeometry args={[0.07, 2.8, 0.08]} />
+          <mesh castShadow receiveShadow position={[1.0, 0, 0.04]}>
+            <boxGeometry args={[0.08, 3.2, 0.08]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
-          <mesh castShadow receiveShadow position={[0, 1.4, 0.04]}>
-            <boxGeometry args={[1.77, 0.07, 0.08]} />
+          <mesh castShadow receiveShadow position={[0, 1.6, 0.04]}>
+            <boxGeometry args={[2.08, 0.08, 0.08]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
-          <mesh castShadow receiveShadow position={[0, -1.4, 0.04]}>
-            <boxGeometry args={[1.77, 0.07, 0.08]} />
+          <mesh castShadow receiveShadow position={[0, -1.6, 0.04]}>
+            <boxGeometry args={[2.08, 0.08, 0.08]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
           {/* Inner Mullions */}
           <mesh position={[0, 0, 0.04]}>
-            <boxGeometry args={[0.03, 2.8, 0.04]} />
+            <boxGeometry args={[0.04, 3.2, 0.04]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
           <mesh position={[0, 0, 0.04]}>
-            <boxGeometry args={[1.77, 0.03, 0.04]} />
+            <boxGeometry args={[2.08, 0.04, 0.04]} />
             <meshStandardMaterial color="#d1b197" roughness={0.5} />
           </mesh>
 
           {/* Translucent Soft Flowing Linen Curtain Left & Right */}
-          <mesh position={[-0.82, 0, 0.08]} receiveShadow>
-            <planeGeometry args={[0.48, 2.9]} />
-            <meshStandardMaterial color="#fffbfa" transparent opacity={0.75} roughness={0.8} />
+          <mesh position={[-0.95, 0, 0.08]} receiveShadow>
+            <planeGeometry args={[0.55, 3.3]} />
+            <meshStandardMaterial color="#fffbfa" transparent opacity={0.75} roughness={0.8} side={THREE.DoubleSide} />
           </mesh>
-          <mesh position={[0.82, 0, 0.08]} receiveShadow>
-            <planeGeometry args={[0.48, 2.9]} />
-            <meshStandardMaterial color="#fffbfa" transparent opacity={0.75} roughness={0.8} />
+          <mesh position={[0.95, 0, 0.08]} receiveShadow>
+            <planeGeometry args={[0.55, 3.3]} />
+            <meshStandardMaterial color="#fffbfa" transparent opacity={0.75} roughness={0.8} side={THREE.DoubleSide} />
           </mesh>
           {/* Curtain Rod in Brass */}
-          <mesh position={[0, 1.5, 0.1]}>
-            <cylinderGeometry args={[0.015, 0.015, 2.1, 16]} rotation={[0, 0, Math.PI / 2]} />
+          <mesh position={[0, 1.7, 0.1]}>
+            <cylinderGeometry args={[0.018, 0.018, 2.4, 16]} rotation={[0, 0, Math.PI / 2]} />
             <meshStandardMaterial color="#e5c185" metalness={0.8} roughness={0.25} />
           </mesh>
         </group>
       </group>
 
       {/* ========================================================= */}
-      {/* 7. FULL RIGHT WALL WITH SCONCES & WALL DETAILS            */}
+      {/* 7. EXPANSIVE RIGHT WALL WITH SCONCES & WALL DETAILS       */}
       {/* ========================================================= */}
-      <group position={[4.95, 2.3, 0]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[12.0, 7.5, 0]} rotation={[0, -Math.PI / 2, 0]}>
         {/* Main Cream Right Wall */}
         <mesh receiveShadow>
-          <planeGeometry args={[10.2, 4.6]} />
-          <meshStandardMaterial color="#ebe0db" roughness={0.85} />
+          <planeGeometry args={[60, 15]} />
+          <meshStandardMaterial color="#ebe0db" roughness={0.85} side={THREE.DoubleSide} />
         </mesh>
         {/* Lower Wainscoting Paneling */}
-        <mesh position={[0, -1.65, 0.02]} receiveShadow>
-          <planeGeometry args={[10.2, 1.3]} />
-          <meshStandardMaterial color="#ded0c9" roughness={0.7} />
+        <mesh position={[0, -6.8, 0.02]} receiveShadow>
+          <planeGeometry args={[60, 1.4]} />
+          <meshStandardMaterial color="#ded0c9" roughness={0.7} side={THREE.DoubleSide} />
         </mesh>
         {/* Wainscot Top Trim */}
-        <mesh position={[0, -1.0, 0.04]}>
-          <boxGeometry args={[10.2, 0.06, 0.05]} />
-          <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+        <mesh position={[0, -6.1, 0.04]}>
+          <boxGeometry args={[60, 0.06, 0.05]} />
+          <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
         </mesh>
         {/* Baseboard Trim */}
-        <mesh position={[0, -2.23, 0.04]}>
-          <boxGeometry args={[10.2, 0.14, 0.05]} />
-          <meshStandardMaterial color="#cfbeb6" roughness={0.5} />
+        <mesh position={[0, -7.42, 0.04]}>
+          <boxGeometry args={[60, 0.16, 0.05]} />
+          <meshStandardMaterial color="#cfbeb6" roughness={0.5} side={THREE.DoubleSide} />
         </mesh>
 
         {/* Two Ambient Wall Sconces on Right Wall */}
-        <WallSconce position={[-1.8, 0.4, 0.02]} />
-        <WallSconce position={[1.8, 0.4, 0.02]} />
+        <WallSconce position={[-2.5, -4.5, 0.02]} />
+        <WallSconce position={[2.5, -4.5, 0.02]} />
 
         {/* Tapestry / Large Framed Canvas on Right Wall */}
-        <group position={[0, 0.35, 0.03]}>
+        <group position={[0, -4.5, 0.03]}>
           <mesh castShadow receiveShadow>
-            <boxGeometry args={[1.4, 1.1, 0.04]} />
+            <boxGeometry args={[1.5, 1.2, 0.04]} />
             <meshStandardMaterial color="#c29b7a" roughness={0.4} />
           </mesh>
           <mesh position={[0, 0, 0.025]}>
-            <planeGeometry args={[1.28, 0.98]} />
+            <planeGeometry args={[1.36, 1.06]} />
             <meshStandardMaterial color="#faf4ef" roughness={0.9} />
           </mesh>
           {/* Minimalist pastel wave graphic */}
           <mesh position={[0, -0.1, 0.03]}>
-            <circleGeometry args={[0.3, 32]} />
+            <circleGeometry args={[0.32, 32]} />
             <meshBasicMaterial color="#f7b7c8" />
           </mesh>
         </group>
       </group>
 
       {/* ========================================================= */}
-      {/* 8. LOW AESTHETIC SCANDI CREDENZA / DESK (Right Corner)    */}
+      {/* 8. EXPANSIVE FRONT WALL (Behind camera, full 360 enclose) */}
+      {/* ========================================================= */}
+      <mesh position={[0, 7.5, 20.0]} rotation={[0, Math.PI, 0]} receiveShadow>
+        <planeGeometry args={[60, 15]} />
+        <meshStandardMaterial color="#ede2dd" roughness={0.85} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* ========================================================= */}
+      {/* 9. LOW AESTHETIC SCANDI CREDENZA / DESK (Right Corner)    */}
       {/* ========================================================= */}
       <group position={[2.9, 0.42, -4.1]}>
         {/* Credenza Main Cabinet */}

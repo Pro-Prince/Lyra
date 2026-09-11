@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
-import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted, getSupabaseUserName } from "../lib/storage";
+import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted, getSupabaseUserName, updateUserNameAndMemory, extractNameChangeRequest, isNameMemory, extractNameFromMemoryText } from "../lib/storage";
 import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
@@ -434,9 +434,12 @@ export default function Chat() {
       }
     };
     const handleUserNameChanged = (e: any) => {
-      if (e.detail && companionProfileRef.current) {
-        companionProfileRef.current.userName = e.detail;
-        companionProfileRef.current.userPreferredName = e.detail;
+      if (e.detail) {
+        if (companionProfileRef.current) {
+          companionProfileRef.current.userName = e.detail;
+          companionProfileRef.current.userPreferredName = e.detail;
+        }
+        getMemories().then(m => setMemories(m || []));
       }
     };
     window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
@@ -871,6 +874,14 @@ export default function Chat() {
     setMessages(prev => [...prev, userMsg]);
     setAppState(AppState.PROCESSING);
     await saveMessage(userMsg);
+
+    // Detect if user requested a name change in their message (e.g. "call me Alex from now", "my name is Alex")
+    const requestedName = extractNameChangeRequest(textToSend);
+    let freshMemories: any[] = [];
+    if (requestedName) {
+      freshMemories = await updateUserNameAndMemory(requestedName);
+      setMemories(freshMemories);
+    }
     
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -882,7 +893,7 @@ export default function Chat() {
     try {
       // 1. Layer 1: Profile (who they are)
       const profile = await getProfile();
-      const freshName = await getSupabaseUserName();
+      const freshName = requestedName || await getSupabaseUserName();
       if (freshName && freshName !== 'Friend') {
         profile.preferredName = freshName;
         if (companionProfileRef.current) {
@@ -892,7 +903,9 @@ export default function Chat() {
       }
       
       // 2. Layer 2: Memories (distilled durable facts)
-      const freshMemories = await getMemories();
+      if (freshMemories.length === 0) {
+        freshMemories = await getMemories();
+      }
       
       // 3. Layer 3: Recent Context (what's happening right now)
       const recentMessages = await getRecentMessages(10);
@@ -1064,6 +1077,15 @@ export default function Chat() {
               let addedAny = false;
               for (const fact of data.facts) {
                 if (validateMemory(fact)) {
+                  if (isNameMemory(fact)) {
+                    const extracted = extractNameFromMemoryText(fact);
+                    if (extracted) {
+                      const updated = await updateUserNameAndMemory(extracted);
+                      setMemories(updated);
+                      addedAny = true;
+                      continue;
+                    }
+                  }
                   const currentMems = await getMemories();
                   const exists = currentMems.some(m => m.text.toLowerCase() === fact.toLowerCase());
                   if (!exists) {
@@ -1226,61 +1248,6 @@ export default function Chat() {
     }
   };
 
-  // Process Memory extraction upon returning to IDLE from SPEAKING
-  const prevAppStateRef = useRef(appState);
-  useEffect(() => {
-     if (prevAppStateRef.current === AppState.SPEAKING && appState === AppState.IDLE) {
-        // Asynchronous fact extraction
-        const currentMessages = messagesRef.current;
-        if (currentMessages && currentMessages.length >= 2) {
-           const recentChatContext = currentMessages.slice(-10);
-           fetch('/api/extract-memory', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ messages: recentChatContext })
-           })
-           .then(res => (res.ok ? res.json() : Promise.reject(new Error(`Server response: ${res.status}`))))
-           .then(async data => {
-              if (data && Array.isArray(data.facts) && data.facts.length > 0) {
-                const currentMemories = Array.isArray(memories) ? memories : [];
-                let updatedMemories = [...currentMemories];
-                let added = false;
-                for (const rawFact of data.facts) {
-                  const cleanFact = typeof rawFact === 'string' 
-                    ? rawFact.trim() 
-                    : rawFact && typeof rawFact === 'object' 
-                      ? String(rawFact.fact || rawFact.content || rawFact.memory || rawFact.text || '').trim()
-                      : '';
-
-                  if (!cleanFact) continue;
-
-                  const isDuplicate = updatedMemories.some(m => {
-                    const existingContent = typeof m?.content === 'string' ? m.content.trim() : '';
-                    return existingContent.toLowerCase() === cleanFact.toLowerCase();
-                  });
-
-                  if (!isDuplicate) {
-                    const newMem = {
-                      id: crypto.randomUUID ? crypto.randomUUID() : `mem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                      content: cleanFact,
-                      createdAt: Date.now(),
-                      lastReferencedAt: Date.now()
-                    };
-                    await saveMemory(newMem);
-                    updatedMemories.push(newMem);
-                    added = true;
-                  }
-                }
-                if (added) setMemories(updatedMemories);
-              }
-           }).catch(err => {
-              console.warn('[MemoryExtraction] Handled background extraction notice:', err?.message || err);
-           });
-        }
-     }
-     prevAppStateRef.current = appState;
-  }, [appState, memories]);
-
   const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
@@ -1326,7 +1293,7 @@ export default function Chat() {
         {/* ========================================================= */}
         <div className="md:hidden flex flex-col w-full h-full relative overflow-hidden bg-[var(--bg-base)]">
           {/* Top Half: 3D Companion Stage & Floating HUD (~48% height) */}
-          <div className="h-[48vh] min-h-[300px] relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[var(--bg-surface)] via-[var(--bg-base)]/90 to-[var(--bg-base)]">
+          <div className="h-[48vh] min-h-[300px] relative flex flex-col justify-between overflow-hidden bg-[#ede2dc]">
             {/* Top Navigation Bar */}
             <div className={`w-full px-3.5 pt-2.5 pb-2 flex items-center justify-between z-30 shrink-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
               {/* Left: Hamburger Menu + Lyra Avatar + Name */}
@@ -1378,7 +1345,7 @@ export default function Chat() {
                 isWardrobeOpen={isWardrobeOpen}
                 isPortraitMode={false}
                 isProcessing={isLoading}
-                transparentBg={true}
+                transparentBg={false}
               />
               {/* Touch Gestures */}
               <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
@@ -1679,7 +1646,7 @@ export default function Chat() {
         {/* ========================================================= */}
         <div className="hidden md:flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
-          <div className="companion-screen flex-1 bg-gradient-to-b from-[#1c131a] to-black group relative overflow-hidden">
+          <div className="companion-screen flex-1 bg-[#ede2dc] group relative overflow-hidden">
             <div className="companion-viewport w-full h-full relative">
             {/* Camera Shutter Flash Effect (Desktop) */}
             {isCapturingFlash && (
@@ -1734,7 +1701,7 @@ export default function Chat() {
                   isWardrobeOpen={isWardrobeOpen || isSettingsOpen}
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
-                  transparentBg={true}
+                  transparentBg={false}
                 />
                 {/* TouchInteractionLayer */}
                 <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">

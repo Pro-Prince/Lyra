@@ -778,10 +778,257 @@ export async function getMemories() {
   return getLocalMemories();
 }
 
+export function isNameMemory(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('prefers to be called') ||
+    lower.includes('my name is') ||
+    lower.includes("user's name is") ||
+    lower.includes("users name is") ||
+    lower.includes('call me') ||
+    lower.startsWith('name is') ||
+    lower.includes('called "') ||
+    lower.includes('named "')
+  );
+}
+
+export function extractNameFromMemoryText(text: string): string | null {
+  if (!text) return null;
+  const match = text.match(/prefers to be called ["'“]?([^"'”]+)["'”]?/i) ||
+                text.match(/name is ["'“]?([^"'”]+)["'”]?/i) ||
+                text.match(/call(?:ed)? ["'“]?([^"'”]+)["'”]?/i);
+  if (match && match[1]) {
+    const clean = match[1].replace(/[.!,]$/, '').trim();
+    if (clean.length >= 2 && clean.length <= 30) {
+      return clean;
+    }
+  }
+  return null;
+}
+
+export function extractNameChangeRequest(message: string): string | null {
+  if (!message || typeof message !== 'string') return null;
+  const trimmed = message.trim();
+  const clean = trimmed.replace(/[.!?]+$/, '').trim();
+
+  const patterns: RegExp[] = [
+    // "from now on, call me X" or "from now, call me X"
+    /(?:from\s+now(?:\s+on)?\s*,?\s*)?(?:please\s+)?(?:call\s+me|address\s+me\s+as|my\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s+from\s+now(?:\s+on)?$/i,
+    
+    // "from now on call me X"
+    /from\s+now(?:\s+on)?\s*,?\s*(?:please\s+)?(?:call\s+me|address\s+me\s+as|my\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+
+    // "change/update/set my name to X [from now [on]]"
+    /(?:please\s+)?(?:change|update|set)\s+my\s+name\s+to\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+    
+    // "you can call me X [from now [on]]" / "can you call me X" / "i want you to call me X"
+    /(?:you\s+can|i\s+want\s+you\s+to|can\s+you|could\s+you|please)\s+call\s+me\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?)?$/i,
+    
+    // "call me X"
+    /^(?:(?:hey|hi|hello|so|listen|okay|ok)\s*,?\s*)?call\s+me\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+    
+    // "my name is X"
+    /^(?:(?:hey|hi|hello|by the way|btw)\s*,?\s*)?my\s+name\s+is\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+  ];
+
+  for (const pat of patterns) {
+    const match = clean.match(pat);
+    if (match && match[1]) {
+      let candidate = match[1].trim();
+      candidate = candidate.replace(/^(a|an|the)\s+/i, '').trim();
+      const lower = candidate.toLowerCase();
+      const forbidden = [
+        'it', 'something', 'anything', 'whatever', 'crazy', 'stupid', 
+        'dumb', 'now', 'here', 'later', 'please', 'friend', 'baby', 'honey', 'babe'
+      ];
+      if (!forbidden.includes(lower) && candidate.length >= 2 && candidate.length <= 30) {
+        if (candidate === candidate.toLowerCase()) {
+          candidate = candidate.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
+export async function updateUserNameAndMemory(newName: string): Promise<Memory[]> {
+  const trimmed = newName.trim();
+  if (!trimmed) return getMemories();
+
+  // 1. Remote and local profile sync
+  try {
+    await saveProfile({ preferredName: trimmed });
+  } catch (err) {
+    console.warn('[storage] Error syncing remote profile:', err);
+  }
+
+  // 2. Local profile store sync
+  try {
+    const existingLocal = (await getLocalProfile()) || {};
+    await saveLocalProfile({
+      ...existingLocal,
+      name: trimmed,
+      preferredName: trimmed,
+    });
+  } catch (err) {
+    console.warn('[storage] Error syncing local profile:', err);
+  }
+
+  // 3. Companion store sync
+  try {
+    const existingComp = (await getCompanion()) || {};
+    await saveCompanion({
+      ...existingComp,
+      userName: trimmed,
+      userPreferredName: trimmed,
+    });
+  } catch (err) {
+    console.warn('[storage] Error syncing companion store:', err);
+  }
+
+  // 4. Update localStorage and broadcast change event
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lyra_user_name', trimmed);
+    window.dispatchEvent(new CustomEvent('lyraUserNameChanged', { detail: trimmed }));
+  }
+
+  // 5. Update existing memory in Supabase and local IndexedDB (only update existing, never add duplicate)
+  const newMemoryText = `Prefers to be called "${trimmed}".`;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    let allMems: any[] = [];
+    if (session) {
+      const { data, error } = await supabase
+        .from('memories')
+        .select('id, user_id, text, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        allMems = data;
+      }
+    }
+
+    if (allMems.length === 0) {
+      allMems = await getLocalMemories();
+    }
+
+    const nameMemories = allMems.filter((m: any) => isNameMemory(m.text || m.content || ''));
+
+    if (nameMemories.length > 0) {
+      const targetMemory = nameMemories[0];
+
+      // Update in Supabase
+      if (session) {
+        const { error: updateErr } = await supabase
+          .from('memories')
+          .update({ text: newMemoryText })
+          .eq('id', targetMemory.id)
+          .eq('user_id', session.user.id);
+
+        if (updateErr) {
+          console.warn('[storage] Supabase memory update error:', updateErr);
+        }
+
+        // Clean up any other duplicate name memories if they exist
+        if (nameMemories.length > 1) {
+          for (let i = 1; i < nameMemories.length; i++) {
+            await supabase
+              .from('memories')
+              .delete()
+              .eq('id', nameMemories[i].id)
+              .eq('user_id', session.user.id);
+          }
+        }
+      }
+
+      // Update in Local IndexedDB with the same ID
+      await saveLocalMemory({
+        id: targetMemory.id,
+        text: newMemoryText,
+        createdAt: targetMemory.created_at || targetMemory.createdAt || new Date().toISOString(),
+      });
+
+      // Clean up local duplicates
+      if (nameMemories.length > 1) {
+        for (let i = 1; i < nameMemories.length; i++) {
+          await deleteLocalMemory(nameMemories[i].id);
+        }
+      }
+    } else {
+      // If no name memory exists at all, insert one
+      if (session) {
+        const payload = {
+          user_id: session.user.id,
+          text: newMemoryText,
+        };
+        const { data: inserted, error: insertErr } = await supabase
+          .from('memories')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (!insertErr && inserted) {
+          await saveLocalMemory({
+            id: inserted.id,
+            text: newMemoryText,
+            createdAt: inserted.created_at,
+          });
+        } else {
+          await saveLocalMemory({
+            id: crypto.randomUUID(),
+            text: newMemoryText,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        await saveLocalMemory({
+          id: crypto.randomUUID(),
+          text: newMemoryText,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[storage] Error updating name memory:', err);
+    // Local fallback
+    const localMems = await getLocalMemories();
+    const existing = localMems.find(m => isNameMemory(m.text));
+    if (existing) {
+      await saveLocalMemory({
+        id: existing.id,
+        text: newMemoryText,
+        createdAt: existing.createdAt || new Date().toISOString(),
+      });
+    } else {
+      await saveLocalMemory({
+        id: crypto.randomUUID(),
+        text: newMemoryText,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return getMemories();
+}
+
 export async function saveMemory(textOrObj: any) {
   const text = typeof textOrObj === 'string' ? textOrObj : (textOrObj.text || textOrObj.content || textOrObj.factSummary || '');
   if (!text || !text.trim()) return;
   const cleanText = text.trim();
+
+  // If this fact is about the user's name preference, ensure it updates the existing memory instead of inserting a new row
+  if (isNameMemory(cleanText)) {
+    const extracted = extractNameFromMemoryText(cleanText);
+    if (extracted) {
+      return updateUserNameAndMemory(extracted);
+    }
+  }
 
   let memoryId = (textOrObj && typeof textOrObj === 'object' && textOrObj.id) ? textOrObj.id : crypto.randomUUID();
   let createdAt = (textOrObj && typeof textOrObj === 'object' && textOrObj.createdAt) ? textOrObj.createdAt : new Date().toISOString();
@@ -969,6 +1216,8 @@ export const storage = {
   saveProfile,
   getSupabaseUserName,
   isOnboardingCompleted,
+  updateUserNameAndMemory,
+  extractNameChangeRequest,
 
   // Layer 2: Memories
   getMemories,
@@ -976,6 +1225,8 @@ export const storage = {
   deleteMemory,
   validateMemory,
   sanitizeMemoryText,
+  isNameMemory,
+  extractNameFromMemoryText,
 
   // Layer 3: Recent Context
   getRecentMessages,

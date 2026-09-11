@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory } from "../lib/storage";
+import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory, updateUserNameAndMemory } from "../lib/storage";
 import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
@@ -49,10 +49,18 @@ export default function Settings() {
         setCurrentOutfit(e.detail);
       }
     };
+    const handleNameChanged = (e: any) => {
+      if (e.detail) {
+        setUserName(e.detail);
+        getMemories().then(m => setMemories(m || []));
+      }
+    };
     window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
+    window.addEventListener('lyraUserNameChanged', handleNameChanged);
     window.addEventListener('focus', load);
     return () => {
       window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
+      window.removeEventListener('lyraUserNameChanged', handleNameChanged);
       window.removeEventListener('focus', load);
     };
   }, [session]);
@@ -115,30 +123,8 @@ export default function Settings() {
 
     setIsSavingProfile(true);
     try {
-      // 1. Remote and local profile sync
-      await saveProfile({ preferredName: trimmed });
-
-      // 2. Local profile store sync
-      const existingLocal = await getLocalProfile();
-      await saveLocalProfile({ ...existingLocal, name: trimmed });
-
-      // 3. Companion store sync
-      const existingComp = await getCompanion() || {};
-      await saveCompanion({
-        ...existingComp,
-        userName: trimmed,
-        userPreferredName: trimmed,
-      });
-
-      // 4. Memory context sync for Lyra's active memory
-      await saveMemory({
-        id: crypto.randomUUID(),
-        text: `Prefers to be called "${trimmed}".`,
-        createdAt: new Date().toISOString(),
-      });
-
-      localStorage.setItem("lyra_user_name", trimmed);
-      window.dispatchEvent(new CustomEvent('lyraUserNameChanged', { detail: trimmed }));
+      const updatedMems = await updateUserNameAndMemory(trimmed);
+      setMemories(updatedMems);
       showInfo("Profile updated");
     } catch (err) {
       console.error("Failed to update profile:", err);
