@@ -45,6 +45,30 @@ export function useAuth() {
       if (mounted) setLoading(false);
     }, 3500) : null;
 
+    const handleAuthMessage = async (event: MessageEvent) => {
+      const origin = event.origin;
+      if (origin && !origin.endsWith('.run.app') && !origin.includes('localhost') && origin !== window.location.origin) {
+        return;
+      }
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        if (event.data.accessToken && event.data.refreshToken) {
+          try {
+            const { data: { session: newSession } } = await supabase.auth.setSession({
+              access_token: event.data.accessToken,
+              refresh_token: event.data.refreshToken,
+            });
+            if (mounted && newSession) {
+              setSession(newSession);
+              setLoading(false);
+            }
+          } catch (e) {
+            console.warn('[useAuth] setSession error:', e);
+          }
+        }
+      }
+    };
+    window.addEventListener('message', handleAuthMessage);
+
     try {
       const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         if (mounted) {
@@ -56,6 +80,7 @@ export function useAuth() {
       return () => {
         mounted = false;
         if (callbackTimeout) clearTimeout(callbackTimeout);
+        window.removeEventListener('message', handleAuthMessage);
         listener?.subscription?.unsubscribe();
       };
     } catch (err) {
@@ -63,6 +88,7 @@ export function useAuth() {
       return () => {
         mounted = false;
         if (callbackTimeout) clearTimeout(callbackTimeout);
+        window.removeEventListener('message', handleAuthMessage);
       };
     }
   }, []);

@@ -98,6 +98,7 @@ export function getOutfitLabel(outfit?: string | null): string {
 }
 
 export function isSameOutfit(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false;
   return normalizeOutfitId(a) === normalizeOutfitId(b);
 }
 

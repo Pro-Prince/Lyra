@@ -36,11 +36,11 @@ const DB_NAME = 'lyra-db';
 const DB_VERSION = 2;
 
 const DEFAULT_PROFILE: Profile = {
-  preferredName: 'Friend',
-  conversationalVibe: 'Warm & Gentle',
-  topics: ['Daily Life', 'Mindfulness'],
-  activeOutfit: '/models/lyra.vrm',
-  voicePresetId: 'soft-calm',
+  preferredName: '',
+  conversationalVibe: '',
+  topics: [],
+  activeOutfit: '',
+  voicePresetId: '',
 };
 
 function withMeta<T>(record: T & { id?: string; updatedAt?: string }): T & { id: string; updatedAt: string } {

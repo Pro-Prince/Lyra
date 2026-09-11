@@ -7,13 +7,17 @@ export interface WardrobeGridProps {
   onSelect: (outfitId: string) => void;
   size?: 'default' | 'large';
   className?: string;
+  selectedText?: string;
+  unselectedText?: string;
 }
 
 export function WardrobeGrid({
   selectedOutfit,
   onSelect,
   size = 'default',
-  className = ''
+  className = '',
+  selectedText,
+  unselectedText
 }: WardrobeGridProps) {
   const gridClasses = size === 'large'
     ? 'grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'
@@ -29,6 +33,8 @@ export function WardrobeGrid({
             modelId={outfit.id}
             label={outfit.label}
             isSelected={isSelected}
+            selectedText={selectedText}
+            unselectedText={unselectedText}
             onSelect={() => {
               if (!isSelected) {
                 onSelect(outfit.id);

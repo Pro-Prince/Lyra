@@ -112,6 +112,8 @@ export interface WardrobeCardProps {
   className?: string;
   showRotateHint?: boolean;
   useFeatureStyle?: boolean;
+  selectedText?: string;
+  unselectedText?: string;
 }
 
 export function WardrobeCard({
@@ -122,7 +124,9 @@ export function WardrobeCard({
   onSelect,
   className = '',
   showRotateHint = true,
-  useFeatureStyle = false
+  useFeatureStyle = false,
+  selectedText = 'Currently wearing',
+  unselectedText = 'Wear this look'
 }: WardrobeCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -135,22 +139,15 @@ export function WardrobeCard({
   const [error, setError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  const renderFrame = () => {
-    if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
-      modelRef.current.scene.rotation.y = rotationRef.current;
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-    }
-  };
-
   function handleDrag(deltaX: number) {
     rotationRef.current += deltaX * 0.01;
-    renderFrame();
   }
 
   const dragHandlers = useDragRotate(handleDrag);
 
   useEffect(() => {
     let cancelled = false;
+    let animId: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
     const container = containerRef.current;
     if (!container) return;
@@ -166,14 +163,24 @@ export function WardrobeCard({
         if (cancelled || !containerRef.current) return;
 
         setupCardScene(vrm, containerRef.current, rendererRef, modelRef, sceneRef, cameraRef);
-        
-        // Initial render frame
-        if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
-          modelRef.current.scene.rotation.y = rotationRef.current;
-          rendererRef.current.render(sceneRef.current, cameraRef.current);
-        }
 
-        // Resize observer updates on layout change
+        // Continuous render loop
+        let lastTime = performance.now();
+        function animate() {
+          animId = requestAnimationFrame(animate);
+          const now = performance.now();
+          const delta = Math.min((now - lastTime) / 1000, 0.05);
+          lastTime = now;
+
+          if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
+            modelRef.current.scene.rotation.y = rotationRef.current;
+            safeUpdateVRM(modelRef.current, delta);
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
+          }
+        }
+        animate();
+
+        // Resize observer
         if (containerRef.current) {
           resizeObserver = new ResizeObserver((entries) => {
             if (!containerRef.current || !rendererRef.current || !cameraRef.current || !modelRef.current) return;
@@ -183,8 +190,6 @@ export function WardrobeCard({
             cameraRef.current.updateProjectionMatrix();
             rendererRef.current.setSize(width, height);
             frameOutfit(modelRef.current.scene, cameraRef.current, height);
-            modelRef.current.scene.rotation.y = rotationRef.current;
-            rendererRef.current.render(sceneRef.current, cameraRef.current);
           });
           resizeObserver.observe(containerRef.current);
         }
@@ -201,6 +206,9 @@ export function WardrobeCard({
 
     return () => {
       cancelled = true;
+      if (animId !== null) {
+        cancelAnimationFrame(animId);
+      }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -299,11 +307,11 @@ export function WardrobeCard({
             {isSelected ? (
               <>
                 <Check className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
-                <span>Currently wearing</span>
+                <span>{selectedText}</span>
               </>
             ) : (
               <>
-                <span>Wear this look</span>
+                <span>{unselectedText}</span>
                 <ArrowRight className="w-4 h-4 shrink-0 transition-transform group-hover/btn:translate-x-1" />
               </>
             )}

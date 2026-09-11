@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { t } from "../lib/i18n";
 import { motion, AnimatePresence } from "motion/react";
-import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
+import { entranceVariants, groupVariants, pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import IconBadge from "../components/IconBadge";
@@ -71,16 +71,23 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function OutfitShowcase() {
-  const [activeOutfit, setActiveOutfit] = useState('default');
+  const [activeOutfit, setActiveOutfit] = useState('');
+  const { isAuthed } = useAuth();
   const { showInfo } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     async function loadCurrentOutfit() {
+      if (!isAuthed) {
+        setActiveOutfit('');
+        return;
+      }
       try {
         const comp = await getCompanion();
-        if (comp && comp.outfit) {
+        if (comp && comp.outfit && comp.initialized) {
           setActiveOutfit(comp.outfit);
+        } else {
+          setActiveOutfit('');
         }
       } catch (err) {
         console.warn('Failed to load companion outfit for showcase:', err);
@@ -89,7 +96,7 @@ function OutfitShowcase() {
     loadCurrentOutfit();
 
     const handleOutfitChanged = (e: any) => {
-      if (e.detail) {
+      if (e.detail && isAuthed) {
         setActiveOutfit(e.detail);
       }
     };
@@ -99,9 +106,13 @@ function OutfitShowcase() {
       window.removeEventListener('lyraOutfitChanged', handleOutfitChanged);
       window.removeEventListener('focus', loadCurrentOutfit);
     };
-  }, []);
+  }, [isAuthed]);
 
   const handleOutfitWear = async (outfitId: string) => {
+    if (!isAuthed) {
+      navigate('/signup');
+      return;
+    }
     const modelUrl = getOutfitUrl(outfitId);
     setActiveOutfit(modelUrl);
     try {
@@ -119,11 +130,15 @@ function OutfitShowcase() {
   };
 
   return (
-    <section 
+    <motion.section 
       id="wardrobe"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-40px" }}
+      variants={groupVariants}
       className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
-      <div className="text-center mb-8 sm:mb-10">
+      <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
         <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)] mb-2 inline-block">
           Wardrobe
         </span>
@@ -133,10 +148,10 @@ function OutfitShowcase() {
         <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
           Select an outfit to change what Lyra is currently wearing across your entire companion experience.
         </p>
-      </div>
+      </motion.div>
 
       <WardrobeGrid selectedOutfit={activeOutfit} onSelect={handleOutfitWear} size="large" />
-    </section>
+    </motion.section>
   );
 }
 
@@ -217,7 +232,11 @@ export default function Landing() {
         <div className="w-full max-w-6xl mx-auto px-6">
           {/* Centered Hero Text Layout */}
           <div className="hero hero-single-column">
-            <div 
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={entranceVariants}
               className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
@@ -255,19 +274,24 @@ export default function Landing() {
                   {t("landing_disclaimer")}
                 </span>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Wardrobe Outfit Showcase */}
           <OutfitShowcase />
 
           {/* Feature Cards Grid: Left-aligned, top-left badge */}
-          <div 
+          <motion.div 
             id="features"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={groupVariants}
             className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
             {/* Card 1: Voice & Vibe */}
-            <div 
+            <motion.div 
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -279,10 +303,11 @@ export default function Landing() {
                   {t("card1_desc")}
                 </p>
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 2: 3D Live Companion Stage */}
-            <div 
+            <motion.div 
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -294,10 +319,11 @@ export default function Landing() {
                   {t("card2_desc")}
                 </p>
               </div>
-            </div>
+            </motion.div>
 
             {/* Card 3: Reflective Memory */}
-            <div 
+            <motion.div 
+              variants={entranceVariants}
               className="feature-card flex flex-col justify-between"
             >
               <div>
@@ -309,32 +335,37 @@ export default function Landing() {
                   {t("card3_desc")}
                 </p>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
       <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-12 sm:py-20 md:py-24">
         <div className="w-full max-w-3xl mx-auto px-4 sm:px-6">
-          <div 
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-40px" }}
+            variants={groupVariants}
             aria-label="Frequently Asked Questions"
           >
-            <div className="text-center mb-6 sm:mb-10">
+            <motion.div variants={entranceVariants} className="text-center mb-6 sm:mb-10">
               <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-1.5 inline-block">
                 FAQ
               </span>
               <h2 className="font-heading font-semibold text-xl sm:text-2xl md:text-3xl text-[var(--text-primary)] tracking-tight">
                 Common Questions
               </h2>
-            </div>
+            </motion.div>
 
-            <div className="faq-list space-y-3 sm:space-y-4">
+            <motion.div variants={groupVariants} className="faq-list space-y-3 sm:space-y-4">
               {FAQ_ITEMS.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
-                  <div 
+                  <motion.div 
                     key={faq.id} 
+                    variants={entranceVariants}
                     className={`faq-row cursor-pointer rounded-2xl border p-4 sm:p-5 ${
                       isOpen
                         ? "selected bg-[var(--bg-surface)]"
@@ -388,11 +419,11 @@ export default function Landing() {
                         </AnimatePresence>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 

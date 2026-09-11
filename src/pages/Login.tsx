@@ -27,6 +27,42 @@ export default function LoginPage() {
         }
       });
     }
+
+    const handleMessage = async (event: MessageEvent) => {
+      // Validate origin is from same app or run.app / localhost
+      const origin = event.origin;
+      if (origin && !origin.endsWith('.run.app') && !origin.includes('localhost') && origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        setLoading(true);
+        try {
+          if (event.data.accessToken && event.data.refreshToken) {
+            await supabase.auth.setSession({
+              access_token: event.data.accessToken,
+              refresh_token: event.data.refreshToken
+            });
+          }
+          const completed = await isOnboardingCompleted();
+          if (completed) {
+            sessionStorage.setItem('lyra_auth_toast_message', 'Successfully logged in!');
+            navigate('/chat', { replace: true });
+          } else {
+            navigate('/onboarding', { replace: true });
+          }
+        } catch (err) {
+          console.warn('[Login] Error applying OAuth session:', err);
+          navigate('/onboarding', { replace: true });
+        }
+      } else if (event.data?.type === 'OAUTH_AUTH_ERROR') {
+        setError(event.data.error || 'Google login was cancelled or failed.');
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [isAuthed, authLoading, navigate]);
 
   if (authLoading) {
@@ -38,14 +74,52 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
     try {
       sessionStorage.setItem('lyra_auth_intent', 'signin');
-      await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/onboarding` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true
+        },
       });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data?.url) {
+        const popup = window.open(
+          data.url,
+          'google_oauth_popup',
+          'width=550,height=680,top=100,left=100,toolbar=no,menubar=no'
+        );
+
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          // If popup is blocked by the iframe browser sandbox, fallback to direct redirect if top-level
+          if (window.self === window.top) {
+            window.location.href = data.url;
+          } else {
+            setError('Popup was blocked by the browser. Please allow popups for this site or open the app in a new tab.');
+            setLoading(false);
+          }
+        } else {
+          // Monitor popup closure if user closes it manually
+          const timer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(timer);
+              setLoading(false);
+            }
+          }, 1000);
+        }
+      }
     } catch (err: any) {
       setError(err?.message || 'Google sign in failed');
+      setLoading(false);
     }
   };
 

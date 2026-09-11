@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Volume2, Sparkles, ArrowRight, ArrowLeft, X, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
+import { Volume2, Sparkles, ArrowRight, ArrowLeft, Heart, MessageSquare, Compass, ShieldCheck } from "lucide-react";
 import { Heading2, BodyText } from "../components/Typography";
 import Button from "../components/Button";
-import { getLocalProfile, saveLocalProfile, getProfile, saveProfile, saveMemory, saveMessage, getCompanion, saveCompanion, isOnboardingCompleted } from "../lib/storage";
+import { getLocalProfile, saveLocalProfile, saveProfile, saveMemory, saveMessage, getCompanion, saveCompanion, isOnboardingCompleted } from "../lib/storage";
 import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
-import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
+import { filterAllowedVoices } from "../lib/voiceAllowlist";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import { VoicePicker } from "../components/VoicePicker";
 import { WardrobeGrid } from "../components/WardrobeGrid";
@@ -36,12 +36,12 @@ export default function Onboarding() {
   const [isFinishing, setIsFinishing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // User input states
+  // User input states - none pre-selected
   const [userName, setUserName] = useState("");
   const [selectedVibe, setSelectedVibe] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
-  // TTS Voice State
+  // TTS Voice & Outfit State - none pre-selected
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceUri, setSelectedVoiceUri] = useState("");
   const [selectedOutfit, setSelectedOutfit] = useState("");
@@ -93,20 +93,13 @@ export default function Onboarding() {
       const allVoices = window.speechSynthesis.getVoices();
       const allowed = filterAllowedVoices(allVoices, "en");
       setVoices(allowed);
-
-      if (allowed.length > 0) {
-        const defaultVoice = getVoiceForPreset('soft-calm', allowed) || getDefaultFemaleVoice(allowed);
-        if (defaultVoice && (!selectedVoiceUri || !allowed.some(v => v.voiceURI === selectedVoiceUri))) {
-          setSelectedVoiceUri(defaultVoice.voiceURI);
-        }
-      }
     };
 
     loadVoices();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
-  }, [selectedVoiceUri]);
+  }, []);
 
   const speakWelcomeLine = (textToSpeak?: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -176,6 +169,7 @@ export default function Onboarding() {
   const handleNext = () => {
     if (step === 2 && !userName.trim()) return;
     if (step === 3 && !selectedVibe) return;
+    if (step === 4 && selectedInterests.length === 0) return;
     if (step === 5 && !selectedVoiceUri) return;
     if (step === 6 && !selectedOutfit) return;
     
@@ -190,70 +184,6 @@ export default function Onboarding() {
   const handleBack = () => {
     if (step > 1) {
       setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6);
-    }
-  };
-
-  const handleSkip = async () => {
-    setIsFinishing(true);
-    try {
-      const googleName = session?.user?.user_metadata?.full_name || 
-                         session?.user?.user_metadata?.name || 
-                         session?.user?.email?.split('@')[0] || 
-                         "Friend";
-      const finalName = userName.trim() || googleName;
-
-      // 1. Save profile
-      await saveProfile({
-        preferredName: finalName,
-        conversationalVibe: selectedVibe || "",
-        topics: selectedInterests,
-        activeOutfit: selectedOutfit || "",
-        voicePresetId: selectedVoiceUri || "",
-        onboardingCompleted: true,
-      });
-
-      // 2. Save local profile
-      const existingProfile = await getLocalProfile();
-      await saveLocalProfile({
-        ...existingProfile,
-        name: finalName,
-        initialized: true,
-        adultConfirmed: true,
-      });
-
-      // 3. Save companion
-      const existingComp = await getCompanion() || {};
-      await saveCompanion({
-        ...existingComp,
-        name: "Lyra",
-        userName: finalName,
-        userPreferredName: finalName,
-        vibe: selectedVibe || "",
-        interests: selectedInterests,
-        initialized: true,
-      });
-
-      // 4. Save memory for context
-      await saveMemory({
-        id: crypto.randomUUID(),
-        text: `Prefers to be called "${finalName}".`,
-        createdAt: new Date().toISOString(),
-      });
-
-      localStorage.setItem("lyra_onboarding_completed", "true");
-      localStorage.setItem("lyra_user_name", finalName);
-
-      const intent = sessionStorage.getItem('lyra_auth_intent');
-      const toastMessage = intent === 'signup' ? 'Account created successfully!' : 'Successfully logged in!';
-      sessionStorage.setItem('lyra_auth_toast_message', toastMessage);
-      sessionStorage.removeItem('lyra_auth_intent');
-
-      navigate("/chat", { replace: true });
-    } catch (error) {
-      console.error("Onboarding skip error:", error);
-      navigate("/chat", { replace: true });
-    } finally {
-      setIsFinishing(false);
     }
   };
 
@@ -294,7 +224,7 @@ export default function Onboarding() {
         preferredName: name,
         conversationalVibe: vibe,
         topics: topics,
-        activeOutfit: "/models/lyra.vrm",
+        activeOutfit: selectedOutfit || "/models/lyra.vrm",
         voicePresetId: selectedVoiceUri || "soft-calm",
       };
       const initialMemories = [
@@ -332,6 +262,8 @@ export default function Onboarding() {
         userPreferredName: finalName,
         vibe: selectedVibe,
         interests: selectedInterests,
+        voicePreset: selectedVoiceUri,
+        outfit: selectedOutfit || "/models/lyra.vrm",
         initialized: true,
       });
 
@@ -386,7 +318,7 @@ export default function Onboarding() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden"
+      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
     >
       {/* Top Segmented Progress Bar Section (Aligned with the edges of the onboarding card section) */}
       <div className="absolute top-0 left-0 right-0 w-full max-w-xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center z-50">
@@ -412,9 +344,9 @@ export default function Onboarding() {
             </AnimatePresence>
           </div>
 
-          {/* Progress Bar Lines: Stretches in the center with equal distance to Back and Close buttons */}
+          {/* Progress Bar Lines: Stretches in the center with 6 clear step indicators */}
           <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-1 min-w-0">
-            {Array.from({ length: 4 }).map((_, idx) => (
+            {Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
                 className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
@@ -426,17 +358,8 @@ export default function Onboarding() {
             ))}
           </div>
           
-          {/* Close/Skip Button Slot (Aligned with right edge of the section card) */}
-          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-end shrink-0">
-            <button
-              onClick={handleSkip}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-95 transition-all cursor-pointer"
-              title="Skip onboarding"
-              aria-label="Skip onboarding"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
+          {/* Balanced Right Slot Placeholder (Skip & Cancel Removed: Mandatory Onboarding) */}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" aria-hidden="true" />
 
         </div>
       </div>
@@ -578,17 +501,11 @@ export default function Onboarding() {
                     size="lg"
                     icon={ArrowRight}
                     onClick={handleNext}
+                    disabled={!userName.trim()}
                     className="w-full"
                   >
                     Continue
                   </Button>
-                  <button
-                    type="button"
-                    onClick={handleSkip}
-                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors py-1 cursor-pointer"
-                  >
-                    Skip for now
-                  </button>
                 </div>
               </motion.div>
             )}
@@ -714,6 +631,7 @@ export default function Onboarding() {
               </motion.div>
             )}
 
+            {/* Step 5: Voice */}
             {adultConfirmed && step === 5 && (
               <motion.div
                 key="step-5"
@@ -755,6 +673,7 @@ export default function Onboarding() {
               </motion.div>
             )}
 
+            {/* Step 6: Outfit */}
             {adultConfirmed && step === 6 && (
               <motion.div
                 key="step-6"
@@ -777,6 +696,8 @@ export default function Onboarding() {
                   <WardrobeGrid 
                     selectedOutfit={selectedOutfit} 
                     onSelect={(id) => setSelectedOutfit(id)} 
+                    selectedText="Selected"
+                    unselectedText="Select this look"
                   />
                 </div>
 
