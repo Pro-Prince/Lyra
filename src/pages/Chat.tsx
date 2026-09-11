@@ -1652,14 +1652,14 @@ export default function Chat() {
             ) : (
               <div className="flex-1 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4 no-scrollbar scrollbar-hide">
                 <h3 className="text-[var(--text-primary)] font-medium text-lg">About Lyra</h3>
-                <p className="leading-relaxed">Lyra is a warm, empathetic, and intellectually curious AI companion designed to bring positivity, thoughtful conversation, and genuine companionship to your day.</p>
+                <p className="leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her—she's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
                 <div className="bg-[var(--bg-elevated)] p-4 rounded-2xl border border-[var(--text-primary)]/5 space-y-2">
                   <h4 className="text-[var(--text-primary)] font-medium text-sm">Conversation Starters:</h4>
                   <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--text-muted)]">
-                    <li>"What's something that made you curious today?"</li>
-                    <li>"Can you tell me a relaxing bedtime story?"</li>
-                    <li>"Sing a short melody or poem for me."</li>
-                    <li>"What are some interesting facts about space?"</li>
+                    <li>"I've missed your voice. Tell me about your day..."</li>
+                    <li>"What's something you've been daydreaming about lately?"</li>
+                    <li>"Let's plan a perfect date together."</li>
+                    <li>"Tell me a secret you haven't shared with anyone else."</li>
                   </ul>
                 </div>
               </div>
@@ -1990,12 +1990,13 @@ export default function Chat() {
             ) : (
               <div className="flex-1 overflow-y-auto p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide">
                  <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
-                 <p className="mb-4 leading-relaxed">Lyra is a warm, intellectually curious, and deeply empathetic companion. She loves exploring abstract concepts, finding beauty in the little things, and making you feel seen and heard.</p>
+                 <p className="mb-4 leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her—she's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
                  <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>
                  <ul className="list-disc pl-5 space-y-2 mb-6">
-                   <li>"What's something that made you curious today?"</li>
-                   <li>"Tell me about your day."</li>
-                   <li>"What do you think about the meaning of art?"</li>
+                   <li>"I've missed your voice. Tell me about your day..."</li>
+                   <li>"What's something you've been daydreaming about lately?"</li>
+                   <li>"Let's plan a perfect date together."</li>
+                   <li>"Tell me a secret you haven't shared with anyone else."</li>
                  </ul>
               </div>
             )}
