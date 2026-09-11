@@ -404,7 +404,7 @@ export default function Onboarding() {
       </AnimatePresence>
 
       {/* Main Container: Centered elegant card for onboarding steps */}
-      <main className="relative z-10 w-full max-w-xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-14 pb-20 sm:pb-8 flex-1 flex flex-col justify-center">
+      <main className={`relative z-10 w-full ${step === 6 ? 'max-w-3xl lg:max-w-4xl' : 'max-w-xl'} mx-auto px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-14 pb-20 sm:pb-8 flex-1 flex flex-col justify-center transition-all duration-300`}>
         <div className="w-full">
           <AnimatePresence mode="wait">
             {/* Step 1: Greeting */}
@@ -681,7 +681,7 @@ export default function Onboarding() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.4, ease: SIGNATURE_EASE }}
-                className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xl flex flex-col"
+                className="feature-card w-full bg-[var(--bg-surface)] border border-[var(--text-primary)]/10 rounded-3xl p-5 sm:p-7 lg:p-8 shadow-xl flex flex-col"
               >
                 <div className="mb-4 sm:mb-5">
                   <Heading2 className="text-2xl sm:text-3xl mb-1.5 sm:mb-2">
@@ -692,12 +692,13 @@ export default function Onboarding() {
                   </BodyText>
                 </div>
 
-                <div className="mb-5 sm:mb-6 h-64 overflow-y-auto pr-2">
+                <div className="mb-5 sm:mb-6">
                   <WardrobeGrid 
                     selectedOutfit={selectedOutfit} 
                     onSelect={(id) => setSelectedOutfit(id)} 
+                    size="side-by-side"
                     selectedText="Selected"
-                    unselectedText="Select this look"
+                    unselectedText="Select"
                   />
                 </div>
 
@@ -705,7 +706,7 @@ export default function Onboarding() {
                   <Button
                     variant="primary"
                     size="lg"
-                    icon={Sparkles}
+                    icon={ArrowRight}
                     onClick={handleNext}
                     className="w-full"
                     disabled={isFinishing || !selectedOutfit}
