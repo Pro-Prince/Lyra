@@ -7,8 +7,8 @@ export default function Terms() {
   return (
     <LegalPageWrapper>
       <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center my-auto">
-          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center my-auto">
+          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-5 sm:p-7 shadow-2xl">
             <div className="flex items-start sm:items-center gap-3.5 mb-6 border-b border-[var(--accent-primary)]/10 pb-6">
               <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-0.5 sm:mt-0">
                 <FileText className="w-5 h-5" />
@@ -17,7 +17,7 @@ export default function Terms() {
                 <Heading1 className="tracking-tight text-left">Terms of Service</Heading1>
                 <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-1">
                   <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>Last updated: September 9, 2026</span>
+                  <span>Last updated: September 11, 2026</span>
                 </div>
               </div>
             </div>
@@ -66,9 +66,9 @@ export default function Terms() {
             </section>
 
             <section className="space-y-2">
-              <Heading2>7. Data Storage and Device Transfer</Heading2>
+              <Heading2>7. Data Storage and Session Privacy</Heading2>
               <BodyText>
-                Profile preferences and companion memories sync securely to your account via our cloud database, allowing them to carry over across sessions and devices. Your actual message and conversation history is stored locally on your device and browser only, and will not transfer if you switch devices or clear your browser data.
+                Profile preferences, chosen wardrobe outfits, voice settings, and companion memories sync securely to your account via our cloud database, carrying over across sessions and authorized devices. Raw message and conversation history is held locally in your browser during active sessions and is automatically cleared upon sign-out to safeguard your privacy.
               </BodyText>
             </section>
 

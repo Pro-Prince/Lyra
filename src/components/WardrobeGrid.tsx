@@ -20,8 +20,8 @@ export function WardrobeGrid({
   unselectedText
 }: WardrobeGridProps) {
   const gridClasses = size === 'large'
-    ? 'grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'
-    : 'grid grid-cols-1 sm:grid-cols-2 gap-4';
+    ? 'grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5'
+    : 'grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4';
 
   return (
     <div className={`wardrobe-grid wardrobe-grid-${size} ${gridClasses} ${className}`}>

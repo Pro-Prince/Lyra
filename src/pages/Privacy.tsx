@@ -7,8 +7,8 @@ export default function Privacy() {
   return (
     <LegalPageWrapper>
       <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-12 flex flex-col justify-center my-auto">
-          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-8 shadow-2xl">
+        <main className="flex-1 w-full max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center my-auto">
+          <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-5 sm:p-7 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
               <Shield className="w-5 h-5" />
@@ -16,7 +16,7 @@ export default function Privacy() {
             <div>
               <Heading1>Privacy Policy</Heading1>
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mt-0.5">
-                <Clock className="w-3.5 h-3.5" /> Last updated: September 9, 2026
+                <Clock className="w-3.5 h-3.5" /> Last updated: September 11, 2026
               </div>
             </div>
           </div>
@@ -49,7 +49,7 @@ export default function Privacy() {
               <div className="space-y-1">
                 <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Conversation History</h3>
                 <BodyText>
-                  Your actual message history stays local to your device and browser only. It is never uploaded to our servers. If you switch devices or clear your browser data, your conversation history will not transfer, though your profile and memories will, since your account carries those with it.
+                  Your actual message history stays local to your device and browser only during your active session. It is never uploaded to our servers and is automatically cleared when you log out or switch accounts to protect your privacy on shared devices. Your profile, chosen style, and memories remain securely preserved in your cloud account.
                 </BodyText>
               </div>
 
@@ -63,7 +63,7 @@ export default function Privacy() {
               <div className="space-y-1">
                 <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Deleting Your Data</h3>
                 <BodyText>
-                  You can reset your conversations and memories, or wipe all local app data, at any time from Settings. To delete your account entirely, including your profile and all associated data, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a> and we'll process the request promptly.
+                  You can permanently delete individual memories or wipe all your account data (including cloud memories, preferences, and local logs) using the Wipe All Account & App Data feature in Account Settings. To delete your account entirely, contact us at <a href="mailto:princepatel5807@gmail.com" className="text-[var(--accent-primary)] hover:underline">princepatel5807@gmail.com</a> and we'll process the request promptly.
                 </BodyText>
               </div>
             </section>
