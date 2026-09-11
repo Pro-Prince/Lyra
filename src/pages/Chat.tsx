@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, CheckCheck } from "lucide-react";
+import { Home, X, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
+import DoubleCheckIcon from "../components/DoubleCheckIcon";
 import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, saveMemory, getProfile, saveProfile, getRecentMessages, validateMemory, getLocalProfile, saveLocalProfile, storage, isOnboardingCompleted, getSupabaseUserName, updateUserNameAndMemory, extractNameChangeRequest, isNameMemory, extractNameFromMemoryText } from "../lib/storage";
 import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
@@ -266,6 +267,8 @@ export default function Chat() {
   // Focus management references
   const leftDrawerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const desktopInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -1135,6 +1138,22 @@ export default function Chat() {
     }
     executeSend(textToSend);
     setInputText("");
+
+    // Maintain ibeam pointer in the active input area so user can type continuously without re-clicking
+    requestAnimationFrame(() => {
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        desktopInputRef.current?.focus();
+      } else {
+        mobileInputRef.current?.focus();
+      }
+    });
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        desktopInputRef.current?.focus();
+      } else {
+        mobileInputRef.current?.focus();
+      }
+    }, 40);
   };
 
   const [isCapturingFlash, setIsCapturingFlash] = useState(false);
@@ -1502,7 +1521,7 @@ export default function Chat() {
                               <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
-                              <CheckCheck className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
+                              <DoubleCheckIcon className="w-4 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
                             </span>
                           </p>
                         </div>
@@ -1570,7 +1589,7 @@ export default function Chat() {
                 </div>
 
                 {/* Input Area */}
-                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 border-t border-[var(--text-primary)]/5 shrink-0 transition-transform duration-150 ease-out">
+                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 shrink-0 transition-transform duration-150 ease-out">
                    {/* Suggestions */}
                    {messages.length <= 1 && (
                      <div className="suggestion-chips flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -1593,6 +1612,7 @@ export default function Chat() {
                    {/* Input Field */}
                    <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
                       <input 
+                         ref={mobileInputRef}
                          type="text" 
                          value={inputText}
                          onChange={(e) => setInputText(e.target.value)}
@@ -1605,18 +1625,24 @@ export default function Chat() {
                             }
                          }}
                          className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
-                         placeholder={isListening ? "Listening..." : "Ask Lyra anything..."}
-                         disabled={isListening || isLoading}
+                         placeholder={isListening ? "Listening..." : "Type Anything..."}
+                         disabled={isListening}
                       />
                       <button 
+                         type="button"
+                         aria-label="Send message"
+                         onMouseDown={(e) => {
+                           // Prevent clicking send from blurring input and dropping the ibeam cursor
+                           e.preventDefault();
+                         }}
                          onClick={(e) => {
                            e.preventDefault();
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer shadow-md"
+                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-md hover:shadow-[0_2px_12px_rgba(255,126,182,0.4)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:brightness-100 disabled:cursor-not-allowed"
                       >
-                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] ml-0.5" />
+                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] translate-x-[0.5px] -translate-y-[0.5px] group-hover:translate-x-[1.5px] group-hover:-translate-y-[1.5px] transition-transform duration-200" />
                       </button>
                    </div>
                    {/* Home Indicator Bar */}
@@ -1835,7 +1861,7 @@ export default function Chat() {
                               <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/90 leading-none">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
-                              <CheckCheck className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
+                              <DoubleCheckIcon className="w-4 h-3.5 text-[var(--accent-primary)] shrink-0 opacity-90 inline-block" />
                             </span>
                           </p>
                         </div>
@@ -1903,7 +1929,7 @@ export default function Chat() {
                 </div>
 
                 {/* Desktop Input Area */}
-                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 border-t border-[var(--text-primary)]/5 shrink-0 transition-transform duration-150 ease-out">
+                <div className="input-bar input-bar-container p-3 sm:p-3.5 pt-1.5 bg-[var(--bg-base)]/95 shrink-0 transition-transform duration-150 ease-out">
                    {/* Suggestions */}
                    {messages.length <= 1 && (
                      <div className="suggestion-chips flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -1926,6 +1952,7 @@ export default function Chat() {
                    {/* Input Field */}
                    <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
                       <input 
+                         ref={desktopInputRef}
                          type="text" 
                          value={inputText}
                          onChange={(e) => setInputText(e.target.value)}
@@ -1938,18 +1965,24 @@ export default function Chat() {
                             }
                          }}
                          className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
-                         placeholder={isListening ? "Listening..." : "Ask Anything..."}
-                         disabled={isListening || isLoading}
+                         placeholder={isListening ? "Listening..." : "Type Anything..."}
+                         disabled={isListening}
                       />
                       <button 
+                         type="button"
+                         aria-label="Send message"
+                         onMouseDown={(e) => {
+                           // Prevent clicking send from blurring input and dropping the ibeam cursor
+                           e.preventDefault();
+                         }}
                          onClick={(e) => {
                            e.preventDefault();
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer shadow-md"
+                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-md hover:shadow-[0_2px_12px_rgba(255,126,182,0.4)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:brightness-100 disabled:cursor-not-allowed"
                       >
-                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] ml-0.5" />
+                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] translate-x-[0.5px] -translate-y-[0.5px] group-hover:translate-x-[1.5px] group-hover:-translate-y-[1.5px] transition-transform duration-200" />
                       </button>
                    </div>
                 </div>
