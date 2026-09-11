@@ -782,27 +782,62 @@ export function isNameMemory(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
   const lower = text.toLowerCase();
   return (
-    lower.includes('prefers to be called') ||
-    lower.includes('my name is') ||
-    lower.includes("user's name is") ||
-    lower.includes("users name is") ||
+    (lower.includes('prefer') && (lower.includes('called') || lower.includes('name') || lower.includes('address'))) ||
+    lower.includes('name is') ||
+    lower.includes('name:') ||
+    lower.includes("user's name") ||
+    lower.includes("users name") ||
+    lower.includes("user name") ||
     lower.includes('call me') ||
-    lower.startsWith('name is') ||
+    lower.includes('call the user') ||
+    lower.includes('call him') ||
+    lower.includes('call her') ||
+    lower.includes('call them') ||
     lower.includes('called "') ||
-    lower.includes('named "')
+    lower.includes("called '") ||
+    lower.includes('named "') ||
+    lower.includes("named '") ||
+    lower.includes('goes by') ||
+    lower.includes('address as') ||
+    lower.includes('address me as')
   );
 }
 
 export function extractNameFromMemoryText(text: string): string | null {
   if (!text) return null;
-  const match = text.match(/prefers to be called ["'“]?([^"'”]+)["'”]?/i) ||
-                text.match(/name is ["'“]?([^"'”]+)["'”]?/i) ||
-                text.match(/call(?:ed)? ["'“]?([^"'”]+)["'”]?/i);
+  const match = text.match(/prefers? to be called ["'“]?([^"'”\n.]+?)["'”]?\b/i) ||
+                text.match(/preferred name (?:is|:)?\s*["'“]?([^"'”\n.]+?)["'”]?\b/i) ||
+                text.match(/(?:user's |users |user )?name is ["'“]?([^"'”\n.]+?)["'”]?\b/i) ||
+                text.match(/name:\s*["'“]?([^"'”\n.]+?)["'”]?\b/i) ||
+                text.match(/call(?:ed)? ["'“]?([^"'”\n.]+?)["'”]?\b/i) ||
+                text.match(/goes by ["'“]?([^"'”\n.]+?)["'”]?\b/i);
   if (match && match[1]) {
-    const clean = match[1].replace(/[.!,]$/, '').trim();
-    if (clean.length >= 2 && clean.length <= 30) {
+    const clean = match[1].replace(/^[ "“']+|[ "”'.!,]+$/g, '').trim();
+    if (clean.length >= 1 && clean.length <= 40) {
       return clean;
     }
+  }
+  return null;
+}
+
+function cleanCandidateName(raw: string): string | null {
+  if (!raw) return null;
+  let candidate = raw.replace(/^[ "“']+|[ "”'.!,]+$/g, '').trim();
+  candidate = candidate.replace(/^(?:a|an|the)\s+/i, '').trim();
+  candidate = candidate.replace(/\s+(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)$/i, '').trim();
+  
+  const lower = candidate.toLowerCase();
+  const forbidden = [
+    'it', 'something', 'anything', 'whatever', 'crazy', 'stupid', 
+    'dumb', 'now', 'here', 'later', 'please', 'friend', 'baby', 'honey', 'babe',
+    'today', 'that', 'this', 'you', 'me', 'name'
+  ];
+  
+  if (!forbidden.includes(lower) && candidate.length >= 1 && candidate.length <= 30) {
+    if (candidate === candidate.toLowerCase()) {
+      candidate = candidate.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    return candidate;
   }
   return null;
 }
@@ -812,42 +847,33 @@ export function extractNameChangeRequest(message: string): string | null {
   const trimmed = message.trim();
   const clean = trimmed.replace(/[.!?]+$/, '').trim();
 
-  const patterns: RegExp[] = [
-    // "from now on, call me X" or "from now, call me X"
-    /(?:from\s+now(?:\s+on)?\s*,?\s*)?(?:please\s+)?(?:call\s+me|address\s+me\s+as|my\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s+from\s+now(?:\s+on)?$/i,
-    
-    // "from now on call me X"
-    /from\s+now(?:\s+on)?\s*,?\s*(?:please\s+)?(?:call\s+me|address\s+me\s+as|my\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+  // 1. Quoted extraction first (e.g., call me "pro" from now, my name is 'alex')
+  const quotedMatch = clean.match(/(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|i\s+go\s+by|name\s+is|name\s+to|called)\s+["'“]([^"'”]{1,30})["'”]/i);
+  if (quotedMatch && quotedMatch[1]) {
+    const cand = cleanCandidateName(quotedMatch[1]);
+    if (cand) return cand;
+  }
 
-    // "change/update/set my name to X [from now [on]]"
-    /(?:please\s+)?(?:change|update|set)\s+my\s+name\s+to\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
-    
-    // "you can call me X [from now [on]]" / "can you call me X" / "i want you to call me X"
-    /(?:you\s+can|i\s+want\s+you\s+to|can\s+you|could\s+you|please)\s+call\s+me\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?)?$/i,
-    
-    // "call me X"
-    /^(?:(?:hey|hi|hello|so|listen|okay|ok)\s*,?\s*)?call\s+me\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
-    
+  // 2. Comprehensive pattern list matching conversational name changes
+  const patterns: RegExp[] = [
+    // "from now on [please] call me X [from now on / instead / please / ok]"
+    /(?:(?:hey|hi|hello|ok|okay|listen|by the way|btw|dear)?\s*,?\s*(?:lyra)?\s*,?\s*)?(?:from\s+now(?:\s+on)?\s*,?\s*)?(?:please\s+)?(?:(?:you\s+can|i\s+want\s+you\s+to|can\s+you|could\s+you|would\s+you|just|start)\s+)?(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|my\s+name\s+is|my\s+new\s+name\s+is|change\s+my\s+name\s+to|update\s+my\s+name\s+to|set\s+my\s+name\s+to|i\s+go\s+by)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?$/i,
+
+    // General "call me X" anywhere in sentence
+    /\b(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|i\s+go\s+by)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+
     // "my name is X"
-    /^(?:(?:hey|hi|hello|by the way|btw)\s*,?\s*)?my\s+name\s+is\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?$/i,
+    /\b(?:my\s+name\s+is|my\s+new\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+
+    // "change/update/set my name to X"
+    /\b(?:change|update|set)\s+my\s+name\s+to\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
   ];
 
   for (const pat of patterns) {
     const match = clean.match(pat);
     if (match && match[1]) {
-      let candidate = match[1].trim();
-      candidate = candidate.replace(/^(a|an|the)\s+/i, '').trim();
-      const lower = candidate.toLowerCase();
-      const forbidden = [
-        'it', 'something', 'anything', 'whatever', 'crazy', 'stupid', 
-        'dumb', 'now', 'here', 'later', 'please', 'friend', 'baby', 'honey', 'babe'
-      ];
-      if (!forbidden.includes(lower) && candidate.length >= 2 && candidate.length <= 30) {
-        if (candidate === candidate.toLowerCase()) {
-          candidate = candidate.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        }
-        return candidate;
-      }
+      const cand = cleanCandidateName(match[1]);
+      if (cand) return cand;
     }
   }
 
@@ -901,7 +927,7 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
-    let allMems: any[] = [];
+    let remoteMems: any[] = [];
     if (session) {
       const { data, error } = await supabase
         .from('memories')
@@ -910,13 +936,12 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        allMems = data;
+        remoteMems = data;
       }
     }
 
-    if (allMems.length === 0) {
-      allMems = await getLocalMemories();
-    }
+    const localMems = await getLocalMemories();
+    const allMems = remoteMems.length > 0 ? remoteMems : localMems;
 
     const nameMemories = allMems.filter((m: any) => isNameMemory(m.text || m.content || ''));
 
@@ -932,7 +957,13 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
           .eq('user_id', session.user.id);
 
         if (updateErr) {
-          console.warn('[storage] Supabase memory update error:', updateErr);
+          console.warn('[storage] Supabase memory update error, attempting upsert:', updateErr);
+          await supabase.from('memories').upsert({
+            id: targetMemory.id,
+            user_id: session.user.id,
+            text: newMemoryText,
+            created_at: targetMemory.created_at || new Date().toISOString()
+          });
         }
 
         // Clean up any other duplicate name memories if they exist
@@ -955,17 +986,23 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
       });
 
       // Clean up local duplicates
-      if (nameMemories.length > 1) {
-        for (let i = 1; i < nameMemories.length; i++) {
-          await deleteLocalMemory(nameMemories[i].id);
+      const localNameMems = localMems.filter(m => isNameMemory(m.text));
+      if (localNameMems.length > 1) {
+        for (let i = 1; i < localNameMems.length; i++) {
+          await deleteLocalMemory(localNameMems[i].id);
         }
       }
     } else {
-      // If no name memory exists at all, insert one
+      // If no name memory exists at all, insert one with valid UUID
+      const newMemoryId = crypto.randomUUID();
+      const nowIso = new Date().toISOString();
+
       if (session) {
         const payload = {
+          id: newMemoryId,
           user_id: session.user.id,
           text: newMemoryText,
+          created_at: nowIso
         };
         const { data: inserted, error: insertErr } = await supabase
           .from('memories')
@@ -981,16 +1018,16 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
           });
         } else {
           await saveLocalMemory({
-            id: crypto.randomUUID(),
+            id: newMemoryId,
             text: newMemoryText,
-            createdAt: new Date().toISOString(),
+            createdAt: nowIso,
           });
         }
       } else {
         await saveLocalMemory({
-          id: crypto.randomUUID(),
+          id: newMemoryId,
           text: newMemoryText,
-          createdAt: new Date().toISOString(),
+          createdAt: nowIso,
         });
       }
     }

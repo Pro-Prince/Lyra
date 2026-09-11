@@ -349,12 +349,16 @@ export default function Settings() {
         >
           {/* Header */}
           <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-1 sm:mt-0.5">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-1 sm:mt-0.5">
               <Trash2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
               <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Reset Account Data</h2>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Erase memories, conversation history, and saved preferences</p>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 sm:mt-1.5 font-body leading-relaxed max-w-2xl">
+                Permanently erase all saved memories, chat conversations, and custom preferences.
+                <br />
+                This action cannot be undone and resets Lyra back to her initial setup state.
+              </p>
             </div>
           </div>
 
@@ -364,7 +368,7 @@ export default function Settings() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 font-body">
             <div className="flex items-center gap-2.5">
               <label htmlFor="wipe-confirm-input" className="text-xs sm:text-sm text-[var(--text-muted)] shrink-0">
-                Type <span className="font-mono font-semibold text-rose-400">WIPE</span>:
+                Type <span className="font-mono font-semibold text-[var(--text-primary)]">WIPE</span>:
               </label>
               <input 
                 id="wipe-confirm-input"
@@ -372,7 +376,7 @@ export default function Settings() {
                 value={wipeConfirm}
                 onChange={(e) => setWipeConfirm(e.target.value)}
                 placeholder="WIPE"
-                className="!h-10 w-28 text-center text-xs uppercase font-mono px-3 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400/50 focus:ring-2 focus:ring-rose-500/20 focus:outline-none placeholder:text-[var(--text-muted)]/50"
+                className="!h-10 w-28 text-center text-xs uppercase font-mono px-3 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none placeholder:text-[var(--text-muted)]/50"
               />
             </div>
 
@@ -381,7 +385,7 @@ export default function Settings() {
               size="sm"
               onClick={handleWipeAllData}
               disabled={wipeConfirm !== "WIPE"}
-              className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center bg-rose-500/90 hover:bg-rose-500 text-white disabled:opacity-40"
+              className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center"
               icon={Trash2}
               iconPlacement="left"
             >
