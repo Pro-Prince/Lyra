@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { clearAllData, getMemories, deleteMemory, getCompanion, saveCompanion, resetCompanionHistory, clearAllMessages, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory } from "../lib/storage";
-import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle, RotateCcw } from "lucide-react";
+import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory } from "../lib/storage";
+import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
@@ -23,8 +23,7 @@ export default function Settings() {
   // Customization
   const [currentOutfit, setCurrentOutfit] = useState<string>("/models/lyra.vrm");
 
-  // Destructive Action Confirmation strings
-  const [resetConfirm, setResetConfirm] = useState("");
+  // Destructive Action Confirmation
   const [wipeConfirm, setWipeConfirm] = useState("");
 
   useEffect(() => {
@@ -58,20 +57,11 @@ export default function Settings() {
     };
   }, [session]);
 
-  const handleResetChatAndMemory = async () => {
-    if (resetConfirm === "RESET") {
-      await storage.resetChatAndMemory();
-      // profile (name, vibe, topics, outfit, voice) is NOT touched
-      showInfo("Chat history and memories reset");
-      navigate('/chat'); // she should greet fresh, but still know the user's name and preferences
-    }
-  };
-
   const handleWipeAllData = async () => {
     if (wipeConfirm === "WIPE") {
       await storage.wipeAllData();
       localStorage.clear(); // any onboarding-completion flags, install-banner dismissal, etc.
-      showInfo("All app data wiped");
+      showInfo("All account data wiped");
       navigate('/onboarding'); // full first-time experience again
     }
   };
@@ -368,64 +358,20 @@ export default function Settings() {
 
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
-          {/* Action Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {/* Action 1: Reset Chat & Memory */}
+          {/* Action Grid - Single Wipe All Data section */}
+          <div className="max-w-2xl">
             <div className="p-4 sm:p-6 bg-[var(--bg-base)]/25 border border-[var(--text-primary)]/[0.08] rounded-xl sm:rounded-2xl flex flex-col justify-between gap-4 sm:gap-5 transition-all hover:border-[var(--accent-primary)]/20">
               <div>
                 <div className="flex items-center gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
-                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Reset Chat & Memory</h3>
-                  </div>
-                </div>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
-                  She'll forget your conversations and everything she's learned about you, but she'll still know your name and how you like to talk.
-                </p>
-              </div>
-
-              <div className="pt-3.5 sm:pt-4 border-t border-[var(--text-primary)]/[0.06] flex flex-col gap-2 sm:gap-2.5">
-                <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-body">
-                  Type <span className="font-mono font-semibold text-[var(--text-primary)]">RESET</span> to confirm
-                </span>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
-                  <input 
-                    type="text" 
-                    value={resetConfirm}
-                    onChange={(e) => setResetConfirm(e.target.value)}
-                    placeholder="RESET"
-                    className="!h-10 !py-0 w-full text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
-                  />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleResetChatAndMemory}
-                    disabled={resetConfirm !== "RESET"}
-                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
-                    icon={RotateCcw}
-                    iconPlacement="left"
-                  >
-                    Reset Chat & Memory
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Action 2: Wipe All App Data */}
-            <div className="p-4 sm:p-6 bg-[var(--bg-base)]/25 border border-[var(--text-primary)]/[0.08] rounded-xl sm:rounded-2xl flex flex-col justify-between gap-4 sm:gap-5 transition-all hover:border-[var(--accent-primary)]/20">
-              <div>
-                <div className="flex items-center gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
                     <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Wipe All App Data</h3>
+                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Wipe All Account & App Data</h3>
                   </div>
                 </div>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
-                  Everything resets completely, as if you're meeting her for the first time.
+                  Permanently deletes all cloud memories, preferences, and local conversation data related to your account. Everything resets completely, as if you're meeting Lyra for the first time.
                 </p>
               </div>
 
@@ -439,18 +385,18 @@ export default function Settings() {
                     value={wipeConfirm}
                     onChange={(e) => setWipeConfirm(e.target.value)}
                     placeholder="WIPE"
-                    className="!h-10 !py-0 w-full text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
+                    className="!h-10 !py-0 w-full sm:max-w-xs text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
                   />
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={handleWipeAllData}
                     disabled={wipeConfirm !== "WIPE"}
-                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
+                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center bg-rose-500/90 hover:bg-rose-500 text-white"
                     icon={Trash2}
                     iconPlacement="left"
                   >
-                    Wipe All App Data
+                    Wipe All Data
                   </Button>
                 </div>
               </div>

@@ -53,15 +53,14 @@ function NavItem({
 }
 
 function MobileNavDropdown({ onClose }: { onClose: () => void }) {
-  const { isAuthed, session } = useAuth();
+  const { isAuthed, session, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
     } catch {}
-    localStorage.removeItem("lyra_guest_mode");
     onClose();
     navigate("/");
   };
@@ -196,12 +195,12 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
 
 function AccountDropdown({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
     } catch {}
-    localStorage.removeItem("lyra_guest_mode");
     onClose();
     navigate("/");
   };
@@ -269,7 +268,7 @@ function MobileHeaderMenu() {
 function DesktopNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthed } = useAuth();
+  const { isAuthed, signOut } = useAuth();
 
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -307,9 +306,8 @@ function DesktopNav() {
   const handleLogout = async () => {
     setIsAccountOpen(false);
     try {
-      await supabase.auth.signOut();
+      await signOut();
     } catch {}
-    localStorage.removeItem("lyra_guest_mode");
     navigate("/");
   };
 

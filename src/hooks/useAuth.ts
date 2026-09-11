@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
+import { clearAllMessages } from '../lib/storage';
 
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
@@ -46,8 +47,11 @@ export function useAuth() {
     }, 3500) : null;
 
     try {
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
         if (mounted) {
+          if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+            clearAllMessages().catch(console.warn);
+          }
           setSession(session);
           setLoading(false);
         }
@@ -68,6 +72,11 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
+    try {
+      await clearAllMessages();
+    } catch (err) {
+      console.warn('[useAuth] Clear messages on signOut error:', err);
+    }
     try {
       await supabase.auth.signOut();
     } catch (err) {

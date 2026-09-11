@@ -799,8 +799,8 @@ export async function wipeAllData() {
         preferred_name: null,
         conversational_vibe: null,
         topics: [],
-        active_outfit: 'lyra',
-        voice_preset_id: 'soft-calm',
+        active_outfit: '',
+        voice_preset_id: '',
         onboarding_completed: false,
         updated_at: new Date().toISOString(),
       }).eq('id', session.user.id);
