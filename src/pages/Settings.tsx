@@ -14,7 +14,7 @@ import { useAuth } from "../hooks/useAuth";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { showInfo, showError } = useToast();
+  const { showInfo, showError, showSuccess } = useToast();
   const { isAuthed, session } = useAuth();
   const [userName, setUserName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -38,9 +38,15 @@ export default function Settings() {
 
       const profile = await getProfile();
       const localProfile = await getLocalProfile();
+      const storedLocalName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : '';
       const googleName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
-      const currentName = profile?.preferredName || comp?.userName || comp?.userPreferredName || localProfile?.name || googleName || '';
-      setUserName(currentName);
+      const currentName = profile?.preferredName || storedLocalName || comp?.userName || comp?.userPreferredName || localProfile?.name || googleName || '';
+      
+      if (currentName && currentName !== 'Friend') {
+        setUserName(currentName);
+      } else if (currentName) {
+        setUserName(currentName);
+      }
     }
     load();
 
@@ -69,7 +75,7 @@ export default function Settings() {
     if (wipeConfirm === "WIPE") {
       await storage.wipeAllData();
       localStorage.clear(); // any onboarding-completion flags, install-banner dismissal, etc.
-      showInfo("All account data wiped");
+      showSuccess("All account data wiped")
       navigate('/onboarding'); // full first-time experience again
     }
   };
@@ -77,7 +83,7 @@ export default function Settings() {
   const handleDeleteMemory = async (id: string) => {
     await deleteMemory(id);
     setMemories(memories.filter(m => m.id !== id));
-    showInfo("Memory removed");
+    showSuccess("Memory removed")
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
@@ -89,7 +95,7 @@ export default function Settings() {
     setCurrentOutfit(modelUrl);
     window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
     const label = getOutfitLabel(outfitId);
-    showInfo(`Lyra is now wearing her ${label} look!`);
+    showSuccess(`Lyra is now wearing ${label}`, { icon: <div className="w-8 h-8 rounded-xl bg-pink-500/15 border border-pink-500/25 flex items-center justify-center text-pink-400"><Shirt className="w-4 h-4" /></div> })
     navigate("/chat");
   };
 
@@ -110,7 +116,7 @@ export default function Settings() {
   const handleSaveVoice = async () => {
     const comp = await getCompanion() || {};
     await saveCompanion({ ...comp, language: 'en-US' });
-    showInfo("Voice preferences saved");
+    showSuccess("Voice preferences saved")
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -125,7 +131,7 @@ export default function Settings() {
     try {
       const updatedMems = await updateUserNameAndMemory(trimmed);
       setMemories(updatedMems);
-      showInfo("Profile updated");
+      showSuccess("Profile updated")
     } catch (err) {
       console.error("Failed to update profile:", err);
       showError("Failed to update profile");
@@ -180,38 +186,45 @@ export default function Settings() {
             {/* Input Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mb-5 sm:mb-8">
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Full Name</label>
+                <label htmlFor="settings-full-name-input" className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Full Name</label>
                 <input 
+                  id="settings-full-name-input"
                   type="text" 
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  placeholder="What should she call you?" 
-                  disabled={!isAuthed || isSavingProfile} 
-                  className="disabled:opacity-50"
+                  placeholder="Enter your name" 
+                  disabled={isSavingProfile} 
+                  className="w-full h-11 px-4 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-muted)]/50 transition-all shadow-inner disabled:opacity-50"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Email Address</label>
+                <label htmlFor="settings-email-input" className="text-xs sm:text-sm font-semibold font-body text-[var(--text-primary)]/80 mb-2 block">Email Address</label>
                 <input 
+                  id="settings-email-input"
                   type="email" 
-                  value={session?.user?.email || ""} 
+                  value={session?.user?.email || (isAuthed ? "" : "Guest User (Local Profile)")} 
                   readOnly
                   disabled 
-                  className="opacity-50 text-xs py-1.5 px-3 w-full"
+                  className="w-full h-11 px-4 rounded-xl bg-[var(--bg-base)]/40 border border-[var(--text-primary)]/10 text-[var(--text-muted)] text-sm font-medium cursor-not-allowed opacity-75"
                 />
               </div>
             </div>
 
             {/* Bottom Section */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-5 sm:pt-6 border-t border-[var(--text-primary)]/[0.06]">
-              <div className="hidden sm:block">
-                {!isAuthed && (
-                  <p className="text-sm text-[var(--text-muted)] flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+              <div>
+                {!isAuthed ? (
+                  <p className="text-xs sm:text-sm text-[var(--text-muted)] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
                     <span>
-                      <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Log in</Link> to synchronize your profile.
+                      Guest mode active. <Link to="/auth" className="text-[var(--accent-primary)] hover:underline font-semibold">Sign in</Link> to sync across devices.
                     </span>
+                  </p>
+                ) : (
+                  <p className="text-xs sm:text-sm text-[var(--text-muted)] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span>Profile synced with cloud account.</span>
                   </p>
                 )}
               </div>
@@ -219,8 +232,8 @@ export default function Settings() {
                 variant="primary" 
                 size="sm" 
                 type="submit" 
-                disabled={!isAuthed || isSavingProfile} 
-                className="h-10 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-5 w-full sm:w-auto justify-center"
+                disabled={isSavingProfile} 
+                className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center"
               >
                 {isSavingProfile ? "Saving..." : "Save Changes"}
               </Button>
@@ -246,7 +259,7 @@ export default function Settings() {
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
           {/* Voice Presets */}
-          <VoicePicker onSelect={() => showInfo("Voice updated")} />
+          <VoicePicker onSelect={() => showSuccess("Voice updated")} />
         </motion.section>
 
         {/* CARD 3: Wardrobe (Span 12 - Full Width Bento Tile) */}
@@ -329,55 +342,51 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* WIPE ALL ACCOUNT & APP DATA (Span 12) */}
+        {/* WIPE DATA (Span 12) */}
         <motion.section 
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
           {/* Header */}
           <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-1 sm:mt-0.5">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-1 sm:mt-0.5">
               <Trash2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
-              <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Wipe All Account & App Data</h2>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanently deletes all cloud memories, preferences, and resets your account</p>
+              <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Reset Account Data</h2>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Erase memories, conversation history, and saved preferences</p>
             </div>
           </div>
 
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
-          {/* Action Content */}
-          <div className="space-y-4 font-body">
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
-              Permanently deletes all cloud memories, preferences, and local conversation data related to your account. Everything resets completely, as if you're meeting Lyra for the first time.
-            </p>
-
-            <div className="pt-2 flex flex-col gap-2.5">
-              <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-body">
-                Type <span className="font-mono font-semibold text-[var(--text-primary)]">WIPE</span> to confirm
-              </span>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <input 
-                  type="text" 
-                  value={wipeConfirm}
-                  onChange={(e) => setWipeConfirm(e.target.value)}
-                  placeholder="WIPE"
-                  className="!h-10 !py-0 w-full sm:max-w-xs text-xs uppercase font-mono px-3.5 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:outline-none placeholder:text-[var(--text-muted)]/50"
-                />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleWipeAllData}
-                  disabled={wipeConfirm !== "WIPE"}
-                  className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center bg-rose-500/90 hover:bg-rose-500 text-white"
-                  icon={Trash2}
-                  iconPlacement="left"
-                >
-                  Wipe All Data
-                </Button>
-              </div>
+          {/* Action Row - aligned with Profile Save button row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 font-body">
+            <div className="flex items-center gap-2.5">
+              <label htmlFor="wipe-confirm-input" className="text-xs sm:text-sm text-[var(--text-muted)] shrink-0">
+                Type <span className="font-mono font-semibold text-rose-400">WIPE</span>:
+              </label>
+              <input 
+                id="wipe-confirm-input"
+                type="text" 
+                value={wipeConfirm}
+                onChange={(e) => setWipeConfirm(e.target.value)}
+                placeholder="WIPE"
+                className="!h-10 w-28 text-center text-xs uppercase font-mono px-3 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400/50 focus:ring-2 focus:ring-rose-500/20 focus:outline-none placeholder:text-[var(--text-muted)]/50"
+              />
             </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleWipeAllData}
+              disabled={wipeConfirm !== "WIPE"}
+              className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center bg-rose-500/90 hover:bg-rose-500 text-white disabled:opacity-40"
+              icon={Trash2}
+              iconPlacement="left"
+            >
+              Wipe All Data
+            </Button>
           </div>
         </motion.section>
 

@@ -134,7 +134,7 @@ export default function Chat() {
   useEffect(() => {
     const toastMsg = sessionStorage.getItem('lyra_auth_toast_message');
     if (toastMsg) {
-      showSuccess(toastMsg);
+      showSuccess(toastMsg, { icon: <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400"><CheckCircle2 className="w-4 h-4" /></div> });
       sessionStorage.removeItem('lyra_auth_toast_message');
     }
   }, [showSuccess]);
@@ -490,18 +490,12 @@ export default function Chat() {
       recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
           console.error('[SpeechRecognition] Microphone permission denied');
-          showError("Can't hear you right now, check your browser's microphone permission", {
-            label: "Retry",
-            onClick: () => toggleMic()
-          });
+          showError("Can't hear you right now, check your browser's microphone permission", { action: { label: "Retry", onClick: () => toggleMic() } });
         } else if (event.error === 'no-speech' || event.error === 'aborted') {
           // Benign timeout or intentional cancellation - ignore silently
         } else {
           console.error('[SpeechRecognition] Voice input error:', event?.error || 'unknown');
-          showError("Having trouble hearing your voice right now, try speaking again", {
-            label: "Retry",
-            onClick: () => toggleMic()
-          });
+          showError("Having trouble hearing your voice right now, try speaking again", { action: { label: "Retry", onClick: () => toggleMic() } });
         }
         setAppState(AppState.IDLE);
       };
@@ -654,10 +648,7 @@ export default function Chat() {
         setAppState(AppState.LISTENING);
       } catch (e) {
         console.error('[SpeechRecognition] Failed to start microphone:', e);
-        showError("Can't start microphone right now, check your browser's permissions", {
-          label: "Retry",
-          onClick: () => toggleMic()
-        });
+        showError("Can't start microphone right now, check your browser's permissions", { action: { label: "Retry", onClick: () => toggleMic() } });
       }
     }
   };
@@ -800,7 +791,7 @@ export default function Chat() {
     window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
     
     const label = getOutfitLabel(newOutfit);
-    showInfo(`Lyra changed into her ${label} look!`);
+    showSuccess(`Lyra is now wearing ${label}`, { icon: <div className="w-8 h-8 rounded-xl bg-pink-500/15 border border-pink-500/25 flex items-center justify-center text-pink-400"><Shirt className="w-4 h-4" /></div> })
     setIsWardrobeOpen(false);
 
     if (typeof window !== 'undefined' && (window as any).playGesture) {
@@ -1236,7 +1227,7 @@ export default function Chat() {
       link.click();
       document.body.removeChild(link);
       
-      showInfo('Photo saved! 📸');
+      showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400"><Camera className="w-4 h-4" /></div> })
       setTimeout(() => {
         setIsCapturingFlash(false);
       }, 450);
@@ -1253,7 +1244,7 @@ export default function Chat() {
         link.click();
         document.body.removeChild(link);
         
-        showInfo('Photo saved! 📸');
+        showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400"><Camera className="w-4 h-4" /></div> })
         setTimeout(() => {
           setIsCapturingFlash(false);
         }, 450);

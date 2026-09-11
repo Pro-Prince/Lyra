@@ -11,6 +11,7 @@ export interface ToastAction {
 
 export interface ToastOptions {
   type?: ToastType;
+  icon?: React.ReactNode;
   action?: ToastAction;
   duration?: number; // in milliseconds. Defaults to 4000 for info/success, persistent if action is provided.
 }
@@ -19,16 +20,17 @@ export interface ToastData {
   id: string;
   message: string;
   type: ToastType;
+  icon?: React.ReactNode;
   action?: ToastAction;
   duration?: number;
 }
 
 interface ToastContextType {
   showToast: (message: string, options?: ToastOptions) => string;
-  showError: (message: string, action?: ToastAction) => string;
-  showWarning: (message: string, action?: ToastAction) => string;
-  showSuccess: (message: string, action?: ToastAction) => string;
-  showInfo: (message: string, action?: ToastAction) => string;
+  showError: (message: string, options?: ToastOptions) => string;
+  showWarning: (message: string, options?: ToastOptions) => string;
+  showSuccess: (message: string, options?: ToastOptions) => string;
+  showInfo: (message: string, options?: ToastOptions) => string;
   dismissToast: (id?: string) => void;
 }
 
@@ -68,6 +70,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       message,
       type,
       action: options.action,
+      icon: options.icon,
       duration
     };
 
@@ -82,35 +85,35 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return id;
   }, [dismissToast]);
 
-  const showError = useCallback((message: string, action?: ToastAction) => {
+  const showError = useCallback((message: string, options?: ToastOptions) => {
     return showToast(message, {
       type: 'error',
-      action,
-      duration: action ? 0 : 4500
+      ...options,
+      duration: options?.action ? 0 : 4500
     });
   }, [showToast]);
 
-  const showWarning = useCallback((message: string, action?: ToastAction) => {
+  const showWarning = useCallback((message: string, options?: ToastOptions) => {
     return showToast(message, {
       type: 'warning',
-      action,
-      duration: action ? 0 : 4200
+      ...options,
+      duration: options?.action ? 0 : 4200
     });
   }, [showToast]);
 
-  const showSuccess = useCallback((message: string, action?: ToastAction) => {
+  const showSuccess = useCallback((message: string, options?: ToastOptions) => {
     return showToast(message, {
       type: 'success',
-      action,
-      duration: action ? undefined : 3500
+      ...options,
+      duration: options?.action ? undefined : 3500
     });
   }, [showToast]);
 
-  const showInfo = useCallback((message: string, action?: ToastAction) => {
+  const showInfo = useCallback((message: string, options?: ToastOptions) => {
     return showToast(message, {
       type: 'info',
-      action,
-      duration: action ? undefined : 3800
+      ...options,
+      duration: options?.action ? undefined : 3800
     });
   }, [showToast]);
 
@@ -136,7 +139,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               {/* Icon & Message Container */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0">
-                  {currentToast.type === 'error' ? (
+                  {currentToast.icon ? (
+                     currentToast.icon
+                  ) : currentToast.type === 'error' ? (
                     <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400">
                       <AlertCircle className="w-4 h-4" />
                     </div>

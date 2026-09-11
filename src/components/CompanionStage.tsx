@@ -1003,13 +1003,10 @@ function CompanionStageComponent({
       onError(err);
     }
     if (!silentError) {
-      showInfo("One moment, she's settling back in.", {
-        label: "Retry",
-        onClick: () => {
+      showInfo("One moment, she's settling back in.", { action: { label: "Retry", onClick: () => {
           retryCount.current = 0;
           handleRetry();
-        }
-      });
+        } } });
     }
   };
 

@@ -5,7 +5,8 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/ToastContext";
 import { getOutfitLabel, getOutfitUrl, isSameOutfit } from "../lib/companionRenderer";
 import { 
-  ArrowRight, 
+  ArrowRight,
+  Shirt, 
   Sparkles, 
   Volume2, 
   BookOpen, 
@@ -73,7 +74,7 @@ const FAQ_ITEMS: FAQItem[] = [
 function OutfitShowcase() {
   const [activeOutfit, setActiveOutfit] = useState('');
   const { isAuthed } = useAuth();
-  const { showInfo } = useToast();
+  const { showInfo, showSuccess } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,7 +122,7 @@ function OutfitShowcase() {
       await saveCompanion(comp);
       window.dispatchEvent(new CustomEvent('lyraOutfitChanged', { detail: modelUrl }));
       const label = getOutfitLabel(outfitId);
-      showInfo(`Lyra is now wearing her ${label} look!`);
+      showSuccess(`Lyra is now wearing ${label}`, { icon: <div className="w-8 h-8 rounded-xl bg-pink-500/15 border border-pink-500/25 flex items-center justify-center text-pink-400"><Shirt className="w-4 h-4" /></div> })
       navigate('/chat');
     } catch (err) {
       console.warn('Failed to save outfit selection:', err);
