@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
 import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory } from "../lib/storage";
-import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen, AlertTriangle } from "lucide-react";
+import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
@@ -340,7 +340,7 @@ export default function Settings() {
           </div>
         </motion.section>
 
-        {/* DANGER ZONE (Span 12 - Visible Panel) */}
+        {/* WIPE ACCOUNT & APP DATA (Span 12) */}
         <motion.section 
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
@@ -348,28 +348,20 @@ export default function Settings() {
           {/* Header */}
           <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-1 sm:mt-0.5">
-              <AlertTriangle className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
+              <Trash2 className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
-              <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Danger Zone</h2>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanent actions and data resets</p>
+              <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">Wipe All Account & App Data</h2>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Permanently reset and delete all data associated with your account</p>
             </div>
           </div>
 
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
-          {/* Action Grid - Single Wipe All Data section */}
+          {/* Action container */}
           <div className="max-w-2xl">
             <div className="p-4 sm:p-6 bg-[var(--bg-base)]/25 border border-[var(--text-primary)]/[0.08] rounded-xl sm:rounded-2xl flex flex-col justify-between gap-4 sm:gap-5 transition-all hover:border-[var(--accent-primary)]/20">
               <div>
-                <div className="flex items-center gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
-                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-heading font-semibold text-sm sm:text-base text-[var(--text-primary)] leading-tight">Wipe All Account & App Data</h3>
-                  </div>
-                </div>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] font-body leading-relaxed">
                   Permanently deletes all cloud memories, preferences, and local conversation data related to your account. Everything resets completely, as if you're meeting Lyra for the first time.
                 </p>
@@ -392,7 +384,7 @@ export default function Settings() {
                     size="sm"
                     onClick={handleWipeAllData}
                     disabled={wipeConfirm !== "WIPE"}
-                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center bg-rose-500/90 hover:bg-rose-500 text-white"
+                    className="!h-10 text-xs sm:text-sm whitespace-nowrap px-4 rounded-xl shrink-0 w-full sm:w-auto justify-center"
                     icon={Trash2}
                     iconPlacement="left"
                   >
