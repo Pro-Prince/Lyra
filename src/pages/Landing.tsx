@@ -48,19 +48,19 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "account",
     icon: User,
     question: "Do I need to create an account?",
-    answer: "Signing in securely saves your profile, wardrobe outfits, voice settings, and memories to your cloud account so Lyra remembers you across all your devices."
+    answer: "Yes, signing in secures your profile, chosen outfit, and memories across devices."
   },
   {
     id: "privacy",
     icon: ShieldCheck,
     question: "Is my data private?",
-    answer: "Yes. Your profile details, chosen vibe, and synthesized memories are stored securely in your private cloud account. Raw conversation logs stay only on your active device and are automatically cleared on logout."
+    answer: "Your profile and memories sync securely to the cloud. Chat logs stay locally on your device and are automatically wiped when you log out."
   },
   {
     id: "delete",
     icon: Trash2,
     question: "Can I delete my data?",
-    answer: "Yes. You can permanently wipe all your cloud memories, preferences, and local data at any time with one click in Account Settings."
+    answer: "Yes. Resetting or wiping data in Settings erases your cloud memories and clears local storage."
   },
   {
     id: "mobile",
@@ -136,16 +136,16 @@ function OutfitShowcase() {
       whileInView="visible"
       viewport={{ once: true, margin: "-40px" }}
       variants={groupVariants}
-      className="outfit-showcase mt-10 sm:mt-14 w-full"
+      className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
-      <motion.div variants={entranceVariants} className="text-center mb-6 sm:mb-8">
-        <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)] mb-1.5 inline-block">
+      <motion.div variants={entranceVariants} className="text-center mb-8 sm:mb-10">
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)] mb-2 inline-block">
           Wardrobe
         </span>
-        <h2 className="font-heading font-medium text-xl sm:text-3xl text-[var(--text-primary)] mb-1.5 sm:mb-2">
+        <h2 className="font-heading font-medium text-2xl sm:text-4xl text-[var(--text-primary)] mb-2 sm:mb-3">
           Three looks, one presence
         </h2>
-        <p className="text-xs sm:text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+        <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
           Select an outfit to change what Lyra is currently wearing across your entire companion experience.
         </p>
       </motion.div>
@@ -228,8 +228,8 @@ export default function Landing() {
       <div className="fixed inset-0 pointer-events-none z-0 bg-subtle-grain opacity-50" />
 
       {/* Hero & Feature Cards Section: --bg-base */}
-      <section id="hero" className="relative z-10 w-full bg-[var(--bg-base)] py-6 sm:py-10 lg:py-12">
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6">
+      <section id="hero" className="relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 lg:py-16">
+        <div className="w-full max-w-6xl mx-auto px-6">
           {/* Centered Hero Text Layout */}
           <div className="hero hero-single-column">
             <motion.div 
@@ -237,23 +237,23 @@ export default function Landing() {
               whileInView="visible"
               viewport={{ once: true }}
               variants={entranceVariants}
-              className="hero-text flex flex-col items-center text-center max-w-xl mx-auto w-full"
+              className="hero-text flex flex-col items-center text-center max-w-2xl mx-auto w-full"
             >
               {/* Eyebrow Label: small Poppins caps */}
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-2.5 inline-block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-primary)] mb-3 inline-block">
                 {t("landing_eyebrow")}
               </span>
 
               {/* Headline with fluid clamp type in Fraunces and plain text with accent color */}
               <h1 
-                className="hero-headline font-heading font-medium tracking-tight text-[var(--text-primary)] leading-[1.08] text-balance mb-4 sm:mb-5"
-                style={{ fontSize: "clamp(2.2rem, 5vw, 4.5rem)" }}
+                className="hero-headline font-heading font-medium tracking-tight text-[var(--text-primary)] leading-[1.08] text-balance mb-6"
+                style={{ fontSize: "clamp(2.5rem, 6vw, 5.5rem)" }}
               >
                 the companion who gets <span className="emphasis">you</span>
               </h1>
 
               {/* Subhead in Poppins */}
-              <p className="font-body text-sm sm:text-base md:text-lg text-[var(--text-muted)] mb-6 sm:mb-7 leading-relaxed text-balance max-w-lg mx-auto">
+              <p className="font-body text-base sm:text-lg md:text-xl text-[var(--text-muted)] mb-8 leading-relaxed text-balance max-w-xl mx-auto">
                 {t("landing_subtitle")}
               </p>
 
@@ -269,7 +269,7 @@ export default function Landing() {
               </Button>
 
               {/* Disclosure line stacked below the CTA */}
-              <div className="mt-3.5">
+              <div className="mt-4">
                 <span className="disclosure-label text-balance">
                   {t("landing_disclaimer")}
                 </span>
@@ -287,7 +287,7 @@ export default function Landing() {
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
             variants={groupVariants}
-            className="w-full mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 text-left"
+            className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
             {/* Card 1: Voice & Vibe */}
             <motion.div 
@@ -295,7 +295,7 @@ export default function Landing() {
               className="feature-card flex flex-col justify-between"
             >
               <div>
-                <IconBadge icon={Volume2} size={42} />
+                <IconBadge icon={Volume2} size={48} />
                 <h3 className="text-[var(--text-primary)]">
                   {t("card1_title")}
                 </h3>
@@ -311,7 +311,7 @@ export default function Landing() {
               className="feature-card flex flex-col justify-between"
             >
               <div>
-                <IconBadge icon={Sparkles} size={42} />
+                <IconBadge icon={Sparkles} size={48} />
                 <h3 className="text-[var(--text-primary)]">
                   {t("card2_title")}
                 </h3>
@@ -327,7 +327,7 @@ export default function Landing() {
               className="feature-card flex flex-col justify-between"
             >
               <div>
-                <IconBadge icon={BookOpen} size={42} />
+                <IconBadge icon={BookOpen} size={48} />
                 <h3 className="text-[var(--text-primary)]">
                   {t("card3_title")}
                 </h3>
@@ -341,8 +341,8 @@ export default function Landing() {
       </section>
 
       {/* FAQ Section: Uniform --bg-base matching rest of page */}
-      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-8 sm:py-12 md:py-14">
-        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6">
+      <section id="faq" className="faq-section relative z-10 w-full bg-[var(--bg-base)] py-12 sm:py-20 md:py-24">
+        <div className="w-full max-w-3xl mx-auto px-4 sm:px-6">
           <motion.div 
             initial="hidden"
             whileInView="visible"
