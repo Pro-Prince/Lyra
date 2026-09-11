@@ -42,7 +42,13 @@ export default function LoginPage() {
       sessionStorage.setItem('lyra_auth_intent', 'signin');
       await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/onboarding` },
+        options: {
+          redirectTo: `${window.location.origin}/onboarding`,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          },
+        },
       });
     } catch (err: any) {
       setError(err?.message || 'Google sign in failed');
