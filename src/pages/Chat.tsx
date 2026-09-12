@@ -464,8 +464,10 @@ export default function Chat() {
       recognition.interimResults = true;
       recognition.lang = "en-US";
       recognition.onresult = (event: any) => {
-        // If microphone is muted, cut off audio processing
-        if (isMutedRef.current) return;
+        // If microphone is muted, or Lyra is currently speaking or processing, drop mic input to avoid loopback
+        if (isMutedRef.current || appStateRef.current === AppState.SPEAKING || appStateRef.current === AppState.PROCESSING) {
+          return;
+        }
 
         let interim = '';
         let final = '';
@@ -686,6 +688,10 @@ export default function Chat() {
       onStart: () => {
         if (appStateRef.current !== AppState.SPEAKING) {
           setAppState(AppState.SPEAKING);
+        }
+        // Ensure mic input is paused during active speech to avoid picking up speaker output
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch (_) {}
         }
       },
       onEnd: () => {
@@ -974,13 +980,15 @@ export default function Chat() {
                   setMessages([...messagesRef.current]);
                   subtitleId = triggerSubtitle('model', displayContent, subtitleId);
                   
-                  const matches = [...displayContent.matchAll(/[^.?!]+[.?!]+/g)];
-                  for (let i = spokenIndex; i < matches.length; i++) {
-                      const sentence = matches[i][0].trim();
-                      if (sentence) {
-                         speakTextChunk(sentence);
-                      }
-                      spokenIndex = i + 1;
+                  // Segment display content into clean, finished sentences
+                  const rawSentences = displayContent.split(/(?<=[.?!])\s+/);
+                  // While streaming is active, speak all completed sentences (leave the trailing in-progress fragment)
+                  while (spokenIndex < rawSentences.length - 1) {
+                    const sentence = rawSentences[spokenIndex].trim();
+                    if (sentence) {
+                      speakTextChunk(sentence, true);
+                    }
+                    spokenIndex++;
                   }
                }
             }
@@ -1000,12 +1008,14 @@ export default function Chat() {
       setIsStreaming(false);
       setMessages(prev => prev.map(m => m.id === modelMsgId ? { ...m, content: finalDisplayContent } : m));
 
-      const finalMatches = [...finalDisplayContent.matchAll(/[^.?!]+[.?!]+/g)];
-      const lastIndex = finalMatches.length > 0 ? finalMatches[finalMatches.length-1].index! + finalMatches[finalMatches.length-1][0].length : 0;
-      const remainingText = finalDisplayContent.slice(lastIndex).trim();
-      
-      if (remainingText) {
-         speakTextChunk(remainingText);
+      // Speak any remaining sentence chunks that weren't completed during stream
+      const finalSentences = finalDisplayContent.split(/(?<=[.?!])\s+/);
+      while (spokenIndex < finalSentences.length) {
+        const sentence = finalSentences[spokenIndex].trim();
+        if (sentence) {
+          speakTextChunk(sentence, true);
+        }
+        spokenIndex++;
       }
       
       isStreamFinishedRef.current = true;

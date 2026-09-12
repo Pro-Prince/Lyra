@@ -93,6 +93,10 @@ let speechQueue: QueuedSpeechItem[] = [];
 let isQueueBusy = false;
 let onQueueEmptyCallback: (() => void) | null = null;
 
+export function isSpeakingNow(): boolean {
+  return activeAudioElement !== null || isQueueBusy || speechQueue.length > 0;
+}
+
 /**
  * Dispatches avatar lipsync events during speech
  */
@@ -137,6 +141,9 @@ export function stopSpeaking() {
 
   if (activeAudioElement) {
     try {
+      activeAudioElement.onplay = null;
+      activeAudioElement.onended = null;
+      activeAudioElement.onerror = null;
       activeAudioElement.pause();
       activeAudioElement.currentTime = 0;
       activeAudioElement.src = '';
@@ -279,6 +286,25 @@ function playAudioBlob(blob: Blob, item: QueuedSpeechItem): Promise<void> {
       return;
     }
 
+    // Clean up any previously lingering audio element
+    if (activeAudioElement) {
+      try {
+        activeAudioElement.onplay = null;
+        activeAudioElement.onended = null;
+        activeAudioElement.onerror = null;
+        activeAudioElement.pause();
+        activeAudioElement.src = '';
+      } catch (_) {}
+      activeAudioElement = null;
+    }
+
+    // Cancel any stray speechSynthesis utterance
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
+    }
+
     const audioUrl = URL.createObjectURL(blob);
     const audio = new Audio(audioUrl);
     activeAudioElement = audio;
@@ -288,6 +314,9 @@ function playAudioBlob(blob: Blob, item: QueuedSpeechItem): Promise<void> {
     const cleanup = () => {
       if (hasEnded) return;
       hasEnded = true;
+      audio.onplay = null;
+      audio.onended = null;
+      audio.onerror = null;
       stopVisemeAnimation();
       URL.revokeObjectURL(audioUrl);
       if (activeAudioElement === audio) {
@@ -352,7 +381,9 @@ function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
     }
 
     // Cancel any stray speaking
-    window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.cancel();
+    } catch (_) {}
 
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.volume = Math.max(0, Math.min(1, item.volume));
@@ -385,7 +416,7 @@ function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
 
     utterance.onstart = () => {
       if (item.sessionId !== activePlaybackSessionId) {
-        window.speechSynthesis.cancel();
+        try { window.speechSynthesis.cancel(); } catch (_) {}
         finish();
         return;
       }
