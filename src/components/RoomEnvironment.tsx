@@ -7,10 +7,10 @@ import * as THREE from 'three';
 // -----------------------------------------------------------------------------
 const PALETTE = {
   // Architectural Mauve & Plum (60%)
-  wallPlaster: '#604253',
-  wallAccentPlum: '#4E3344',
-  shadowPlum: '#3C2434',
-  trimMauve: '#69485D',
+  wallPlaster: '#462E3F',
+  wallAccentPlum: '#382233',
+  shadowPlum: '#2A1826',
+  trimMauve: '#52374A',
 
   // Cream & Warm Off-White Surfaces (20%)
   warmCream: '#F4ECE4',
@@ -19,9 +19,9 @@ const PALETTE = {
   porcelainWhite: '#FCF8F5',
 
   // Dark Walnut Wood (10%)
-  darkWalnut: '#4A302D',
-  walnutPlank: '#402927',
-  walnutLight: '#573A37',
+  darkWalnut: '#3B2321',
+  walnutPlank: '#321D1C',
+  walnutLight: '#4A2E2C',
 
   // Lyra Pink & Pastel Accents (10%)
   lyraPink: '#F299C2',
@@ -206,7 +206,7 @@ function PanoramicBalconyWindow() {
   }, []);
 
   return (
-    <group position={[-2.3, 0, -1.8]} rotation={[0, Math.PI * 0.32, 0]}>
+    <group position={[-4.6, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
       <mesh position={[-0.5, 2.3, -0.25]}>
         <planeGeometry args={[5.2, 5.0]} />
         {sunsetTexture ? (
@@ -420,11 +420,11 @@ function RoundGlowOrb({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color="#FFEAD0"
           emissive="#FFC98A"
-          emissiveIntensity={0.4}
-          roughness={0.4}
+          emissiveIntensity={1.1}
+          roughness={0.3}
         />
       </mesh>
-      <pointLight color="#FFC98A" intensity={0.15} distance={1.2} decay={2} />
+      <pointLight color="#FFC98A" intensity={0.4} distance={1.4} decay={2} />
     </group>
   );
 }
@@ -582,18 +582,18 @@ function BuiltInRecessedShelving() {
           </mesh>
           <pointLight
             color={PALETTE.warmIndirectLed}
-            intensity={0.1}
-            distance={1.4}
+            intensity={0.25}
+            distance={1.6}
             decay={2}
             position={[0, -0.08, 0.08]}
           />
-          {/* subtle indirect glowing strip along the shelf edge */}
+          {/* NEW: visible glowing LED strip along the front edge of the shelf */}
           <mesh position={[0, -0.03, 0.135]}>
             <boxGeometry args={[2.1, 0.012, 0.012]} />
             <meshStandardMaterial
               color={PALETTE.warmIndirectLed}
               emissive={PALETTE.warmIndirectLed}
-              emissiveIntensity={0.6}
+              emissiveIntensity={2.2}
             />
           </mesh>
         </group>
@@ -677,7 +677,7 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
   useFrame(({ clock }) => {
     if (lampLightRef.current) {
       const t = clock.getElapsedTime();
-      lampLightRef.current.intensity = 0.3 + Math.sin(t * 1.2) * 0.02;
+      lampLightRef.current.intensity = 0.55 + Math.sin(t * 1.2) * 0.03;
     }
   });
 
@@ -692,15 +692,15 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
         <meshStandardMaterial
           color={PALETTE.porcelainWhite}
           emissive="#FFE2C6"
-          emissiveIntensity={0.4}
-          roughness={0.3}
+          emissiveIntensity={0.65}
+          roughness={0.25}
         />
       </mesh>
       <pointLight
         ref={lampLightRef}
         color={PALETTE.lampGlow}
-        intensity={0.3}
-        distance={2.2}
+        intensity={0.55}
+        distance={2.8}
         decay={2}
         castShadow
         shadow-bias={-0.0001}
@@ -709,7 +709,7 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
   );
 }
 
-// Neon Bunny Sign with soft ambient accent glow
+// UPDATED: Prominent Neon Bunny Sign with a real face, matching the reference
 function NeonBunnySign({ position }: { position: [number, number, number] }) {
   return (
     <group position={position} scale={1.5}>
@@ -718,7 +718,7 @@ function NeonBunnySign({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
       <mesh position={[-0.08, 0.25, 0]} rotation={[0, 0, -0.12]}>
@@ -726,7 +726,7 @@ function NeonBunnySign({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
       <mesh position={[0.08, 0.25, 0]} rotation={[0, 0, 0.12]}>
@@ -734,16 +734,16 @@ function NeonBunnySign({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
-      {/* eyes */}
+      {/* NEW: eyes */}
       <mesh position={[-0.06, 0.01, 0.01]}>
         <circleGeometry args={[0.016, 16]} />
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
       <mesh position={[0.06, 0.01, 0.01]}>
@@ -751,19 +751,19 @@ function NeonBunnySign({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
-      {/* nose */}
+      {/* NEW: nose */}
       <mesh position={[0, -0.05, 0.01]}>
         <circleGeometry args={[0.02, 3]} />
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.8}
         />
       </mesh>
-      <pointLight color={PALETTE.lyraPink} intensity={0.25} distance={2.0} position={[0, 0.08, 0.15]} />
+      <pointLight color={PALETTE.lyraPink} intensity={0.6} distance={2.4} position={[0, 0.08, 0.15]} />
     </group>
   );
 }
@@ -975,30 +975,46 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 }
 
 // -----------------------------------------------------------------------------
-// 7. MAIN ROOM ENVIRONMENT SCENE GRAPH (Simple Room with Minimal Lighting)
+// 7. MAIN ROOM ENVIRONMENT SCENE GRAPH
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
   return (
     <group>
-      {/* Soft minimal ambient light */}
-      <ambientLight color="#5B3E52" intensity={0.7} />
+      <ambientLight color="#523647" intensity={0.95} />
 
-      {/* Main subtle window key light */}
       <directionalLight
         color={PALETTE.warmSunsetKey}
-        intensity={0.85}
-        position={[-5.0, 3.8, 2.0]}
+        intensity={1.25}
+        position={[-6.0, 3.8, 1.5]}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
       />
 
-      {/* Soft warm fill light */}
+      <directionalLight
+        color="#FFF6F0"
+        intensity={1.15}
+        position={[-1.2, 2.2, 3.0]}
+      />
+
       <directionalLight
         color="#F8C6DB"
+        intensity={0.45}
+        position={[2.8, 1.8, 2.5]}
+      />
+
+      <directionalLight
+        color="#FFE5F2"
+        intensity={0.65}
+        position={[0.2, 3.4, -2.4]}
+      />
+
+      <pointLight
+        color="#FFEBD6"
         intensity={0.35}
-        position={[2.5, 1.8, 2.5]}
+        position={[0, 4.0, -0.5]}
+        distance={12}
       />
 
       <AmbientMotes />
