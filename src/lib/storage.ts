@@ -518,6 +518,8 @@ import { supabase } from './supabaseClient';
  * 4. Local storage fallback
  */
 export async function getSupabaseUserName(): Promise<string> {
+  const isCleared = typeof window !== 'undefined' && localStorage.getItem('lyra_user_name_cleared') === 'true';
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -533,8 +535,14 @@ export async function getSupabaseUserName(): Promise<string> {
         const name = data.preferred_name.trim();
         if (typeof window !== 'undefined') {
           localStorage.setItem('lyra_user_name', name);
+          localStorage.removeItem('lyra_user_name_cleared');
         }
         return name;
+      }
+
+      // If user explicitly deleted their name, do not fall back to Google metadata
+      if (isCleared) {
+        return 'Friend';
       }
 
       // 2. Direct Supabase auth user metadata (Google OAuth or Signup metadata)
@@ -561,6 +569,10 @@ export async function getSupabaseUserName(): Promise<string> {
     console.warn('[storage] Error getting user name from Supabase:', err);
   }
 
+  if (isCleared) {
+    return 'Friend';
+  }
+
   // 4. Fallback to localStorage
   if (typeof window !== 'undefined') {
     const localName = localStorage.getItem('lyra_user_name');
@@ -581,6 +593,8 @@ export async function getSupabaseUserName(): Promise<string> {
 }
 
 export async function getProfile() {
+  const isCleared = typeof window !== 'undefined' && localStorage.getItem('lyra_user_name_cleared') === 'true';
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -593,11 +607,11 @@ export async function getProfile() {
 
       if (!error && data) {
         const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
-        const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
-        const preferredName = data.preferred_name || localStoredName || googleName || '';
+        const googleName = (!isCleared) ? (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '') : '';
+        const preferredName = data.preferred_name || (!isCleared ? (localStoredName || googleName || '') : '');
 
         const profileData = {
-          preferredName: preferredName || DEFAULT_PROFILE.preferredName,
+          preferredName: preferredName || (isCleared ? '' : DEFAULT_PROFILE.preferredName),
           conversationalVibe: data.conversational_vibe || DEFAULT_PROFILE.conversationalVibe,
           topics: Array.isArray(data.topics) && data.topics.length > 0 ? data.topics : DEFAULT_PROFILE.topics,
           activeOutfit: data.active_outfit || DEFAULT_PROFILE.activeOutfit,
@@ -614,13 +628,13 @@ export async function getProfile() {
       }
 
       // Check Google account name metadata fallback
-      const googleName = session.user.user_metadata?.full_name || session.user.user_metadata?.name;
+      const googleName = (!isCleared) ? (session.user.user_metadata?.full_name || session.user.user_metadata?.name) : '';
       const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
       if (googleName || localStoredName) {
         const local = await getLocalProfileData();
         return {
           ...local,
-          preferredName: localStoredName || (local.preferredName && local.preferredName !== 'Friend' ? local.preferredName : googleName) || DEFAULT_PROFILE.preferredName,
+          preferredName: isCleared ? '' : (localStoredName || (local.preferredName && local.preferredName !== 'Friend' ? local.preferredName : googleName) || DEFAULT_PROFILE.preferredName),
         };
       }
     }
@@ -630,10 +644,16 @@ export async function getProfile() {
 
   const local = await getLocalProfileData();
   const localStoredName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : null;
-  if (localStoredName && (!local.preferredName || local.preferredName === 'Friend')) {
+  if (!isCleared && localStoredName && (!local.preferredName || local.preferredName === 'Friend')) {
     return {
       ...local,
       preferredName: localStoredName,
+    };
+  }
+  if (isCleared) {
+    return {
+      ...local,
+      preferredName: '',
     };
   }
   return local;
@@ -652,7 +672,7 @@ export async function saveProfile(updates: any) {
       };
 
       const preferredName = updates.preferredName ?? updates.preferred_name;
-      if (preferredName !== undefined) payload.preferred_name = preferredName;
+      if (preferredName !== undefined) payload.preferred_name = preferredName ? String(preferredName).trim() : null;
 
       const conversationalVibe = updates.conversationalVibe ?? updates.conversational_vibe ?? updates.vibe;
       if (conversationalVibe !== undefined) payload.conversational_vibe = conversationalVibe;
@@ -672,7 +692,8 @@ export async function saveProfile(updates: any) {
       // Upsert profile record in Supabase matching public.profiles schema
       const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
       if (error) {
-        console.error('[storage] Supabase profiles upsert error:', error);
+        console.warn('[storage] Supabase profiles upsert error, trying update:', error);
+        await supabase.from('profiles').update(payload).eq('id', session.user.id);
       }
     }
   } catch (err) {
@@ -681,8 +702,12 @@ export async function saveProfile(updates: any) {
 
   if (typeof window !== 'undefined') {
     const pName = updates.preferredName ?? updates.preferred_name;
-    if (pName) {
-      localStorage.setItem('lyra_user_name', pName);
+    if (pName && String(pName).trim()) {
+      localStorage.setItem('lyra_user_name', String(pName).trim());
+      localStorage.removeItem('lyra_user_name_cleared');
+    } else if (pName === '' || pName === null) {
+      localStorage.removeItem('lyra_user_name');
+      localStorage.setItem('lyra_user_name_cleared', 'true');
     }
     const oComp = updates.onboardingCompleted ?? updates.onboarding_completed;
     if (oComp !== undefined) {
@@ -1109,9 +1134,25 @@ export async function saveMemory(textOrObj: any) {
 
 export async function deleteMemory(id: string) {
   try {
+    // 1. Identify if this memory is a name memory before deletion
+    const localMems = await getLocalMemories();
+    const memToDelete = localMems.find(m => m.id === id);
+    let memText = memToDelete?.text || '';
+
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
+      if (!memText) {
+        const { data: remoteMem } = await supabase
+          .from('memories')
+          .select('text')
+          .eq('id', id)
+          .maybeSingle();
+        if (remoteMem?.text) {
+          memText = remoteMem.text;
+        }
+      }
+
       const { error } = await supabase
         .from('memories')
         .delete()
@@ -1120,6 +1161,40 @@ export async function deleteMemory(id: string) {
 
       if (error) {
         console.warn('[storage] Supabase memory delete error:', error);
+      }
+    }
+
+    // 2. If it is a name memory, clear profile and companion user name across Supabase & app
+    if (isNameMemory(memText)) {
+      if (session) {
+        await supabase
+          .from('profiles')
+          .update({ preferred_name: null, updated_at: new Date().toISOString() })
+          .eq('id', session.user.id);
+      }
+
+      try {
+        const localProf = (await getLocalProfile()) || {};
+        await saveLocalProfile({
+          ...localProf,
+          name: '',
+          preferredName: '',
+        });
+      } catch {}
+
+      try {
+        const comp = (await getCompanion()) || {};
+        await saveCompanion({
+          ...comp,
+          userName: '',
+          userPreferredName: '',
+        });
+      } catch {}
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lyra_user_name');
+        localStorage.setItem('lyra_user_name_cleared', 'true');
+        window.dispatchEvent(new CustomEvent('lyraUserNameChanged', { detail: '' }));
       }
     }
   } catch (err) {

@@ -437,13 +437,12 @@ export default function Chat() {
       }
     };
     const handleUserNameChanged = (e: any) => {
-      if (e.detail) {
-        if (companionProfileRef.current) {
-          companionProfileRef.current.userName = e.detail;
-          companionProfileRef.current.userPreferredName = e.detail;
-        }
-        getMemories().then(m => setMemories(m || []));
+      const newName = e.detail !== undefined ? e.detail : '';
+      if (companionProfileRef.current) {
+        companionProfileRef.current.userName = newName;
+        companionProfileRef.current.userPreferredName = newName;
       }
+      getMemories().then(m => setMemories(m || []));
     };
     window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
     window.addEventListener('lyraUserNameChanged', handleUserNameChanged);

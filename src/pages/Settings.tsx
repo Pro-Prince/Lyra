@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { entranceVariants, groupVariants, pageCrossfadeVariants } from "../lib/motion";
-import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory, updateUserNameAndMemory } from "../lib/storage";
+import { getMemories, deleteMemory, getCompanion, saveCompanion, storage, getProfile, saveProfile, getLocalProfile, saveLocalProfile, saveMemory, updateUserNameAndMemory, isNameMemory, extractNameFromMemoryText } from "../lib/storage";
 import { Trash2, Volume2, Shirt, User as UserIcon, BookOpen } from "lucide-react";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
@@ -36,16 +36,23 @@ export default function Settings() {
         setCurrentOutfit(comp.outfit);
       }
 
+      const isCleared = typeof window !== 'undefined' && localStorage.getItem('lyra_user_name_cleared') === 'true';
+      const nameMem = (mems || []).find((m: any) => isNameMemory(m?.text || (m as any)?.content || ''));
+      const extractedName = nameMem ? extractNameFromMemoryText(nameMem.text || (nameMem as any).content || '') : null;
+
       const profile = await getProfile();
       const localProfile = await getLocalProfile();
       const storedLocalName = typeof window !== 'undefined' ? localStorage.getItem('lyra_user_name') : '';
-      const googleName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
-      const currentName = profile?.preferredName || storedLocalName || comp?.userName || comp?.userPreferredName || localProfile?.name || googleName || '';
       
-      if (currentName && currentName !== 'Friend') {
-        setUserName(currentName);
-      } else if (currentName) {
-        setUserName(currentName);
+      if (isCleared && !nameMem) {
+        setUserName('');
+      } else {
+        const currentName = profile?.preferredName || extractedName || storedLocalName || comp?.userName || comp?.userPreferredName || localProfile?.name || '';
+        if (currentName && currentName !== 'Friend') {
+          setUserName(currentName);
+        } else {
+          setUserName('');
+        }
       }
     }
     load();
@@ -56,10 +63,9 @@ export default function Settings() {
       }
     };
     const handleNameChanged = (e: any) => {
-      if (e.detail) {
-        setUserName(e.detail);
-        getMemories().then(m => setMemories(m || []));
-      }
+      const newName = e.detail !== undefined ? e.detail : '';
+      setUserName(newName);
+      getMemories().then(m => setMemories(m || []));
     };
     window.addEventListener('lyraOutfitChanged', handleOutfitChanged);
     window.addEventListener('lyraUserNameChanged', handleNameChanged);
@@ -81,9 +87,19 @@ export default function Settings() {
   };
 
   const handleDeleteMemory = async (id: string) => {
+    const memToDelete = memories.find(m => m.id === id);
+    const isName = memToDelete && isNameMemory(memToDelete.text || (memToDelete as any).content || '');
+
     await deleteMemory(id);
-    setMemories(memories.filter(m => m.id !== id));
-    showSuccess("Memory removed")
+    const updated = memories.filter(m => m.id !== id);
+    setMemories(updated);
+    
+    if (isName) {
+      setUserName('');
+      showSuccess("Name memory removed and profile reset");
+    } else {
+      showSuccess("Memory removed");
+    }
   };
 
   const handleSelectOutfit = async (outfitId: string) => {
@@ -129,9 +145,13 @@ export default function Settings() {
 
     setIsSavingProfile(true);
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('lyra_user_name_cleared');
+      }
       const updatedMems = await updateUserNameAndMemory(trimmed);
       setMemories(updatedMems);
-      showSuccess("Profile updated")
+      setUserName(trimmed);
+      showSuccess("Profile updated");
     } catch (err) {
       console.error("Failed to update profile:", err);
       showError("Failed to update profile");
