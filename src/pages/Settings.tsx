@@ -212,7 +212,7 @@ export default function Settings() {
                   placeholder="Enter your name" 
                   disabled={isSavingProfile} 
                   autoComplete="name"
-                  className="w-full h-11 px-4 rounded-xl text-sm font-medium bg-[var(--bg-base)] border border-[var(--text-primary)]/20 focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/25 focus:outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-all disabled:opacity-50 shadow-inner"
+                  className="w-full h-11 px-4 rounded-xl text-sm font-medium bg-[var(--bg-base)] border border-[var(--text-primary)]/12 hover:border-[var(--accent-primary)]/35 focus:border-[var(--accent-primary)]/50 focus:outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -224,7 +224,7 @@ export default function Settings() {
                   value={session?.user?.email || (isAuthed ? "" : "Guest User (Local Profile)")} 
                   readOnly
                   disabled 
-                  className="w-full h-11 px-4 rounded-xl text-sm font-medium bg-[var(--bg-base)]/60 border border-[var(--text-primary)]/15 text-[var(--text-muted)] cursor-not-allowed opacity-75 shadow-inner"
+                  className="w-full h-11 px-4 rounded-xl text-sm font-medium bg-[var(--bg-base)]/60 border border-[var(--text-primary)]/12 text-[var(--text-muted)] cursor-not-allowed opacity-75"
                 />
               </div>
             </div>
@@ -398,9 +398,9 @@ export default function Settings() {
                 placeholder="WIPE"
                 autoComplete="off"
                 spellCheck={false}
-                className={`wipe-input h-11 text-center text-sm font-mono font-bold tracking-widest uppercase px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/25 focus:outline-none transition-all placeholder:text-[var(--text-muted)]/40 placeholder:font-mono placeholder:tracking-widest shadow-inner ${
+                className={`wipe-input h-11 text-center text-sm font-mono font-bold tracking-widest uppercase px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/12 hover:border-rose-500/40 focus:border-rose-500/60 focus:outline-none transition-all placeholder:text-[var(--text-muted)]/40 placeholder:font-mono placeholder:tracking-widest ${
                   wipeConfirm === "WIPE"
-                    ? "!border-rose-500 !bg-rose-500/20 text-rose-200 !ring-2 !ring-rose-500/30"
+                    ? "!border-rose-500/80 !bg-rose-500/15 text-rose-200"
                     : ""
                 }`}
               />

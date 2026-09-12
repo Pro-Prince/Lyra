@@ -1627,10 +1627,9 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] border border-white/20 flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-[0_2px_10px_rgba(255,143,192,0.35)] hover:shadow-[0_4px_16px_rgba(255,143,192,0.55)] hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:border-transparent disabled:cursor-not-allowed overflow-hidden"
+                         className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                         <Send className="w-3.5 h-3.5 text-[var(--bg-base)] group-hover:scale-110 transition-transform duration-200 shrink-0" />
+                         <Send className="w-3.5 h-3.5 shrink-0" />
                       </button>
                    </div>
                    {/* Home Indicator Bar */}
@@ -1966,10 +1965,9 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] border border-white/20 flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-[0_2px_10px_rgba(255,143,192,0.35)] hover:shadow-[0_4px_16px_rgba(255,143,192,0.55)] hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:border-transparent disabled:cursor-not-allowed overflow-hidden"
+                         className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                         <Send className="w-3.5 h-3.5 text-[var(--bg-base)] group-hover:scale-110 transition-transform duration-200 shrink-0" />
+                         <Send className="w-3.5 h-3.5 shrink-0" />
                       </button>
                    </div>
                 </div>
