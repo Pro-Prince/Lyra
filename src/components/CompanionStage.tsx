@@ -17,6 +17,7 @@ import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
 import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
+import { performanceController } from '../lib/PerformanceController';
 import { InteractionManager } from './InteractionManager';
 
 const SCRATCH_COLOR_A = new THREE.Color();
@@ -343,6 +344,17 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const validIdle = idleTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validIdle.length > 0) gestureClips['procedural_idle'] = new THREE.AnimationClip('procedural_idle', 4.0, validIdle);
 
+  if (gestureClips['wave']) gestureClips['gesture_wave'] = gestureClips['wave'];
+  if (gestureClips['nod']) gestureClips['gesture_soft_nod'] = gestureClips['nod'];
+  if (gestureClips['laugh']) gestureClips['gesture_happy_01'] = gestureClips['laugh'];
+  if (gestureClips['cheer']) gestureClips['gesture_happy_02'] = gestureClips['cheer'];
+  if (gestureClips['think']) gestureClips['gesture_chin_touch'] = gestureClips['think'];
+  if (gestureClips['cheer']) gestureClips['gesture_hands_up'] = gestureClips['cheer'];
+  if (gestureClips['think']) gestureClips['gesture_look_up'] = gestureClips['think'];
+  if (gestureClips['nod']) gestureClips['gesture_head_tilt'] = gestureClips['nod'];
+  if (gestureClips['nod']) gestureClips['gesture_wink'] = gestureClips['nod'];
+  if (gestureClips['procedural_idle']) gestureClips['idle_shift'] = gestureClips['procedural_idle'];
+
   return gestureClips;
 }
 
@@ -633,9 +645,14 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         // @ts-ignore
         window.crossfadeToAction = crossfadeToAction;
 
+        // Initialize central PerformanceController with VRM and clips
+        performanceController.init(vrmInstance, mixer.current, clips.current);
+
         if (clips.current['idle']) {
+          performanceController.idleAction = mixer.current.clipAction(clips.current['idle']);
           playAction('idle', true);
         } else if (clips.current['procedural_idle']) {
+          performanceController.idleAction = mixer.current.clipAction(clips.current['procedural_idle']);
           playAction('procedural_idle', true);
         }
 
@@ -680,6 +697,29 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
     window.addEventListener('lyraSpeak', handleSpeak);
     return () => window.removeEventListener('lyraSpeak', handleSpeak);
   }, []);
+
+  useEffect(() => {
+    const handleSpeechStart = (e: any) => {
+      const { audioElement, text, duration, emotion: emotionTag } = e.detail || {};
+      if (audioElement) {
+        performanceController.startSpeechPerformance(audioElement, text || '', emotionTag || emotion, duration || 2.0);
+      } else {
+        performanceController.scheduleGestureBeats(text || '', emotionTag || emotion, duration || 2.0);
+      }
+    };
+
+    const handleSpeechEnd = () => {
+      performanceController.stopSpeechPerformance();
+    };
+
+    window.addEventListener('lyraSpeechStart', handleSpeechStart);
+    window.addEventListener('lyraSpeechEnd', handleSpeechEnd);
+
+    return () => {
+      window.removeEventListener('lyraSpeechStart', handleSpeechStart);
+      window.removeEventListener('lyraSpeechEnd', handleSpeechEnd);
+    };
+  }, [emotion]);
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
@@ -744,6 +784,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
       const time = elapsedTimeRef.current;
 
       movement.update(safeDelta);
+      performanceController.update();
 
       // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
       let targetGaze = targetLookAt.current.clone();

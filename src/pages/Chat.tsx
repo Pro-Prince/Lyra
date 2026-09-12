@@ -17,6 +17,7 @@ import { PresenceTopBar } from "../components/PresenceTopBar";
 import { useToast } from "../hooks/useToast";
 import { AppState, useAppState } from "../hooks/useAppState";
 import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThumbnails } from "../lib/outfitCache";
+import { ControlBar } from "../components/ControlBar";
 import { pageCrossfadeVariants } from "../lib/motion";
 import { useAuth } from "../hooks/useAuth";
 
@@ -564,14 +565,9 @@ export default function Chat() {
   }, [speechPulse]);
 
   const toggleView = () => {
-    setViewMode(prev => {
-      const next = prev === '3d' ? 'chat' : '3d';
-      if (next === 'chat') {
-        setIsChatDrawerOpen(true);
-        showInfo("Switched to Standard Text Chat View");
-      } else {
-        showInfo("Switched to Full 3D Avatar View");
-      }
+    setIsPortraitMode(prev => {
+      const next = !prev;
+      showInfo(next ? "Framing: Portrait Close-up" : "Framing: Full-Body View");
       return next;
     });
   };
@@ -581,83 +577,59 @@ export default function Chat() {
       const next = !prev;
       isMutedRef.current = next;
       if (next) {
-        // Mute cuts off local microphone input stream without disconnecting
-        try { recognitionRef.current?.stop(); } catch(e) {}
-        if (appStateRef.current === AppState.LISTENING) {
+        stopSpeaking();
+        if (appStateRef.current === AppState.SPEAKING) {
           setAppState(AppState.IDLE);
         }
-        showInfo("Microphone Muted • Lyra is paused and not listening");
+        showInfo("Muted • Lyra's voice output disabled");
       } else {
-        // Unmute restores listening
-        showInfo("Microphone Active • Listening resumed");
-        if (micMode === 'hands-free' || isCallModeRef.current) {
-          if (appStateRef.current === AppState.IDLE) {
-            try {
-              recognitionRef.current?.start();
-              setAppState(AppState.LISTENING);
-            } catch(e) {}
-          }
-        }
+        showInfo("Unmuted • Lyra's voice output active");
       }
       return next;
     });
   };
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(prev => {
-      const next = !prev;
-      isSpeakerOnRef.current = next;
-      if (next) {
-        showInfo("Audio Output: Speakerphone (Loud)");
-      } else {
-        showInfo("Audio Output: Private Earpiece / Bluetooth");
-      }
-      return next;
-    });
-  };
-
-  const handleStopSession = async () => {
-    // 1. Terminate active AI streaming pipeline
+  const handleStopSpeaking = () => {
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      try { abortControllerRef.current.abort(); } catch(_) {}
       abortControllerRef.current = null;
     }
-    
-    // 2. Sever text-to-speech audio stream and reset visemes
     cancelSpeech();
-    
-    // 3. Cut off microphone hardware input
-    try {
-      recognitionRef.current?.stop();
-    } catch(e) {}
-    
     setAppState(AppState.IDLE);
-    setIsCallMode(false);
-    
-      showInfo("Live session ended. Conversation context saved.");
+    showInfo("Stopped Lyra speaking mid-sentence.");
   };
 
   const toggleMic = () => {
-    if (!recognitionRef.current) {
-      showError("Voice input isn't supported in this browser, you can still type below");
-      return;
-    }
-    
     if (isListening) {
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch(e) {}
+      }
       setAppState(AppState.IDLE);
     } else {
-      if (isMuted) {
-        setIsMuted(false);
-        isMutedRef.current = false;
+      cancelSpeech();
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showError("Voice speech input isn't supported in this browser, but you can type in the chat");
+        return;
       }
-      if (!isCallMode) setInputText(""); 
+
+      if (!recognitionRef.current) {
+        setupSpeechRecognition();
+      }
+
       try {
         recognitionRef.current?.start();
         setAppState(AppState.LISTENING);
-      } catch (e) {
+      } catch (e: any) {
         console.error('[SpeechRecognition] Failed to start microphone:', e);
-        showError("Can't start microphone right now, check your browser's permissions", { action: { label: "Retry", onClick: () => toggleMic() } });
+        if (e?.name === 'NotAllowedError' || e?.message?.includes('denied')) {
+          showError("Microphone permission denied. Please allow mic access in your browser settings.");
+        } else {
+          showError("Can't start microphone right now. Check browser permissions and try again.", {
+            action: { label: "Retry", onClick: () => toggleMic() }
+          });
+        }
+        setAppState(AppState.IDLE);
       }
     }
   };
@@ -673,7 +645,7 @@ export default function Chat() {
   };
 
   const speakTextChunk = (text: string, enqueue = true) => {
-    if (!companionProfileRef.current) {
+    if (!companionProfileRef.current || isMutedRef.current) {
        return;
     }
 
@@ -690,6 +662,7 @@ export default function Chat() {
     speakText({
       text: cleanText,
       presetId: voicePreset || 'soft-calm',
+      emotion: currentEmotion,
       volume: vol,
       enqueue,
       onStart: () => {
@@ -1363,88 +1336,18 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* Bottom HUD Controls on Mobile (5 circular buttons + Status Pill) */}
+            {/* Bottom HUD Controls on Mobile (4 distinct buttons) */}
             <div className={`z-20 w-full flex flex-col items-center gap-2 pb-2 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              {/* Row of 5 Circular Control Buttons */}
-              <div className="flex items-center justify-between gap-1.5 px-3 w-full max-w-sm mx-auto">
-                {/* 1. Camera */}
-                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
-                  <button 
-                    onClick={handleCapture}
-                    title="Capture Screen / Portrait"
-                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)] flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
-                  >
-                    <Camera className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
-                  </button>
-                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Camera</span>
-                </div>
-
-                {/* 2. Mute */}
-                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
-                  <button 
-                    onClick={toggleMute}
-                    title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center ${
-                      isMuted 
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
-                        : 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]'
-                    }`}
-                  >
-                    <MicOff className={`w-4.5 h-4.5 ${isMuted ? 'text-rose-400' : 'text-[var(--text-primary)]/90'}`} />
-                  </button>
-                  <span className={`text-[10px] sm:text-[11px] font-normal ${isMuted ? 'text-rose-400' : 'text-[var(--text-muted)]'}`}>
-                    Mute
-                  </span>
-                </div>
-
-                {/* 3. Talk (Center Pink Action) */}
-                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
-                  <button 
-                    onClick={toggleMic}
-                    title={isListening ? "Listening... Tap to stop" : "Tap to Speak"}
-                    style={{ 
-                      backgroundColor: activeAccent,
-                      boxShadow: isListening 
-                        ? `0 0 24px ${activeAccent}88` 
-                        : `0 0 14px ${activeAccent}44`
-                    }}
-                    className={`w-12.5 h-12.5 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-[var(--bg-base)] active:scale-95 transition-all cursor-pointer border border-transparent hover:border-white/20 ${
-                      isListening ? 'bg-[var(--bg-base)] ring-2 ring-[var(--accent-primary)]/50' : 'hover:brightness-110'
-                    }`}
-                  >
-                    <Mic className="w-5.5 h-5.5 text-white" />
-                  </button>
-                  <span className="text-[10px] sm:text-[11px] text-[var(--text-primary)]/90 font-medium">Talk</span>
-                </div>
-
-                {/* 4. Speaker */}
-                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
-                  <button 
-                    onClick={toggleSpeaker}
-                    title={isSpeakerOn ? "Speakerphone (Loud)" : "Private Earpiece"}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
-                      isSpeakerOn 
-                        ? 'bg-[var(--bg-elevated)]/85 backdrop-blur-md border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]' 
-                        : 'bg-[var(--bg-base)]/40 border-transparent hover:border-[var(--accent-primary)]/30 text-[var(--text-muted)]'
-                    }`}
-                  >
-                    <Volume2 className="w-4.5 h-4.5 text-[var(--text-primary)]/90" />
-                  </button>
-                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Speaker</span>
-                </div>
-
-                {/* 5. Stop */}
-                <div className="flex flex-col items-center gap-0.5 pointer-events-auto">
-                  <button 
-                    onClick={handleStopSession}
-                    title="End Session & Save Progress"
-                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--bg-elevated)]/85 backdrop-blur-md border border-transparent hover:border-rose-500/40 active:border-rose-500/60 text-[var(--text-primary)]/90 hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer"
-                  >
-                    <Square className="w-3.5 h-3.5 fill-[var(--text-primary)] text-[var(--text-primary)]" />
-                  </button>
-                  <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] font-normal">Stop</span>
-                </div>
-              </div>
+              <ControlBar
+                isListening={isListening}
+                onToggleListening={toggleMic}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                isSpeaking={isLyraSpeaking}
+                onStop={handleStopSpeaking}
+                onToggleView={toggleView}
+              />
+            </div>
 
               {/* Status Waveform Pill */}
               <div className="pointer-events-auto px-3.5 py-1 rounded-full bg-[var(--bg-panel)]/85 backdrop-blur-xl border border-[var(--text-primary)]/15 flex items-center gap-2.5 shadow-lg max-w-[85%]">
@@ -1462,7 +1365,6 @@ export default function Chat() {
                 </div>
               </div>
             </div>
-          </div>
 
           {/* Bottom Half: Chat & About Container */}
           <div className="flex-1 min-h-0 bg-[var(--bg-panel)] rounded-t-[24px] sm:rounded-t-[28px] border-t border-[var(--text-primary)]/15 flex flex-col relative shadow-2xl overflow-hidden">
@@ -1727,81 +1629,15 @@ export default function Chat() {
 
             {/* HUD Bottom Controls */}
             <div className={`control-bar z-20 flex items-end justify-center gap-3 sm:gap-8 w-full px-2 md:px-4 scale-90 md:scale-100 origin-bottom transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              {/* 1. View */}
-              <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                <button 
-                  onClick={toggleView} 
-                  title="Switch to Standard Text Chat View"
-                  className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95"
-                >
-                  <Eye className="w-5 h-5" />
-                </button>
-                <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">View</span>
-              </div>
-
-              {/* 2. Mute */}
-              <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                <button 
-                  onClick={toggleMute} 
-                  title={isMuted ? "Unmute Microphone" : "Mute Microphone (Pause listening)"}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-md cursor-pointer active:scale-95 ${
-                    isMuted 
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' 
-                      : 'bg-[var(--bg-elevated)]/40 backdrop-blur-md border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {isMuted ? <MicOff className="w-5 h-5 text-rose-400" /> : <Mic className="w-5 h-5" />}
-                </button>
-                <span className={`text-[10px] font-medium tracking-wide uppercase ${isMuted ? 'text-rose-400 font-semibold' : 'text-[var(--text-primary)]/50'}`}>
-                  {isMuted ? 'Muted' : 'Mute'}
-                </span>
-              </div>
-
-              {/* 3. Talk (Big Pink Center Action) */}
-              <div className="flex flex-col items-center gap-2 -mb-2 pointer-events-auto">
-                <button 
-                   onClick={toggleMic}
-                   title={isListening ? "Listening... Click to stop" : "Tap to Speak to Lyra"}
-                   className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg hover:brightness-105 active:scale-95 cursor-pointer ${
-                     isListening ? 'bg-[var(--bg-elevated)] text-[var(--accent-primary)] border-2 border-[var(--accent-primary)]' : 'bg-[var(--accent-primary)] text-[var(--bg-base)]'
-                   }`}
-                >
-                  <Mic className="w-7 h-7" />
-                </button>
-                <span className="text-[10px] text-[var(--accent-primary)] font-semibold tracking-wide uppercase">
-                  {isListening ? 'Listening' : 'Talk'}
-                </span>
-              </div>
-
-              {/* 4. Speaker */}
-              <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                <button 
-                  onClick={toggleSpeaker} 
-                  title={isSpeakerOn ? "Speakerphone (Loud) - Click for Private Earpiece" : "Private Earpiece - Click for Loud Speaker"}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
-                    isSpeakerOn 
-                      ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]/40 text-[var(--accent-primary)]' 
-                      : 'bg-[var(--bg-elevated)]/40 backdrop-blur-md border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <Volume1 className="w-5 h-5" />}
-                </button>
-                <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">
-                  {isSpeakerOn ? 'Speaker' : 'Earpiece'}
-                </span>
-              </div>
-
-              {/* 5. Stop */}
-              <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                <button 
-                  onClick={handleStopSession} 
-                  title="End Live Multimodal Session & Save Progress"
-                  className="w-12 h-12 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95"
-                >
-                  <Square className="w-4 h-4 fill-current" />
-                </button>
-                <span className="text-[10px] text-[var(--text-primary)]/50 font-medium tracking-wide uppercase">Stop</span>
-              </div>
+              <ControlBar
+                isListening={isListening}
+                onToggleListening={toggleMic}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                isSpeaking={isLyraSpeaking}
+                onStop={handleStopSpeaking}
+                onToggleView={toggleView}
+              />
             </div>
 
             {/* Listening / Subtitle Pill */}

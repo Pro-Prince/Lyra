@@ -77,6 +77,7 @@ interface QueuedSpeechItem {
   sessionId: number;
   text: string;
   presetId: string;
+  emotion?: string;
   volume: number;
   speed: number;
   onStart?: () => void;
@@ -153,10 +154,13 @@ export function stopSpeaking() {
 
   stopVisemeAnimation();
 
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    try {
-      window.speechSynthesis.cancel();
-    } catch (_) {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lyraSpeechEnd'));
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
+    }
   }
 }
 
@@ -333,6 +337,19 @@ function playAudioBlob(blob: Blob, item: QueuedSpeechItem): Promise<void> {
       }
       item.onStart?.();
       startVisemeAnimation();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('lyraSpeechStart', {
+            detail: {
+              audioElement: audio,
+              text: item.text,
+              duration: audio.duration && !isNaN(audio.duration) ? audio.duration : Math.max(1.5, item.text.length * 0.08),
+              emotion: item.emotion || 'warm',
+            },
+          })
+        );
+      }
     };
 
     audio.onended = () => {
@@ -422,6 +439,19 @@ function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
       }
       item.onStart?.();
       startVisemeAnimation();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('lyraSpeechStart', {
+            detail: {
+              audioElement: null,
+              text: item.text,
+              duration: Math.max(1.5, item.text.length * 0.08),
+              emotion: item.emotion || 'warm',
+            },
+          })
+        );
+      }
     };
 
     utterance.onend = () => {
@@ -445,6 +475,7 @@ function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
 export async function speakText({
   text,
   presetId = 'soft-calm',
+  emotion = 'warm',
   volume = 1.0,
   speed = 1.0,
   enqueue = false,
@@ -455,6 +486,7 @@ export async function speakText({
 }: {
   text: string;
   presetId?: string;
+  emotion?: string;
   volume?: number;
   speed?: number;
   enqueue?: boolean;
@@ -482,6 +514,7 @@ export async function speakText({
     sessionId: activePlaybackSessionId,
     text: clean,
     presetId,
+    emotion,
     volume,
     speed,
     onStart,
