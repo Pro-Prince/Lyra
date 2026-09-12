@@ -54,10 +54,9 @@ class VRMAudioSync {
       this.filter1.connect(merger);
       this.filter2.connect(merger);
 
-      // Direct to analyser and finally mute gain before reaching speaker
+      // Direct to analyser ONLY. Do NOT connect to audioCtx.destination so no internal synth audio leaks to the user's speakers!
       merger.connect(this.analyser);
-      this.analyser.connect(this.gainNode);
-      this.gainNode.connect(this.audioCtx.destination);
+      // Analyser processes the viseme frequencies cleanly without playing any sound to output
 
       this.sourceOsc.start();
     } catch (e) {
