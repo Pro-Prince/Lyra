@@ -167,8 +167,6 @@ export function RoomEnvironment() {
 
       <pointLight color="#ffcfa3" intensity={0.5} position={[0, 5, 0]} distance={15} />
 
-      <DriftingSakuraPetals />
-
       {/* 2. WOODEN FLOOR */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[60, 60]} />

@@ -91,85 +91,7 @@ function AmbientMotes() {
   );
 }
 
-function DriftingSakura() {
-  const count = 18;
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  const particles = useMemo(() => {
-    return Array.from({ length: count }, () => ({
-      x: (Math.random() - 0.5) * 6.5,
-      y: Math.random() * 3.5 + 0.5,
-      z: (Math.random() - 0.5) * 5.0,
-      speedY: 0.002 + Math.random() * 0.0025,
-      swaySpeed: 0.6 + Math.random() * 0.8,
-      swayAmp: 0.004 + Math.random() * 0.006,
-      rotX: Math.random() * Math.PI * 2,
-      rotY: Math.random() * Math.PI * 2,
-      rotZ: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.015,
-      scale: 0.6 + Math.random() * 0.4,
-      phase: Math.random() * Math.PI * 2,
-    }));
-  }, [count]);
-
-  const petalGeo = useMemo(() => {
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.bezierCurveTo(0.035, 0.025, 0.05, 0.08, 0.025, 0.12);
-    shape.bezierCurveTo(0.01, 0.14, -0.01, 0.14, -0.025, 0.12);
-    shape.bezierCurveTo(-0.05, 0.08, -0.035, 0.025, 0, 0);
-
-    const geo = new THREE.ShapeGeometry(shape, 8);
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const y = pos.getY(i);
-      pos.setZ(i, Math.sin((y / 0.14) * Math.PI) * 0.02);
-    }
-    geo.computeVertexNormals();
-    return geo;
-  }, []);
-
-  useFrame(({ clock }, delta) => {
-    if (!meshRef.current) return;
-    const t = clock.getElapsedTime();
-    const dt = Math.min(delta, 0.1);
-
-    particles.forEach((p, i) => {
-      p.y -= p.speedY * dt * 60;
-      p.x += (Math.sin(t * p.swaySpeed + p.phase) * p.swayAmp + 0.001) * dt * 60;
-      p.z += Math.cos(t * p.swaySpeed * 0.8 + p.phase) * (p.swayAmp * 0.5) * dt * 60;
-      p.rotX += p.rotSpeed;
-      p.rotY += p.rotSpeed;
-
-      if (p.y < 0.1 || p.x > 4.5 || p.x < -4.5) {
-        p.y = 3.6 + Math.random() * 0.4;
-        p.x = -3.5 + (Math.random() - 0.5) * 2.0;
-        p.z = (Math.random() - 0.5) * 4.0;
-      }
-
-      dummy.position.set(p.x, p.y, p.z);
-      dummy.rotation.set(p.rotX, p.rotY, p.rotZ);
-      dummy.scale.setScalar(p.scale);
-      dummy.updateMatrix();
-      meshRef.current?.setMatrixAt(i, dummy.matrix);
-    });
-
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh ref={meshRef} args={[petalGeo, undefined, count]}>
-      <meshStandardMaterial
-        color="#F8BBD0"
-        roughness={0.6}
-        side={THREE.DoubleSide}
-        transparent
-        opacity={0.7}
-      />
-    </instancedMesh>
-  );
-}
+// Steady ambient dust motes in light rays (minimalistic movement)
 
 // -----------------------------------------------------------------------------
 // 2. FLOOR-TO-CEILING WINDOW & EVENING SKYLINE (LEFT WALL)
@@ -1018,7 +940,6 @@ export function RoomEnvironment() {
       />
 
       <AmbientMotes />
-      <DriftingSakura />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
