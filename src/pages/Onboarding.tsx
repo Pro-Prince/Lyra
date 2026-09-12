@@ -352,7 +352,7 @@ export default function Onboarding() {
                   onClick={confirmAdult}
                   className="w-full"
                 >
-                  I am 18 or older — Enter
+                  I am 18 or older · Enter
                 </Button>
                 <button
                   onClick={() => navigate("/")}

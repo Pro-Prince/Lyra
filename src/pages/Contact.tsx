@@ -45,7 +45,7 @@ export default function Contact() {
                 <Heading2>Support Hours</Heading2>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-[var(--text-muted)]">
                   <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-[var(--accent-primary)]" />
-                  <span>Monday — Friday: 9:00 AM - 6:00 PM EST</span>
+                  <span>Monday to Friday: 9:00 AM - 6:00 PM EST</span>
                 </div>
                 <BodyText className="text-xs text-[var(--text-muted)] pt-1">
                   We typically respond within 24 hours during business days.

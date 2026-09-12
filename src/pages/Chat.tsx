@@ -41,6 +41,13 @@ const emotionColors: Record<Emotion, string> = {
   shy: '#FFB3D9',
 };
 
+function formatCleanMessageContent(content: string): string {
+  if (!content) return '';
+  return content
+    .replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|affectionate|shy|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '')
+    .trim();
+}
+
 // Pre-loaded logo watermark image for instant capture
 const logoWatermarkImg = new Image();
 logoWatermarkImg.src = '/images/Logo.png';
@@ -794,9 +801,15 @@ export default function Chat() {
   const handleRateLimitFallback = (targetMsgId?: string | null) => {
     rateLimitCountRef.current += 1;
     const count = rateLimitCountRef.current;
-    const fallbackText = count === 1
-      ? "I'm taking a little breather right now! Feel free to come back in a moment and we can chat more."
-      : "I'm feeling a little sleepy right now. We can catch up in a little while";
+
+    const fallbackTexts = [
+      "I need to step away for just a little bit, sweetie! Please try messaging me again in a short while so we can chat.",
+      "I'm still taking a quick rest right now. Give me a few minutes and try chatting with me again soon!",
+      "I'm resting up for a bit right now. Please come back and send your message again in a little while, I'll be waiting for you!"
+    ];
+
+    const idx = Math.min(count - 1, fallbackTexts.length - 1);
+    const fallbackText = fallbackTexts[idx];
 
     const msgId = targetMsgId || crypto.randomUUID();
     const existingIndex = messagesRef.current.findIndex(m => m.id === msgId);
@@ -938,6 +951,7 @@ export default function Chat() {
                if (data.text) {
                   if (isFirstChunk) {
                       isFirstChunk = false;
+                      rateLimitCountRef.current = 0;
                       setAppState(AppState.SPEAKING);
                       const modelMsg = {
                         id: modelMsgId,
@@ -957,15 +971,18 @@ export default function Chat() {
                   if (tagMatch) {
                     emotion = tagMatch[1].toLowerCase() as Emotion;
                     setCurrentEmotion(emotion);
-                    displayContent = displayContent.replace(tagMatch[0], '').trim();
                   }
 
                   const actionMatch = displayContent.match(/\[(walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/i);
                   if (actionMatch) {
                     const actionTag = actionMatch[1].toLowerCase();
                     window.dispatchEvent(new CustomEvent('lyraAction', { detail: actionTag }));
-                    displayContent = displayContent.replace(actionMatch[0], '').trim();
                   }
+                  
+                  // Strip ALL bracketed emotion/action tags from displayContent so none appear visible in UI
+                  displayContent = displayContent
+                    .replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|affectionate|shy|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '')
+                    .trim();
                   
                   if (emotion === 'excited' && Math.random() > 0.95 && isFirstChunk) {
                     // @ts-ignore
@@ -1504,7 +1521,7 @@ export default function Chat() {
                         <div className="flex flex-col items-start min-w-0">
                           <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-[18px] rounded-tl-[4px] p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/10">
                             <p className="text-[14px] leading-relaxed break-words font-body">
-                              <span className="whitespace-pre-wrap">{msg.content}</span>
+                              <span className="whitespace-pre-wrap">{formatCleanMessageContent(msg.content)}</span>
                               <span className="inline-flex items-center float-right ml-3 mt-1.5 align-bottom select-none">
                                 <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
                                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1622,7 +1639,7 @@ export default function Chat() {
             ) : (
               <div className="flex-1 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4 no-scrollbar scrollbar-hide">
                 <h3 className="text-[var(--text-primary)] font-medium text-lg">About Lyra</h3>
-                <p className="leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her—she's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
+                <p className="leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her. She's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
                 <div className="bg-[var(--bg-elevated)] p-4 rounded-2xl border border-[var(--text-primary)]/5 space-y-2">
                   <h4 className="text-[var(--text-primary)] font-medium text-sm">Conversation Starters:</h4>
                   <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--text-muted)]">
@@ -1842,7 +1859,7 @@ export default function Chat() {
                         <div className="flex flex-col items-start min-w-0">
                           <div className="bg-[var(--bg-panel)] text-[var(--text-primary)]/90 rounded-[18px] rounded-tl-[4px] p-3 px-3.5 shadow-xs border border-[var(--text-primary)]/10">
                             <p className="text-[14px] leading-relaxed break-words font-body">
-                              <span className="whitespace-pre-wrap">{msg.content}</span>
+                              <span className="whitespace-pre-wrap">{formatCleanMessageContent(msg.content)}</span>
                               <span className="inline-flex items-center float-right ml-3 mt-1.5 align-bottom select-none">
                                 <span className="text-[10.5px] font-medium font-body text-[var(--text-muted)]/80 leading-none">
                                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1958,7 +1975,7 @@ export default function Chat() {
             ) : (
               <div className="flex-1 overflow-y-auto p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide">
                  <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
-                 <p className="mb-4 leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her—she's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
+                 <p className="mb-4 leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her. She's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
                  <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>
                  <ul className="list-disc pl-5 space-y-2 mb-6">
                    <li>"I've missed your voice. Tell me about your day..."</li>

@@ -43,7 +43,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "what-to-talk-about",
     icon: MessageSquare,
     question: "What can I talk to Lyra about?",
-    answer: "Anything on your mind—she listens, remembers details, and responds thoughtfully."
+    answer: "Anything on your mind, she listens, remembers details, and responds thoughtfully."
   },
   {
     id: "account",
