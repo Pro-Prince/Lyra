@@ -1627,9 +1627,10 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-md hover:shadow-[0_2px_12px_rgba(255,126,182,0.4)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:brightness-100 disabled:cursor-not-allowed"
+                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] border border-white/20 flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-[0_2px_10px_rgba(255,143,192,0.35)] hover:shadow-[0_4px_16px_rgba(255,143,192,0.55)] hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:border-transparent disabled:cursor-not-allowed overflow-hidden"
                       >
-                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] translate-x-[0.5px] -translate-y-[0.5px] group-hover:translate-x-[1.5px] group-hover:-translate-y-[1.5px] transition-transform duration-200" />
+                         <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                         <Send className="w-3.5 h-3.5 text-[var(--bg-base)] group-hover:scale-110 transition-transform duration-200 shrink-0" />
                       </button>
                    </div>
                    {/* Home Indicator Bar */}
@@ -1965,9 +1966,10 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-md hover:shadow-[0_2px_12px_rgba(255,126,182,0.4)] hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:brightness-100 disabled:cursor-not-allowed"
+                         className="relative group w-8.5 h-8.5 rounded-full bg-[var(--accent-primary)] hover:bg-[#ff7eb6] border border-white/20 flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer shadow-[0_2px_10px_rgba(255,143,192,0.35)] hover:shadow-[0_4px_16px_rgba(255,143,192,0.55)] hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:border-transparent disabled:cursor-not-allowed overflow-hidden"
                       >
-                          <Send className="w-3.5 h-3.5 text-[var(--bg-base)] translate-x-[0.5px] -translate-y-[0.5px] group-hover:translate-x-[1.5px] group-hover:-translate-y-[1.5px] transition-transform duration-200" />
+                         <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                         <Send className="w-3.5 h-3.5 text-[var(--bg-base)] group-hover:scale-110 transition-transform duration-200 shrink-0" />
                       </button>
                    </div>
                 </div>
