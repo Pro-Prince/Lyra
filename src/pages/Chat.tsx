@@ -369,7 +369,7 @@ export default function Chat() {
         setTimeout(() => {
           try {
             const cleanUtterance = welcomeText.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
-            speakTextChunk(cleanUtterance);
+            speakTextChunk(cleanUtterance, false);
           } catch (e) {
             console.warn("Auto-greeting speech synthesis skipped:", e);
           }
@@ -663,7 +663,7 @@ export default function Chat() {
     window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
   };
 
-  const speakTextChunk = (text: string) => {
+  const speakTextChunk = (text: string, enqueue = true) => {
     if (!companionProfileRef.current) {
        return;
     }
@@ -682,6 +682,12 @@ export default function Chat() {
       text: cleanText,
       presetId: voicePreset || 'soft-calm',
       volume: vol,
+      enqueue,
+      onStart: () => {
+        if (appStateRef.current !== AppState.SPEAKING) {
+          setAppState(AppState.SPEAKING);
+        }
+      },
       onEnd: () => {
         queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
         if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {

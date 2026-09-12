@@ -8,6 +8,7 @@ import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
 import { VoicePicker } from "../components/VoicePicker";
+import { speakText, stopSpeaking } from "../lib/kokoroTTS";
 import { useToast } from "../hooks/useToast";
 import Button from "../components/Button";
 import { useAuth } from "../hooks/useAuth";
@@ -116,17 +117,13 @@ export default function Settings() {
   };
 
   const handleTestSample = async () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    stopSpeaking();
     const comp = await getCompanion();
-    const allVoices = window.speechSynthesis.getVoices();
-    const allowed = filterAllowedVoices(allVoices, "en");
-    const voice = allowed.find(v => v.voiceURI === comp?.voiceUri) || getVoiceForPreset(comp?.voicePreset || 'soft-calm', allowed) || getDefaultFemaleVoice(allowed);
-    const utterance = new SpeechSynthesisUtterance("Hi there! I'm Lyra. It's so lovely to speak with you today.");
-    if (voice) utterance.voice = voice;
-    utterance.pitch = comp?.pitch ?? 0.96;
-    utterance.rate = comp?.rate ?? 0.92;
-    window.speechSynthesis.speak(utterance);
+    await speakText({
+      text: "Hi there! I'm Lyra. It's so lovely to speak with you today.",
+      presetId: comp?.voicePreset || 'soft-calm',
+      volume: 1.0,
+    });
   };
 
   const handleSaveVoice = async () => {

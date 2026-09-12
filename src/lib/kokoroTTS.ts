@@ -1,14 +1,21 @@
 /**
  * Kokoro 82M v1.0 Neural Text-To-Speech Service (Apache 2.0)
  * 
- * Top Female Voice Presets:
+ * Top Female Voice Presets (strictly female voices):
  * - af_nicole: Soft, whisper-like, gentle and soothing -> "Soft & Calm"
  * - af_bella: Warm, friendly, expressive and affectionate -> "Warm & Playful"
  * - af_sarah: Bright, cheerful, casual and approachable -> "Bright & Cheerful"
  * 
  * The public-facing names ("Soft & Calm", "Warm & Playful", "Bright & Cheerful")
- * are strictly preserved while delivering hyper-realistic human audio quality.
+ * are strictly preserved while delivering hyper-realistic human audio quality
+ * without any overlapping audio, echoes, or voice mismatches.
  */
+
+import {
+  filterAllowedVoices,
+  getVoiceForPreset,
+  getDefaultFemaleVoice
+} from './voiceAllowlist';
 
 export interface VoicePreset {
   id: string;
@@ -46,7 +53,7 @@ export const VOICE_PRESETS: VoicePreset[] = [
   },
 ];
 
-// Map any legacy or direct preset identifiers to Kokoro voice names
+// Map any legacy or direct preset identifiers to Kokoro female voice names
 export const KOKORO_VOICE_MAP: Record<string, 'af_nicole' | 'af_bella' | 'af_sarah'> = {
   'soft-calm': 'af_nicole',
   'warm-playful': 'af_bella',
@@ -61,8 +68,30 @@ export function getKokoroVoiceForPreset(presetId?: string): 'af_nicole' | 'af_be
   return KOKORO_VOICE_MAP[presetId] || 'af_nicole';
 }
 
+// -----------------------------------------------------------------------------
+// PLAYBACK STATE & SEQUENTIAL AUDIO QUEUE (PREVENTS ECHO / 2ND VOICE OVERLAPPING)
+// -----------------------------------------------------------------------------
+
+interface QueuedSpeechItem {
+  id: string;
+  sessionId: number;
+  text: string;
+  presetId: string;
+  volume: number;
+  speed: number;
+  onStart?: () => void;
+  onEnd?: () => void;
+  onError?: (err: any) => void;
+  audioPromise?: Promise<Blob | null>;
+}
+
+let activePlaybackSessionId = 0;
 let activeAudioElement: HTMLAudioElement | null = null;
+let activeAbortController: AbortController | null = null;
 let visemeInterval: any = null;
+let speechQueue: QueuedSpeechItem[] = [];
+let isQueueBusy = false;
+let onQueueEmptyCallback: (() => void) | null = null;
 
 /**
  * Dispatches avatar lipsync events during speech
@@ -74,7 +103,9 @@ function startVisemeAnimation() {
   visemeInterval = setInterval(() => {
     const viseme = visemes[idx % visemes.length];
     idx++;
-    window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: viseme }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: viseme }));
+    }
   }, 140);
 }
 
@@ -89,17 +120,36 @@ function stopVisemeAnimation() {
 }
 
 /**
- * Stop any current speaking audio
+ * Stop any currently playing speech, cancel in-flight fetches, and flush queue
  */
 export function stopSpeaking() {
+  // Invalidate any active generation / fetches
+  activePlaybackSessionId++;
+  speechQueue = [];
+  isQueueBusy = false;
+
+  if (activeAbortController) {
+    try {
+      activeAbortController.abort();
+    } catch (_) {}
+    activeAbortController = null;
+  }
+
   if (activeAudioElement) {
-    activeAudioElement.pause();
-    activeAudioElement.currentTime = 0;
+    try {
+      activeAudioElement.pause();
+      activeAudioElement.currentTime = 0;
+      activeAudioElement.src = '';
+    } catch (_) {}
     activeAudioElement = null;
   }
+
   stopVisemeAnimation();
+
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.cancel();
+    } catch (_) {}
   }
 }
 
@@ -107,17 +157,23 @@ export function stopSpeaking() {
  * Strips bracketed emotion/action tags and emojis before TTS synthesis
  */
 export function sanitizeSpeechText(text: string): string {
+  if (!text) return '';
   return text
-    .replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '')
+    .replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|affectionate|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '')
     .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Synthesizes audio using Kokoro 82M v1.0 neural TTS API
+ * Synthesizes audio using Kokoro 82M v1.0 neural TTS API with AbortSignal
  */
-export async function fetchKokoroAudioBlob(text: string, voicePresetId: string, speed = 1.0): Promise<Blob> {
+export async function fetchKokoroAudioBlob(
+  text: string,
+  voicePresetId: string,
+  speed = 1.0,
+  signal?: AbortSignal
+): Promise<Blob> {
   const clean = sanitizeSpeechText(text);
   if (!clean) throw new Error('No speakable text provided');
 
@@ -126,6 +182,7 @@ export async function fetchKokoroAudioBlob(text: string, voicePresetId: string, 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: clean, voice, speed }),
+    signal,
   });
 
   if (!res.ok) {
@@ -136,24 +193,244 @@ export async function fetchKokoroAudioBlob(text: string, voicePresetId: string, 
 }
 
 /**
- * High-level function to speak text using Kokoro 82M neural voices with lipsync & fallback
+ * Process the sequential speech queue strictly item-by-item to eliminate overlaps
+ */
+async function processSpeechQueue() {
+  if (isQueueBusy) return;
+  if (speechQueue.length === 0) {
+    if (onQueueEmptyCallback) {
+      const cb = onQueueEmptyCallback;
+      onQueueEmptyCallback = null;
+      cb();
+    }
+    return;
+  }
+
+  isQueueBusy = true;
+  const currentItem = speechQueue.shift();
+  if (!currentItem) {
+    isQueueBusy = false;
+    return;
+  }
+
+  // If the session changed while queued, discard this item immediately
+  if (currentItem.sessionId !== activePlaybackSessionId) {
+    isQueueBusy = false;
+    processSpeechQueue();
+    return;
+  }
+
+  // Pre-fetch next item's audio in the background if available
+  if (speechQueue.length > 0 && !speechQueue[0].audioPromise) {
+    const nextItem = speechQueue[0];
+    if (nextItem.sessionId === activePlaybackSessionId) {
+      nextItem.audioPromise = fetchKokoroAudioBlob(nextItem.text, nextItem.presetId, nextItem.speed)
+        .catch(() => null);
+    }
+  }
+
+  try {
+    // Await audio blob
+    let blob: Blob | null = null;
+    if (currentItem.audioPromise) {
+      blob = await currentItem.audioPromise;
+    } else {
+      activeAbortController = new AbortController();
+      blob = await fetchKokoroAudioBlob(
+        currentItem.text,
+        currentItem.presetId,
+        currentItem.speed,
+        activeAbortController.signal
+      ).catch(() => null);
+    }
+
+    // Double check session validity after network await
+    if (currentItem.sessionId !== activePlaybackSessionId) {
+      isQueueBusy = false;
+      processSpeechQueue();
+      return;
+    }
+
+    if (blob && blob.size > 100) {
+      // Play high-fidelity Kokoro audio
+      await playAudioBlob(blob, currentItem);
+    } else {
+      // Fallback to strictly verified female Web Speech voice
+      await playWebSpeechFemaleFallback(currentItem);
+    }
+  } catch (err) {
+    if (currentItem.sessionId === activePlaybackSessionId) {
+      await playWebSpeechFemaleFallback(currentItem);
+    }
+  } finally {
+    isQueueBusy = false;
+    // Process next queued sentence chunk
+    processSpeechQueue();
+  }
+}
+
+/**
+ * Plays an audio blob via HTML5 Audio with precise lifecycle hooks
+ */
+function playAudioBlob(blob: Blob, item: QueuedSpeechItem): Promise<void> {
+  return new Promise((resolve) => {
+    if (item.sessionId !== activePlaybackSessionId) {
+      resolve();
+      return;
+    }
+
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    activeAudioElement = audio;
+    audio.volume = Math.max(0, Math.min(1, item.volume));
+
+    let hasEnded = false;
+    const cleanup = () => {
+      if (hasEnded) return;
+      hasEnded = true;
+      stopVisemeAnimation();
+      URL.revokeObjectURL(audioUrl);
+      if (activeAudioElement === audio) {
+        activeAudioElement = null;
+      }
+    };
+
+    audio.onplay = () => {
+      if (item.sessionId !== activePlaybackSessionId) {
+        cleanup();
+        audio.pause();
+        resolve();
+        return;
+      }
+      item.onStart?.();
+      startVisemeAnimation();
+    };
+
+    audio.onended = () => {
+      cleanup();
+      item.onEnd?.();
+      resolve();
+    };
+
+    audio.onerror = (e) => {
+      cleanup();
+      item.onError?.(e);
+      // Fallback to Web Speech if audio playback failed
+      if (item.sessionId === activePlaybackSessionId) {
+        playWebSpeechFemaleFallback(item).then(resolve);
+      } else {
+        resolve();
+      }
+    };
+
+    audio.play().catch((playErr) => {
+      cleanup();
+      if (item.sessionId === activePlaybackSessionId) {
+        playWebSpeechFemaleFallback(item).then(resolve);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+/**
+ * Strict Female-Only Fallback via Web Speech API
+ */
+function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
+  return new Promise((resolve) => {
+    if (item.sessionId !== activePlaybackSessionId) {
+      resolve();
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      item.onError?.(new Error('Speech synthesis not available'));
+      item.onEnd?.();
+      resolve();
+      return;
+    }
+
+    // Cancel any stray speaking
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(item.text);
+    utterance.volume = Math.max(0, Math.min(1, item.volume));
+
+    // Get all system voices and strictly filter to female voices
+    const allVoices = window.speechSynthesis.getVoices();
+    const allowedFemaleVoices = filterAllowedVoices(allVoices, 'en');
+
+    const matchedVoice =
+      allowedFemaleVoices.find(v => v.voiceURI === item.presetId) ||
+      getVoiceForPreset(item.presetId, allowedFemaleVoices) ||
+      getDefaultFemaleVoice(allowedFemaleVoices);
+
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+    }
+
+    const preset = VOICE_PRESETS.find(p => p.id === item.presetId) || VOICE_PRESETS[0];
+    // Ensure pitch is in a pleasant feminine range
+    utterance.pitch = matchedVoice ? preset.pitch : Math.max(1.15, preset.pitch);
+    utterance.rate = preset.rate;
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      stopVisemeAnimation();
+      resolve();
+    };
+
+    utterance.onstart = () => {
+      if (item.sessionId !== activePlaybackSessionId) {
+        window.speechSynthesis.cancel();
+        finish();
+        return;
+      }
+      item.onStart?.();
+      startVisemeAnimation();
+    };
+
+    utterance.onend = () => {
+      item.onEnd?.();
+      finish();
+    };
+
+    utterance.onerror = (e) => {
+      item.onError?.(e);
+      item.onEnd?.();
+      finish();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+/**
+ * Main function to speak text using Kokoro 82M neural voices with strict sequential queueing
  */
 export async function speakText({
   text,
   presetId = 'soft-calm',
   volume = 1.0,
   speed = 1.0,
+  enqueue = false,
   onStart,
   onEnd,
   onError,
+  onAllEnded,
 }: {
   text: string;
   presetId?: string;
   volume?: number;
   speed?: number;
+  enqueue?: boolean;
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (err: any) => void;
+  onAllEnded?: () => void;
 }): Promise<void> {
   const clean = sanitizeSpeechText(text);
   if (!clean) {
@@ -161,85 +438,31 @@ export async function speakText({
     return;
   }
 
-  stopSpeaking();
-
-  try {
-    const audioBlob = await fetchKokoroAudioBlob(clean, presetId, speed);
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    activeAudioElement = audio;
-    audio.volume = Math.max(0, Math.min(1, volume));
-
-    audio.onplay = () => {
-      onStart?.();
-      startVisemeAnimation();
-    };
-
-    audio.onended = () => {
-      stopVisemeAnimation();
-      URL.revokeObjectURL(audioUrl);
-      if (activeAudioElement === audio) {
-        activeAudioElement = null;
-      }
-      onEnd?.();
-    };
-
-    audio.onerror = (e) => {
-      stopVisemeAnimation();
-      URL.revokeObjectURL(audioUrl);
-      if (activeAudioElement === audio) {
-        activeAudioElement = null;
-      }
-      console.warn('[KokoroTTS] Audio playback error, falling back to Web Speech API:', e);
-      fallbackWebSpeech(clean, presetId, volume, onStart, onEnd, onError);
-    };
-
-    await audio.play();
-  } catch (err) {
-    console.warn('[KokoroTTS] Generation failed, falling back to Web Speech API:', err);
-    fallbackWebSpeech(clean, presetId, volume, onStart, onEnd, onError);
-  }
-}
-
-/**
- * Fallback to browser Web Speech API if server TTS is unreachable
- */
-function fallbackWebSpeech(
-  cleanText: string,
-  presetId: string,
-  volume: number,
-  onStart?: () => void,
-  onEnd?: () => void,
-  onError?: (err: any) => void
-) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-    onError?.(new Error('Speech synthesis not available'));
-    onEnd?.();
-    return;
+  if (!enqueue) {
+    stopSpeaking();
   }
 
-  const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.volume = volume;
+  if (onAllEnded) {
+    onQueueEmptyCallback = onAllEnded;
+  }
 
-  const preset = VOICE_PRESETS.find(p => p.id === presetId) || VOICE_PRESETS[0];
-  utterance.pitch = preset.pitch;
-  utterance.rate = preset.rate;
-
-  utterance.onstart = () => {
-    onStart?.();
-    startVisemeAnimation();
+  const item: QueuedSpeechItem = {
+    id: crypto.randomUUID(),
+    sessionId: activePlaybackSessionId,
+    text: clean,
+    presetId,
+    volume,
+    speed,
+    onStart,
+    onEnd,
+    onError,
   };
 
-  utterance.onend = () => {
-    stopVisemeAnimation();
-    onEnd?.();
-  };
+  // If this is the only item in the queue, start prefetching immediately
+  if (speechQueue.length === 0 && !isQueueBusy) {
+    item.audioPromise = fetchKokoroAudioBlob(clean, presetId, speed).catch(() => null);
+  }
 
-  utterance.onerror = (e) => {
-    stopVisemeAnimation();
-    onError?.(e);
-    onEnd?.();
-  };
-
-  window.speechSynthesis.speak(utterance);
+  speechQueue.push(item);
+  processSpeechQueue();
 }
