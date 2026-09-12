@@ -382,7 +382,7 @@ export default function Settings() {
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
               <label 
                 htmlFor="wipe-confirm-input" 
-                className="inline-label font-heading text-sm sm:text-base font-semibold tracking-tight text-[var(--text-primary)]/90 flex items-center gap-2 select-none shrink-0"
+                className="inline-label font-body text-xs sm:text-sm font-semibold tracking-normal text-[var(--text-primary)]/85 flex items-center gap-1.5 select-none shrink-0"
               >
                 <span>Type</span>
                 <kbd className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs tracking-wider uppercase shadow-xs">

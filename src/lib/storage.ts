@@ -975,23 +975,38 @@ export async function updateUserNameAndMemory(newName: string): Promise<Memory[]
 
       // Update in Supabase
       if (session) {
-        const { error: updateErr } = await supabase
+        const { data: updateRes, error: updateErr } = await supabase
           .from('memories')
           .update({ text: newMemoryText })
           .eq('id', targetMemory.id)
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id)
+          .select();
 
-        if (updateErr) {
-          console.warn('[storage] Supabase memory update error, attempting upsert:', updateErr);
-          await supabase.from('memories').upsert({
-            id: targetMemory.id,
-            user_id: session.user.id,
-            text: newMemoryText,
-            created_at: targetMemory.created_at || new Date().toISOString()
-          });
+        if (updateErr || !updateRes || updateRes.length === 0) {
+          // If target ID was not matched remotely, search remote name memories
+          const { data: remoteNameMems } = await supabase
+            .from('memories')
+            .select('id, text')
+            .eq('user_id', session.user.id);
+
+          const matchRemote = (remoteNameMems || []).find((m: any) => isNameMemory(m.text || ''));
+          if (matchRemote) {
+            await supabase
+              .from('memories')
+              .update({ text: newMemoryText })
+              .eq('id', matchRemote.id)
+              .eq('user_id', session.user.id);
+          } else {
+            await supabase.from('memories').upsert({
+              id: targetMemory.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetMemory.id) ? targetMemory.id : crypto.randomUUID(),
+              user_id: session.user.id,
+              text: newMemoryText,
+              created_at: targetMemory.created_at || new Date().toISOString()
+            });
+          }
         }
 
-        // Clean up any other duplicate name memories if they exist
+        // Clean up any other duplicate name memories in Supabase if they exist
         if (nameMemories.length > 1) {
           for (let i = 1; i < nameMemories.length; i++) {
             await supabase
