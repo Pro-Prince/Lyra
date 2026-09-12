@@ -847,18 +847,19 @@ export function extractNameFromMemoryText(text: string): string | null {
 
 function cleanCandidateName(raw: string): string | null {
   if (!raw) return null;
-  let candidate = raw.replace(/^[ "“']+|[ "”'.!,]+$/g, '').trim();
+  let candidate = raw.replace(/^[ "“'‘]+|[ "”'’.!,]+$/g, '').trim();
   candidate = candidate.replace(/^(?:a|an|the)\s+/i, '').trim();
-  candidate = candidate.replace(/\s+(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)$/i, '').trim();
+  candidate = candidate.replace(/\s+(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay|now|thanks|thank\s+you|dear|lyra|bro|buddy|girl|sweetie|man)$/i, '').trim();
   
   const lower = candidate.toLowerCase();
   const forbidden = [
     'it', 'something', 'anything', 'whatever', 'crazy', 'stupid', 
     'dumb', 'now', 'here', 'later', 'please', 'friend', 'baby', 'honey', 'babe',
-    'today', 'that', 'this', 'you', 'me', 'name'
+    'today', 'that', 'this', 'you', 'me', 'name', 'a', 'the', 'so', 'well', 'yes', 'no',
+    'bro', 'buddy', 'girl', 'sweetie', 'man', 'dude', 'first', 'last'
   ];
   
-  if (!forbidden.includes(lower) && candidate.length >= 1 && candidate.length <= 30) {
+  if (!forbidden.includes(lower) && candidate.length >= 1 && candidate.length <= 40) {
     if (candidate === candidate.toLowerCase()) {
       candidate = candidate.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
@@ -872,26 +873,35 @@ export function extractNameChangeRequest(message: string): string | null {
   const trimmed = message.trim();
   const clean = trimmed.replace(/[.!?]+$/, '').trim();
 
-  // 1. Quoted extraction first (e.g., call me "pro" from now, my name is 'alex')
-  const quotedMatch = clean.match(/(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|i\s+go\s+by|name\s+is|name\s+to|called)\s+["'“]([^"'”]{1,30})["'”]/i);
+  // 1. Quoted extraction first (e.g., call me "pro prince", my name is 'alex')
+  const quotedMatch = clean.match(/(?:call\s+me|address\s+me(?:\s+as)?|refer\s+to\s+me(?:\s+as)?|know\s+me\s+as|i\s+go\s+by|name\s+is|name\s+to|called|rename\s+me(?:\s+to)?|i\s*['’]?\s*m|i\s+am)\s+["'“‘]([^"'”’]{1,40})["'”’]/i);
   if (quotedMatch && quotedMatch[1]) {
     const cand = cleanCandidateName(quotedMatch[1]);
     if (cand) return cand;
   }
 
-  // 2. Comprehensive pattern list matching conversational name changes
+  // 2. Comprehensive pattern list for conversational/vague/explicit name change variations
   const patterns: RegExp[] = [
     // "from now on [please] call me X [from now on / instead / please / ok]"
-    /(?:(?:hey|hi|hello|ok|okay|listen|by the way|btw|dear)?\s*,?\s*(?:lyra)?\s*,?\s*)?(?:from\s+now(?:\s+on)?\s*,?\s*)?(?:please\s+)?(?:(?:you\s+can|i\s+want\s+you\s+to|can\s+you|could\s+you|would\s+you|just|start)\s+)?(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|my\s+name\s+is|my\s+new\s+name\s+is|change\s+my\s+name\s+to|update\s+my\s+name\s+to|set\s+my\s+name\s+to|i\s+go\s+by)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?$/i,
+    /(?:(?:hey|hi|hello|ok|okay|listen|by the way|btw|dear)?\s*,?\s*(?:lyra)?\s*,?\s*)?(?:from\s+now(?:\s+on)?\s*,?\s*)?(?:please\s+)?(?:(?:you\s+can|i\s+want\s+(?:you\s+)?to|i\s+would\s+like\s+(?:you\s+)?to|i\s+prefer\s+(?:to\s+be\s+)?|can\s+you|could\s+you|would\s+you|just|start|feel\s+free\s+to|you\s+should)\s+)?(?:call\s+me|address\s+me(?:\s+as)?|refer\s+to\s+me(?:\s+as)?|know\s+me\s+as|my\s+name\s+is|my\s+name\s+'s|my\s+full\s+name\s+is|my\s+new\s+name\s+is|change\s+my\s+name\s+to|update\s+my\s+name\s+to|set\s+my\s+name\s+to|rename\s+me\s+to|i\s+go\s+by)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?$/i,
 
     // General "call me X" anywhere in sentence
-    /\b(?:call\s+me|address\s+me\s+as|refer\s+to\s+me\s+as|i\s+go\s+by)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+    /\b(?:call\s+me|address\s+me(?:\s+as)?|refer\s+to\s+me(?:\s+as)?|know\s+me\s+as|i\s+go\s+by)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
 
-    // "my name is X"
-    /\b(?:my\s+name\s+is|my\s+new\s+name\s+is)\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+    // "my name is X" / "my name's X" / "my full name is X" / "my new name is X"
+    /\b(?:my\s+(?:full\s+)?name\s+(?:is|'s)|my\s+new\s+name\s+is)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
 
-    // "change/update/set my name to X"
-    /\b(?:change|update|set)\s+my\s+name\s+to\s+["'“]?([A-Za-z0-9_\- ]{1,30}?)["'”]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+    // "change/update/set/rename my name to X"
+    /\b(?:change|update|set|rename)\s+(?:my\s+name\s+to|me\s+to)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+
+    // "remember my name is X" / "remember to call me X" / "save my name as X"
+    /\b(?:remember\s+(?:that\s+)?(?:my\s+name\s+is|to\s+call\s+me)|save\s+my\s+name\s+as)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+
+    // "i prefer to be called X" / "i want to be called X" / "call me by X"
+    /\b(?:i\s+prefer\s+to\s+be\s+called|i\s+want\s+to\s+be\s+called|call\s+me\s+by)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s*(?:from\s+now(?:\s+on)?|instead|please|ok|okay)?(?:\s*[.,!?]|$)/i,
+
+    // "i am X" / "i'm X" with from now on / moving forward / instead
+    /\b(?:i\s+am|i'm|iam)\s+["'“‘]?([A-Za-z0-9_\- ]{1,40}?)["'”’]?\s+(?:from\s+now(?:\s+on)?|from\s+today|moving\s+forward|instead)\b/i
   ];
 
   for (const pat of patterns) {
@@ -1179,13 +1189,31 @@ export async function deleteMemory(id: string) {
       }
     }
 
-    // 2. If it is a name memory, clear profile and companion user name across Supabase & app
+    // 2. If it is a name memory, clear profile and companion user name across Supabase & app, and delete all name memories
     if (isNameMemory(memText)) {
       if (session) {
         await supabase
           .from('profiles')
           .update({ preferred_name: null, updated_at: new Date().toISOString() })
           .eq('id', session.user.id);
+
+        // Delete any remaining remote name memories
+        const { data: remoteMems } = await supabase
+          .from('memories')
+          .select('id, text')
+          .eq('user_id', session.user.id);
+
+        if (remoteMems && remoteMems.length > 0) {
+          for (const rm of remoteMems) {
+            if (isNameMemory(rm.text)) {
+              await supabase
+                .from('memories')
+                .delete()
+                .eq('id', rm.id)
+                .eq('user_id', session.user.id);
+            }
+          }
+        }
       }
 
       try {
@@ -1210,6 +1238,14 @@ export async function deleteMemory(id: string) {
         localStorage.removeItem('lyra_user_name');
         localStorage.setItem('lyra_user_name_cleared', 'true');
         window.dispatchEvent(new CustomEvent('lyraUserNameChanged', { detail: '' }));
+      }
+
+      // Purge any local name memories
+      const allLocal = await getLocalMemories();
+      for (const lm of allLocal) {
+        if (isNameMemory(lm.text)) {
+          await deleteLocalMemory(lm.id);
+        }
       }
     }
   } catch (err) {

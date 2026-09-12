@@ -212,7 +212,7 @@ export default function Settings() {
                   placeholder="Enter your name" 
                   disabled={isSavingProfile} 
                   autoComplete="name"
-                  className="w-full h-11 px-4 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none text-[var(--text-primary)] text-sm font-medium placeholder:text-[var(--text-muted)]/50 transition-all shadow-inner disabled:opacity-50"
+                  className="w-full h-11 px-4 rounded-xl text-sm font-medium placeholder:text-[var(--text-muted)]/50 transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -224,7 +224,7 @@ export default function Settings() {
                   value={session?.user?.email || (isAuthed ? "" : "Guest User (Local Profile)")} 
                   readOnly
                   disabled 
-                  className="w-full h-11 px-4 rounded-xl bg-[var(--bg-base)]/40 border border-[var(--text-primary)]/10 text-[var(--text-muted)] text-sm font-medium cursor-not-allowed opacity-75"
+                  className="w-full h-11 px-4 rounded-xl text-sm font-medium cursor-not-allowed opacity-75"
                 />
               </div>
             </div>
@@ -378,11 +378,11 @@ export default function Settings() {
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
           {/* Action Row - aligned with Profile Save button row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[var(--bg-base)]/30 border border-[var(--text-primary)]/[0.06] font-body">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[var(--bg-base)]/40 border border-[var(--text-primary)]/15 font-body">
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
               <label 
                 htmlFor="wipe-confirm-input" 
-                className="inline-label font-body text-xs sm:text-sm font-semibold tracking-normal text-[var(--text-primary)]/85 flex items-center gap-1.5 select-none shrink-0"
+                className="inline-label font-body text-xs sm:text-sm font-semibold tracking-normal text-[var(--text-primary)]/90 flex items-center gap-1.5 select-none shrink-0"
               >
                 <span>Type</span>
                 <kbd className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs tracking-wider uppercase shadow-xs">
@@ -398,10 +398,10 @@ export default function Settings() {
                 placeholder="WIPE"
                 autoComplete="off"
                 spellCheck={false}
-                className={`wipe-input h-11 text-center text-sm font-mono font-bold tracking-widest uppercase px-3 rounded-xl bg-[var(--bg-base)]/90 border transition-all shadow-inner focus:outline-none placeholder:text-[var(--text-muted)]/35 placeholder:font-mono placeholder:tracking-widest ${
+                className={`wipe-input h-11 text-center text-sm font-mono font-bold tracking-widest uppercase px-3 rounded-xl transition-all placeholder:text-[var(--text-muted)]/40 placeholder:font-mono placeholder:tracking-widest ${
                   wipeConfirm === "WIPE"
-                    ? "border-rose-500/60 bg-rose-500/15 text-rose-200 ring-2 ring-rose-500/20"
-                    : "border-[var(--text-primary)]/20 text-[var(--text-primary)] focus:border-rose-400/60 focus:ring-2 focus:ring-rose-500/20"
+                    ? "!border-rose-500/80 !bg-rose-500/20 text-rose-200 !ring-2 !ring-rose-500/30"
+                    : ""
                 }`}
               />
             </div>
