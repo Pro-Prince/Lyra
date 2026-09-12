@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw } from 'lucide-react';
 
@@ -898,6 +899,8 @@ function CustomPostProcessing() {
     comp.addPass(bloom);
     const film = new FilmPass(0.04, false);
     comp.addPass(film);
+    const outputPass = new OutputPass();
+    comp.addPass(outputPass);
     return comp;
   }, [gl, scene, camera]);
 
@@ -1088,7 +1091,9 @@ function CompanionStageComponent({
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.96;
+            gl.toneMappingExposure = 1.0;
+            console.log('Tone mapping:', gl.toneMapping);
+            console.log('Exposure:', gl.toneMappingExposure);
           }}
           dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >

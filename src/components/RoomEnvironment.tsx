@@ -7,10 +7,10 @@ import * as THREE from 'three';
 // -----------------------------------------------------------------------------
 const PALETTE = {
   // Architectural Mauve & Plum (60%)
-  wallPlaster: '#462E3F',
-  wallAccentPlum: '#382233',
-  shadowPlum: '#2A1826',
-  trimMauve: '#52374A',
+  wallPlaster: '#604253',
+  wallAccentPlum: '#4E3344',
+  shadowPlum: '#3C2434',
+  trimMauve: '#69485D',
 
   // Cream & Warm Off-White Surfaces (20%)
   warmCream: '#F4ECE4',
@@ -19,9 +19,9 @@ const PALETTE = {
   porcelainWhite: '#FCF8F5',
 
   // Dark Walnut Wood (10%)
-  darkWalnut: '#3B2321',
-  walnutPlank: '#321D1C',
-  walnutLight: '#4A2E2C',
+  darkWalnut: '#4A302D',
+  walnutPlank: '#402927',
+  walnutLight: '#573A37',
 
   // Lyra Pink & Pastel Accents (10%)
   lyraPink: '#F299C2',
@@ -206,7 +206,7 @@ function PanoramicBalconyWindow() {
   }, []);
 
   return (
-    <group position={[-4.6, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+    <group position={[-2.3, 0, -1.8]} rotation={[0, Math.PI * 0.32, 0]}>
       <mesh position={[-0.5, 2.3, -0.25]}>
         <planeGeometry args={[5.2, 5.0]} />
         {sunsetTexture ? (
@@ -980,12 +980,12 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 export function RoomEnvironment() {
   return (
     <group>
-      <ambientLight color="#523647" intensity={0.95} />
+      <ambientLight color="#6E4C62" intensity={1.15} />
 
       <directionalLight
         color={PALETTE.warmSunsetKey}
-        intensity={1.25}
-        position={[-6.0, 3.8, 1.5]}
+        intensity={1.35}
+        position={[-5.0, 3.8, 2.0]}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -994,25 +994,25 @@ export function RoomEnvironment() {
 
       <directionalLight
         color="#FFF6F0"
-        intensity={1.15}
+        intensity={1.2}
         position={[-1.2, 2.2, 3.0]}
       />
 
       <directionalLight
         color="#F8C6DB"
-        intensity={0.45}
+        intensity={0.5}
         position={[2.8, 1.8, 2.5]}
       />
 
       <directionalLight
         color="#FFE5F2"
-        intensity={0.65}
+        intensity={0.7}
         position={[0.2, 3.4, -2.4]}
       />
 
       <pointLight
         color="#FFEBD6"
-        intensity={0.35}
+        intensity={0.45}
         position={[0, 4.0, -0.5]}
         distance={12}
       />
