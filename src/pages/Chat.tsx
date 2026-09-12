@@ -8,6 +8,7 @@ import { getMessages, saveMessage, getCompanion, saveCompanion, getMemories, sav
 import { buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset, isStoredVoiceInvalid } from "../lib/voiceAllowlist";
+import { speakText, stopSpeaking, sanitizeSpeechText } from "../lib/kokoroTTS";
 import WardrobeGrid from "../components/WardrobeGrid";
 import { getOutfitUrl, getOutfitLabel, isSameOutfit } from "../lib/companionRenderer";
 import { VoicePicker } from "../components/VoicePicker";
@@ -656,82 +657,47 @@ export default function Chat() {
   const isStreamFinishedRef = useRef(false);
 
   const cancelSpeech = () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopSpeaking();
     queuedChunksRef.current = 0;
     isStreamFinishedRef.current = true;
     window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
   };
 
   const speakTextChunk = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-       return;
-    }
     if (!companionProfileRef.current) {
        return;
     }
 
-    // Strip emoji characters so speech synthesis doesn't read out emoji symbol names
-    const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+    const cleanText = sanitizeSpeechText(text);
     if (!cleanText) {
       return;
     }
     
-    const { voiceUri, voicePreset, pitch, rate, language } = companionProfileRef.current;
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    // Speaker toggle: 1.0 for loud Speakerphone, 0.35 for private Earpiece/Bluetooth
-    utterance.volume = isSpeakerOnRef.current ? 1.0 : 0.35;
-    
-    const allVoices = window.speechSynthesis.getVoices();
-    const targetPrefix = (language || "en").split("-")[0];
-    const allowed = filterAllowedVoices(allVoices, targetPrefix);
-    
-    let voice = allowed.find(v => v.voiceURI === voiceUri);
-    if (!voice && voicePreset) {
-      voice = getVoiceForPreset(voicePreset, allowed) || undefined;
-    }
-    if (!voice) {
-      voice = getDefaultFemaleVoice(allowed) || undefined;
-    }
-    if (voice) utterance.voice = voice;
-    
-    utterance.pitch = pitch ?? 1.05;
-    utterance.rate = rate ?? 0.98;
-    
-    const visemes = ['aa', 'ih', 'ou', 'ee', 'oh'];
-    let vIndex = 0;
-    let resetTimeout: any = null;
-
-    utterance.onboundary = (e) => {
-      if (e.name === 'word') {
-        const viseme = visemes[vIndex % visemes.length];
-        vIndex++;
-        window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: viseme }));
-        
-        clearTimeout(resetTimeout);
-        resetTimeout = setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
-        }, 150);
-      }
-    };
+    const { voicePreset } = companionProfileRef.current;
+    const vol = isSpeakerOnRef.current ? 1.0 : 0.35;
     
     queuedChunksRef.current++;
-    
-    utterance.onend = () => {
-       queuedChunksRef.current--;
-       window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
-       
-       if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
-           setAppState(AppState.IDLE);
-           // If muted, do not auto-listen
-           if (isCallModeRef.current && !isMutedRef.current) {
-              try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
-           }
-       }
-    };
 
-    window.speechSynthesis.speak(utterance);
+    speakText({
+      text: cleanText,
+      presetId: voicePreset || 'soft-calm',
+      volume: vol,
+      onEnd: () => {
+        queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
+        if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
+          setAppState(AppState.IDLE);
+          if (isCallModeRef.current && !isMutedRef.current) {
+            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
+          }
+        }
+      },
+      onError: () => {
+        queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
+        if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
+          setAppState(AppState.IDLE);
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -1542,12 +1508,10 @@ export default function Chat() {
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       className="self-start max-w-[90%] flex gap-2.5 items-start"
                     >
-                      <motion.img 
+                      <img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
                         className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5"
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                       />
                       <div className="flex flex-col items-start">
                         <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex gap-1.5 items-center shadow-xs relative overflow-hidden">
@@ -1882,12 +1846,10 @@ export default function Chat() {
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       className="self-start max-w-[90%] flex gap-2.5 items-start"
                     >
-                      <motion.img 
+                      <img 
                         src="/images/Logo.png" 
                         alt="Lyra" 
                         className="w-7.5 h-7.5 rounded-[8px] border-[1.5px] border-[#ff8fc0]/60 shrink-0 object-cover mt-0.5"
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
                       />
                       <div className="flex flex-col items-start">
                         <div className="bg-[var(--bg-panel)] rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-[var(--text-primary)]/10 flex gap-1.5 items-center shadow-xs relative overflow-hidden">

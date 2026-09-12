@@ -109,6 +109,119 @@ async function startServer() {
 
   app.use(express.json());
 
+  // --- Kokoro 82M Neural TTS Engine (af_bella, af_nicole, af_sarah) ---
+  let kokoroInstance: any = null;
+  let kokoroLoadingPromise: Promise<any> | null = null;
+  const ttsAudioCache = new Map<string, Buffer>();
+
+  async function getKokoroTTS() {
+    if (kokoroInstance) return kokoroInstance;
+    if (!kokoroLoadingPromise) {
+      kokoroLoadingPromise = (async () => {
+        try {
+          const { KokoroTTS } = await import("kokoro-js");
+          const tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-ONNX", {
+            dtype: "q8",
+          });
+          kokoroInstance = tts;
+          console.log("[Kokoro TTS] Kokoro 82M v1.0 model initialized successfully.");
+          return tts;
+        } catch (err) {
+          kokoroLoadingPromise = null;
+          throw err;
+        }
+      })();
+    }
+    return kokoroLoadingPromise;
+  }
+
+  // Preload Kokoro in background
+  getKokoroTTS().catch(e => console.warn("[Kokoro TTS Preload Notice]:", e?.message || e));
+
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text, voice = "af_nicole", speed = 1.0 } = req.body;
+      if (!text || typeof text !== "string" || !text.trim()) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      const cleanText = text
+        .replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '')
+        .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!cleanText) {
+        return res.status(400).json({ error: "Text contains only tags/emojis" });
+      }
+
+      // Map voice presets to Kokoro 82M female voices
+      let kokoroVoice = "af_nicole";
+      if (voice === "af_bella" || voice === "warm-playful") {
+        kokoroVoice = "af_bella";
+      } else if (voice === "af_sarah" || voice === "bright-cheerful") {
+        kokoroVoice = "af_sarah";
+      } else if (voice === "af_nicole" || voice === "soft-calm") {
+        kokoroVoice = "af_nicole";
+      }
+
+      const numericSpeed = Math.max(0.6, Math.min(1.5, Number(speed) || 1.0));
+      const cacheKey = `${kokoroVoice}:${numericSpeed}:${cleanText}`;
+
+      if (ttsAudioCache.has(cacheKey)) {
+        const cached = ttsAudioCache.get(cacheKey)!;
+        res.setHeader("Content-Type", "audio/wav");
+        res.setHeader("Content-Length", cached.length);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.send(cached);
+      }
+
+      const tts = await getKokoroTTS();
+      const result = await tts.generate(cleanText, {
+        voice: kokoroVoice,
+        speed: numericSpeed,
+      });
+
+      const rawAudio = result.audio;
+      const sampleRate = result.sampling_rate || 24000;
+      const pcm = Buffer.alloc(rawAudio.length * 2);
+      for (let i = 0; i < rawAudio.length; i++) {
+        let s = Math.max(-1, Math.min(1, rawAudio[i]));
+        pcm.writeInt16LE(s < 0 ? s * 0x8000 : s * 0x7FFF, i * 2);
+      }
+
+      const header = Buffer.alloc(44);
+      header.write("RIFF", 0);
+      header.writeUInt32LE(36 + pcm.length, 4);
+      header.write("WAVE", 8);
+      header.write("fmt ", 12);
+      header.writeUInt32LE(16, 16);
+      header.writeUInt16LE(1, 20);
+      header.writeUInt16LE(1, 22);
+      header.writeUInt32LE(sampleRate, 24);
+      header.writeUInt32LE(sampleRate * 2, 28);
+      header.writeUInt16LE(2, 32);
+      header.writeUInt16LE(16, 34);
+      header.write("data", 36);
+      header.writeUInt32LE(pcm.length, 40);
+
+      const wav = Buffer.concat([header, pcm]);
+      if (ttsAudioCache.size > 300) {
+        const firstKey = ttsAudioCache.keys().next().value;
+        if (firstKey) ttsAudioCache.delete(firstKey);
+      }
+      ttsAudioCache.set(cacheKey, wav);
+
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader("Content-Length", wav.length);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.send(wav);
+    } catch (err: any) {
+      console.error("[Kokoro TTS Endpoint Error]:", err?.message || err);
+      res.status(500).json({ error: "TTS generation failed", message: err?.message });
+    }
+  });
+
 
   app.post("/api/gemini", async (req, res) => {
     try {

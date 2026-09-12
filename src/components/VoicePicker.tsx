@@ -1,21 +1,7 @@
 import { useState, useEffect } from "react";
 import { getCompanion, saveCompanion } from "../lib/storage";
-import { filterAllowedVoices, getDefaultFemaleVoice, getVoiceForPreset } from "../lib/voiceAllowlist";
-import { Play } from "lucide-react";
-
-export interface VoicePreset {
-  id: string;
-  label: string;
-  desc: string;
-  pitch: number;
-  rate: number;
-}
-
-export const VOICE_PRESETS: VoicePreset[] = [
-  { id: 'soft-calm', label: 'Soft & Calm', desc: 'Gentle, soothing cadence', pitch: 0.96, rate: 0.92 },
-  { id: 'warm-playful', label: 'Warm & Playful', desc: 'Bright, friendly tone', pitch: 1.12, rate: 1.04 },
-  { id: 'bright-cheerful', label: 'Bright & Cheerful', desc: 'Enthusiastic and upbeat', pitch: 1.25, rate: 1.0 },
-];
+import { VOICE_PRESETS, VoicePreset, speakText, stopSpeaking } from "../lib/kokoroTTS";
+import { Play, Square } from "lucide-react";
 
 interface VoicePickerProps {
   className?: string;
@@ -25,7 +11,6 @@ interface VoicePickerProps {
 }
 
 export function VoicePicker({ className = "space-y-3", onSelect, preventSave, selectedPresetId }: VoicePickerProps) {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [localPreset, setLocalPreset] = useState<string>('soft-calm');
   const [playingId, setPlayingId] = useState<string | null>(null);
 
@@ -42,31 +27,16 @@ export function VoicePicker({ className = "space-y-3", onSelect, preventSave, se
     init();
   }, [preventSave]);
 
-  useEffect(() => {
-    const updateVoices = () => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-      const allVoices = window.speechSynthesis.getVoices();
-      const allowed = filterAllowedVoices(allVoices, "en");
-      setVoices(allowed);
-    };
-    updateVoices();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-    }
-  }, []);
-
   const handleSelectPreset = async (presetId: string) => {
     setLocalPreset(presetId);
     
     if (!preventSave) {
       const preset = VOICE_PRESETS.find(p => p.id === presetId) || VOICE_PRESETS[0];
-      const chosenVoice = getVoiceForPreset(presetId, voices) || getDefaultFemaleVoice(voices) || voices[0];
-      
       const comp = await getCompanion() || {};
       await saveCompanion({
         ...comp,
         voicePreset: presetId,
-        voiceUri: chosenVoice?.voiceURI || "",
+        voiceUri: preset.kokoroVoice,
         pitch: preset.pitch,
         rate: preset.rate,
         language: 'en-US'
@@ -78,22 +48,24 @@ export function VoicePicker({ className = "space-y-3", onSelect, preventSave, se
     }
   };
 
-  const handlePreview = (preset: VoicePreset, e: React.MouseEvent) => {
+  const handlePreview = async (preset: VoicePreset, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance("Hi there! I'm Lyra. It's so nice to talk with you.");
-    const chosenVoice = getVoiceForPreset(preset.id, voices) || getDefaultFemaleVoice(voices) || voices[0];
-    if (chosenVoice) utterance.voice = chosenVoice;
-    utterance.pitch = preset.pitch;
-    utterance.rate = preset.rate;
+    if (playingId === preset.id) {
+      stopSpeaking();
+      setPlayingId(null);
+      return;
+    }
 
-    utterance.onstart = () => setPlayingId(preset.id);
-    utterance.onend = () => setPlayingId(null);
-    utterance.onerror = () => setPlayingId(null);
-
-    window.speechSynthesis.speak(utterance);
+    setPlayingId(preset.id);
+    await speakText({
+      text: "Hi there! I'm Lyra. It's so nice to talk with you.",
+      presetId: preset.id,
+      volume: 1.0,
+      onStart: () => setPlayingId(preset.id),
+      onEnd: () => setPlayingId(null),
+      onError: () => setPlayingId(null),
+    });
   };
 
   return (
@@ -134,10 +106,14 @@ export function VoicePicker({ className = "space-y-3", onSelect, preventSave, se
                   ? 'bg-[var(--accent-primary)] text-[#2D0A1E] border-[var(--accent-primary)] shadow-sm' 
                   : 'bg-[var(--bg-surface)] border-[var(--text-primary)]/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)]/30 hover:bg-[var(--bg-elevated)]/50'
               }`}
-              title={isThisPlaying ? "Playing voice sample" : "Preview Voice Preset"}
-              aria-label={isThisPlaying ? "Playing voice sample" : "Preview Voice Preset"}
+              title={isThisPlaying ? "Stop voice sample" : "Preview Voice Preset"}
+              aria-label={isThisPlaying ? "Stop voice sample" : "Preview Voice Preset"}
             >
-              <Play className={`w-4 h-4 translate-x-[1px] ${isThisPlaying ? 'fill-[#2D0A1E] text-[#2D0A1E]' : 'fill-current opacity-70'}`} />
+              {isThisPlaying ? (
+                <Square className="w-3.5 h-3.5 fill-[#2D0A1E] text-[#2D0A1E]" />
+              ) : (
+                <Play className="w-4 h-4 translate-x-[1px] fill-current opacity-70" />
+              )}
             </button>
           </div>
         );
@@ -145,3 +121,5 @@ export function VoicePicker({ className = "space-y-3", onSelect, preventSave, se
     </div>
   );
 }
+export { VOICE_PRESETS };
+

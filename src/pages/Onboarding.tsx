@@ -8,6 +8,7 @@ import { getLocalProfile, saveLocalProfile, saveProfile, saveMemory, saveMessage
 import { sendMessage, buildSystemPrompt } from "../lib/gemini";
 import { t } from "../lib/i18n";
 import { filterAllowedVoices } from "../lib/voiceAllowlist";
+import { speakText, stopSpeaking } from "../lib/kokoroTTS";
 import { pageCrossfadeVariants, SIGNATURE_EASE } from "../lib/motion";
 import { VoicePicker } from "../components/VoicePicker";
 import { WardrobeGrid } from "../components/WardrobeGrid";
@@ -102,47 +103,24 @@ export default function Onboarding() {
   }, []);
 
   const speakWelcomeLine = (textToSpeak?: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-
+    stopSpeaking();
     const line = textToSpeak || "Hey, I'm Lyra. Great to meet you.";
-
-    const utterance = new SpeechSynthesisUtterance(line);
-    const voice = voices.find(v => v.voiceURI === selectedVoiceUri);
-    if (voice) utterance.voice = voice;
-    utterance.pitch = 1.05;
-    utterance.rate = 0.98;
-
-    const visemes = ["aa", "ih", "ou", "ee", "oh"];
-    let vIndex = 0;
-    let resetTimeout: any = null;
-
     setIsSpeaking(true);
 
-    utterance.onboundary = e => {
-      if (e.name === "word") {
-        const viseme = visemes[vIndex % visemes.length];
-        vIndex++;
-        window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: viseme }));
-
-        clearTimeout(resetTimeout);
-        resetTimeout = setTimeout(() => {
-          window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: "neutral" }));
-        }, 160);
+    speakText({
+      text: line,
+      presetId: selectedVoiceUri || 'soft-calm',
+      volume: 1.0,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => {
+        setIsSpeaking(false);
+        window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: "neutral" }));
+      },
+      onError: () => {
+        setIsSpeaking(false);
+        window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: "neutral" }));
       }
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: "neutral" }));
-    };
-
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      window.dispatchEvent(new CustomEvent("lyraSpeak", { detail: "neutral" }));
-    };
-
-    window.speechSynthesis.speak(utterance);
+    });
   };
 
   const confirmAdult = async () => {

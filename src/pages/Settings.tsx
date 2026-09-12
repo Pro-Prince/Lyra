@@ -381,26 +381,39 @@ export default function Settings() {
 
           {/* Action Row - aligned with Profile Save button row */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 font-body">
-            <div className="flex items-center gap-2.5">
-              <label htmlFor="wipe-confirm-input" className="text-xs sm:text-sm text-[var(--text-muted)] shrink-0">
-                Type <span className="font-mono font-semibold text-[var(--text-primary)]">WIPE</span>:
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+              <label 
+                htmlFor="wipe-confirm-input" 
+                className="text-xs sm:text-sm font-medium font-body text-[var(--text-muted)] flex items-center gap-2 select-none shrink-0"
+              >
+                <span>Type</span>
+                <kbd className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/25 text-rose-300 font-mono font-semibold text-xs tracking-wider uppercase shadow-xs">
+                  WIPE
+                </kbd>
+                <span>to confirm:</span>
               </label>
               <input 
                 id="wipe-confirm-input"
                 type="text" 
                 value={wipeConfirm}
-                onChange={(e) => setWipeConfirm(e.target.value)}
+                onChange={(e) => setWipeConfirm(e.target.value.toUpperCase())}
                 placeholder="WIPE"
-                className="!h-10 w-28 text-center text-xs uppercase font-mono px-3 rounded-xl bg-[var(--bg-base)]/90 border border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:outline-none placeholder:text-[var(--text-muted)]/50"
+                autoComplete="off"
+                spellCheck={false}
+                className={`h-11 w-32 sm:w-36 text-center text-sm font-mono font-semibold tracking-widest uppercase px-3 rounded-xl bg-[var(--bg-base)]/90 border transition-all shadow-inner focus:outline-none placeholder:text-[var(--text-muted)]/35 placeholder:font-mono placeholder:tracking-widest ${
+                  wipeConfirm === "WIPE"
+                    ? "border-rose-500/50 bg-rose-500/10 text-rose-200 ring-2 ring-rose-500/20"
+                    : "border-[var(--text-primary)]/15 text-[var(--text-primary)] focus:border-rose-400/60 focus:ring-2 focus:ring-rose-500/20"
+                }`}
               />
             </div>
 
             <Button
-              variant="primary"
+              variant="destructive"
               size="sm"
               onClick={handleWipeAllData}
               disabled={wipeConfirm !== "WIPE"}
-              className="h-10 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center"
+              className="h-11 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center shadow-xs"
               icon={Trash2}
               iconPlacement="left"
             >

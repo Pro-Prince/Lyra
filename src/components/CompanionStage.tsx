@@ -891,12 +891,12 @@ function CustomPostProcessing() {
     comp.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
-      0.18, // Balanced soft aesthetic bloom without overexposure glare
+      0.24, // Balanced soft aesthetic bloom for neon and LEDs
       0.5,
-      0.90  // High threshold so only genuine highlights softly glow
+      0.85  // Threshold so neon, lamp shades and LED strips softly glow
     );
     comp.addPass(bloom);
-    const film = new FilmPass(0.08, false);
+    const film = new FilmPass(0.06, false);
     comp.addPass(film);
     return comp;
   }, [gl, scene, camera]);
@@ -1081,19 +1081,19 @@ function CompanionStageComponent({
           }}
           onCreated={({ gl, scene }) => {
             gl.domElement.id = 'companion-webgl-canvas';
-            gl.setClearColor(new THREE.Color('#ede2dc'), 1);
-            scene.background = new THREE.Color('#ede2dc');
-            scene.fog = new THREE.Fog('#eddcd4', 16, 45);
+            gl.setClearColor(new THREE.Color('#1B101C'), 1);
+            scene.background = new THREE.Color('#1B101C');
+            scene.fog = new THREE.Fog('#241522', 15, 45);
             gl.shadowMap.enabled = true;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 0.88;
+            gl.toneMappingExposure = 0.94;
           }}
           dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
         >
-          <color attach="background" args={['#ede2dc']} />
-          <fog attach="fog" args={['#eddcd4', 16, 45]} />
+          <color attach="background" args={['#1B101C']} />
+          <fog attach="fog" args={['#241522', 15, 45]} />
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
@@ -1119,8 +1119,8 @@ function CompanionStageComponent({
           </Suspense>
         </Canvas>
         
-        {/* Soft Warm Vignette Overlay (eliminates harsh dark edges) */}
-        <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 75%, rgba(60,40,45,0.08) 100%)' }} />
+        {/* Soft Cozy Vignette Overlay */}
+        <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 72%, rgba(27,16,28,0.3) 100%)' }} />
       </motion.div>
     </div>
   );
