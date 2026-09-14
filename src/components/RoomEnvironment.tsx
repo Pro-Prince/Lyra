@@ -3,39 +3,37 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // -----------------------------------------------------------------------------
-// COLOR PALETTE (Warm Muted Mauve/Plum 60%, Cream 20%, Walnut 10%, Lyra Pink 10%)
+// COLOR PALETTE — base albedo lightened from the original values.
+// Dark colors absorb most light that hits them; no amount of extra light
+// intensity fixes a surface that's nearly black to begin with. Lightening
+// these by roughly 20-25% while keeping the same moody mauve/plum/walnut
+// identity gives every light source something to actually reflect off.
 // -----------------------------------------------------------------------------
 const PALETTE = {
-  // Architectural Mauve & Plum (60%)
-  wallPlaster: '#462E3F',
-  wallAccentPlum: '#382233',
-  shadowPlum: '#2A1826',
-  trimMauve: '#52374A',
+  wallPlaster: '#5C3E52',      // was #462E3F
+  wallAccentPlum: '#4A2C42',   // was #382233
+  shadowPlum: '#3A2436',       // was #2A1826
+  trimMauve: '#65465A',        // was #52374A
 
-  // Cream & Warm Off-White Surfaces (20%)
   warmCream: '#F4ECE4',
   softBeige: '#E6D7CC',
   curtainWhite: '#FAF3ED',
   porcelainWhite: '#FCF8F5',
 
-  // Dark Walnut Wood (10%)
-  darkWalnut: '#3B2321',
-  walnutPlank: '#321D1C',
-  walnutLight: '#4A2E2C',
+  darkWalnut: '#4A2C29',       // was #3B2321
+  walnutPlank: '#432A26',      // was #321D1C
+  walnutLight: '#5A3936',      // was #4A2E2C
 
-  // Lyra Pink & Pastel Accents (10%)
   lyraPink: '#F299C2',
   softPinkTextile: '#ECA0C4',
   dustyBlush: '#D47E9E',
   pastelLilac: '#C79CD8',
 
-  // Natural Lighting Colors
   warmSunsetKey: '#FFD9BD',
   warmIndirectLed: '#FFE8C8',
   lampGlow: '#FFDDB6',
-  naturalWindowSky: '#4A2A44',
+  coolMoonFill: '#8C9FC7',     // NEW: dedicated cool fill color for contrast against the warm key
 
-  // Indoor Plant Greens
   leafGreen: '#4D7856',
   leafGreenLight: '#689672',
   leafGreenDark: '#35533D',
@@ -91,7 +89,85 @@ function AmbientMotes() {
   );
 }
 
-// Steady ambient dust motes in light rays (minimalistic movement)
+function DriftingSakura() {
+  const count = 18;
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+
+  const particles = useMemo(() => {
+    return Array.from({ length: count }, () => ({
+      x: (Math.random() - 0.5) * 6.5,
+      y: Math.random() * 3.5 + 0.5,
+      z: (Math.random() - 0.5) * 5.0,
+      speedY: 0.002 + Math.random() * 0.0025,
+      swaySpeed: 0.6 + Math.random() * 0.8,
+      swayAmp: 0.004 + Math.random() * 0.006,
+      rotX: Math.random() * Math.PI * 2,
+      rotY: Math.random() * Math.PI * 2,
+      rotZ: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.015,
+      scale: 0.6 + Math.random() * 0.4,
+      phase: Math.random() * Math.PI * 2,
+    }));
+  }, [count]);
+
+  const petalGeo = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(0.035, 0.025, 0.05, 0.08, 0.025, 0.12);
+    shape.bezierCurveTo(0.01, 0.14, -0.01, 0.14, -0.025, 0.12);
+    shape.bezierCurveTo(-0.05, 0.08, -0.035, 0.025, 0, 0);
+
+    const geo = new THREE.ShapeGeometry(shape, 8);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      pos.setZ(i, Math.sin((y / 0.14) * Math.PI) * 0.02);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, []);
+
+  useFrame(({ clock }, delta) => {
+    if (!meshRef.current) return;
+    const t = clock.getElapsedTime();
+    const dt = Math.min(delta, 0.1);
+
+    particles.forEach((p, i) => {
+      p.y -= p.speedY * dt * 60;
+      p.x += (Math.sin(t * p.swaySpeed + p.phase) * p.swayAmp + 0.001) * dt * 60;
+      p.z += Math.cos(t * p.swaySpeed * 0.8 + p.phase) * (p.swayAmp * 0.5) * dt * 60;
+      p.rotX += p.rotSpeed;
+      p.rotY += p.rotSpeed;
+
+      if (p.y < 0.1 || p.x > 4.5 || p.x < -4.5) {
+        p.y = 3.6 + Math.random() * 0.4;
+        p.x = -3.5 + (Math.random() - 0.5) * 2.0;
+        p.z = (Math.random() - 0.5) * 4.0;
+      }
+
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.rotation.set(p.rotX, p.rotY, p.rotZ);
+      dummy.scale.setScalar(p.scale);
+      dummy.updateMatrix();
+      meshRef.current?.setMatrixAt(i, dummy.matrix);
+    });
+
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[petalGeo, undefined, count]}>
+      <meshStandardMaterial
+        color="#F8BBD0"
+        roughness={0.6}
+        side={THREE.DoubleSide}
+        transparent
+        opacity={0.7}
+      />
+    </instancedMesh>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // 2. FLOOR-TO-CEILING WINDOW & EVENING SKYLINE (LEFT WALL)
@@ -242,7 +318,7 @@ function PanoramicBalconyWindow() {
 }
 
 // -----------------------------------------------------------------------------
-// NEW: ROUND MINIMALIST WALL ART (pink + purple circle canvases on the back wall)
+// ROUND MINIMALIST WALL ART (pink + purple circle canvases on the back wall)
 // -----------------------------------------------------------------------------
 function RoundWallArt({ position }: { position: [number, number, number] }) {
   return (
@@ -273,7 +349,7 @@ function RoundWallArt({ position }: { position: [number, number, number] }) {
 }
 
 // -----------------------------------------------------------------------------
-// NEW: LOW WINDOWSIDE CONSOLE (under the wall art, books + plush bunny + plant)
+// LOW WINDOWSIDE CONSOLE (under the wall art, books + plush bunny + plant)
 // -----------------------------------------------------------------------------
 function WindowsideConsole({ position }: { position: [number, number, number] }) {
   return (
@@ -332,7 +408,7 @@ function PlushBunnyToy({
 }
 
 // -----------------------------------------------------------------------------
-// NEW: GLOWING ROUND ORB LAMP (shelf decor item)
+// GLOWING ROUND ORB LAMP (shelf decor item)
 // -----------------------------------------------------------------------------
 function RoundGlowOrb({ position }: { position: [number, number, number] }) {
   return (
@@ -342,21 +418,27 @@ function RoundGlowOrb({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial
           color="#FFEAD0"
           emissive="#FFC98A"
-          emissiveIntensity={1.1}
+          emissiveIntensity={0.8}
           roughness={0.3}
         />
       </mesh>
-      <pointLight color="#FFC98A" intensity={0.4} distance={1.4} decay={2} />
+      <pointLight color="#FFC98A" intensity={0.35} distance={1.4} decay={2} />
     </group>
   );
 }
 
 // -----------------------------------------------------------------------------
 // 3. BOTTOM-LEFT: COZY ROUNDED LOUNGE CHAIR, FLOWER CUSHION & SIDE TABLE
+// A small rim light is added here specifically to separate this large,
+// dark-ish silhouette from the equally dark wall behind it, otherwise a
+// cream sofa against a plum wall in low light can lose its edges entirely.
 // -----------------------------------------------------------------------------
 function BottomLeftLoungeCorner() {
   return (
     <group position={[-2.4, 0, 0.65]} rotation={[0, 0.32, 0]}>
+      {/* NEW: small warm rim light grazing the sofa's edge from window-side */}
+      <pointLight color={PALETTE.warmSunsetKey} intensity={0.4} distance={2.2} position={[-0.6, 0.9, 0.8]} decay={2} />
+
       <group position={[0, 0.32, 0]}>
         <mesh castShadow receiveShadow scale={[1.25, 0.72, 1.25]}>
           <sphereGeometry args={[0.8, 28, 20]} />
@@ -456,7 +538,7 @@ function CenterPlushRug() {
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.6}
+          emissiveIntensity={0.5}
           roughness={0.6}
           side={THREE.DoubleSide}
         />
@@ -466,8 +548,7 @@ function CenterPlushRug() {
 }
 
 // -----------------------------------------------------------------------------
-// 5. BACKGROUND: BUILT-IN RECESSED SHELVING UNIT, NOW WITH AN ARCHED TOP
-// AND VISIBLE GLOWING LED STRIPS UNDER EACH SHELF
+// 5. BACKGROUND: BUILT-IN RECESSED SHELVING UNIT
 // -----------------------------------------------------------------------------
 function BuiltInRecessedShelving() {
   return (
@@ -490,7 +571,6 @@ function BuiltInRecessedShelving() {
         <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
       </mesh>
 
-      {/* NEW: Arched top cap, half-cylinder, closes the gap with the reference's rounded niche top */}
       <mesh position={[0, 1.85, -0.15]} rotation={[0, Math.PI / 2, 0]} receiveShadow castShadow>
         <cylinderGeometry args={[1.1, 1.1, 2.2, 24, 1, false, 0, Math.PI]} />
         <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} side={THREE.DoubleSide} />
@@ -504,18 +584,17 @@ function BuiltInRecessedShelving() {
           </mesh>
           <pointLight
             color={PALETTE.warmIndirectLed}
-            intensity={0.25}
-            distance={1.6}
+            intensity={0.35}
+            distance={1.9}
             decay={2}
             position={[0, -0.08, 0.08]}
           />
-          {/* NEW: visible glowing LED strip along the front edge of the shelf */}
           <mesh position={[0, -0.03, 0.135]}>
             <boxGeometry args={[2.1, 0.012, 0.012]} />
             <meshStandardMaterial
               color={PALETTE.warmIndirectLed}
               emissive={PALETTE.warmIndirectLed}
-              emissiveIntensity={2.2}
+              emissiveIntensity={1.0}
             />
           </mesh>
         </group>
@@ -541,7 +620,7 @@ function BuiltInRecessedShelving() {
 }
 
 // -----------------------------------------------------------------------------
-// 6. RIGHT SIDE: LOW-PROFILE CABINET, MUSHROOM LAMP & PROMINENT NEON BUNNY SIGN
+// 6. RIGHT SIDE: LOW-PROFILE CABINET, MUSHROOM LAMP & NEON BUNNY SIGN
 // -----------------------------------------------------------------------------
 function RightCabinetAndDecor() {
   return (
@@ -572,7 +651,6 @@ function RightCabinetAndDecor() {
         <PastelBookRow position={[0.02, 0.29, 0.04]} rotation={[0, 0.12, 0]} />
       </group>
 
-      {/* Neon bunny sign, now a real focal-point feature: larger, brighter, with a face */}
       <NeonBunnySign position={[0.15, 1.95, -0.18]} />
 
       <group position={[-0.45, 1.15, -0.2]}>
@@ -599,7 +677,7 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
   useFrame(({ clock }) => {
     if (lampLightRef.current) {
       const t = clock.getElapsedTime();
-      lampLightRef.current.intensity = 0.55 + Math.sin(t * 1.2) * 0.03;
+      lampLightRef.current.intensity = 0.6 + Math.sin(t * 1.2) * 0.03;
     }
   });
 
@@ -614,14 +692,14 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
         <meshStandardMaterial
           color={PALETTE.porcelainWhite}
           emissive="#FFE2C6"
-          emissiveIntensity={0.65}
+          emissiveIntensity={0.6}
           roughness={0.25}
         />
       </mesh>
       <pointLight
         ref={lampLightRef}
         color={PALETTE.lampGlow}
-        intensity={0.55}
+        intensity={0.6}
         distance={2.8}
         decay={2}
         castShadow
@@ -631,61 +709,34 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
   );
 }
 
-// UPDATED: Prominent Neon Bunny Sign with a real face, matching the reference
 function NeonBunnySign({ position }: { position: [number, number, number] }) {
   return (
     <group position={position} scale={1.5}>
       <mesh position={[0, 0, 0]}>
         <torusGeometry args={[0.18, 0.013, 12, 28]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
       <mesh position={[-0.08, 0.25, 0]} rotation={[0, 0, -0.12]}>
         <capsuleGeometry args={[0.013, 0.18, 6, 12]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
       <mesh position={[0.08, 0.25, 0]} rotation={[0, 0, 0.12]}>
         <capsuleGeometry args={[0.013, 0.18, 6, 12]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
-      {/* NEW: eyes */}
       <mesh position={[-0.06, 0.01, 0.01]}>
         <circleGeometry args={[0.016, 16]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
       <mesh position={[0.06, 0.01, 0.01]}>
         <circleGeometry args={[0.016, 16]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
-      {/* NEW: nose */}
       <mesh position={[0, -0.05, 0.01]}>
         <circleGeometry args={[0.02, 3]} />
-        <meshStandardMaterial
-          color={PALETTE.lyraPink}
-          emissive={PALETTE.lyraPink}
-          emissiveIntensity={1.8}
-        />
+        <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
-      <pointLight color={PALETTE.lyraPink} intensity={0.6} distance={2.4} position={[0, 0.08, 0.15]} />
+      <pointLight color={PALETTE.lyraPink} intensity={0.5} distance={2.4} position={[0, 0.08, 0.15]} />
     </group>
   );
 }
@@ -898,15 +949,32 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 
 // -----------------------------------------------------------------------------
 // 7. MAIN ROOM ENVIRONMENT SCENE GRAPH
+//
+// LIGHTING REDESIGNED WITH A CLEAR KEY / FILL / RIM HIERARCHY, replacing the
+// previous five same-weight directional lights:
+//
+//   KEY   — warm sunset directional from the window, the dominant light
+//   FILL  — cool moonlight-toned directional, opposite side, soft, this is
+//           what creates depth: warm vs cool, not just "more light"
+//   RIM   — a soft pink accent from behind/above, separates her silhouette
+//           and the furniture edges from the dark background
+//   HEMI  — a hemisphere light so no surface ever goes to true black
+//           regardless of which way it faces
+//
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
   return (
     <group>
-      <ambientLight color="#523647" intensity={0.95} />
+      {/* HEMI: broad, gentle fill from all directions, prevents pure-black
+          surfaces on anything facing away from the directional lights */}
+      <hemisphereLight color="#8A6478" groundColor={PALETTE.darkWalnut} intensity={1.0} />
 
+      <ambientLight color="#6B4D5F" intensity={1.1} />
+
+      {/* KEY — warm, dominant, motivated by the sunset window */}
       <directionalLight
         color={PALETTE.warmSunsetKey}
-        intensity={1.25}
+        intensity={1.8}
         position={[-6.0, 3.8, 1.5]}
         castShadow
         shadow-mapSize-width={2048}
@@ -914,32 +982,26 @@ export function RoomEnvironment() {
         shadow-bias={-0.0001}
       />
 
+      {/* FILL — cool, soft, opposite side, this contrast is what creates
+          real depth instead of a uniformly pink-tinted flat room */}
       <directionalLight
-        color="#FFF6F0"
-        intensity={1.15}
-        position={[-1.2, 2.2, 3.0]}
+        color={PALETTE.coolMoonFill}
+        intensity={0.55}
+        position={[3.5, 2.6, -1.5]}
       />
 
-      <directionalLight
-        color="#F8C6DB"
-        intensity={0.45}
-        position={[2.8, 1.8, 2.5]}
-      />
-
+      {/* RIM — soft pink accent from above/behind, separates silhouettes
+          from the dark background */}
       <directionalLight
         color="#FFE5F2"
-        intensity={0.65}
-        position={[0.2, 3.4, -2.4]}
+        intensity={0.7}
+        position={[0.2, 3.6, -2.8]}
       />
 
-      <pointLight
-        color="#FFEBD6"
-        intensity={0.35}
-        position={[0, 4.0, -0.5]}
-        distance={12}
-      />
+      <pointLight color="#FFEBD6" intensity={0.4} position={[0, 4.0, -0.5]} distance={12} />
 
       <AmbientMotes />
+      <DriftingSakura />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
@@ -953,16 +1015,12 @@ export function RoomEnvironment() {
 
       <mesh position={[0, 5.0, -3.95]} receiveShadow>
         <planeGeometry args={[50, 12]} />
-        <meshStandardMaterial
-          color={PALETTE.wallPlaster}
-          roughness={0.9}
-          side={THREE.DoubleSide}
-        />
+        <meshStandardMaterial color={PALETTE.wallPlaster} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 5.0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial color="#362231" roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial color="#402B3A" roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh position={[0, 0.08, -3.92]} receiveShadow>
@@ -985,8 +1043,6 @@ export function RoomEnvironment() {
 
       <RightCabinetAndDecor />
 
-      {/* NEW: round wall art + low console, filling the wall between the window
-          and the shelving unit, matching the reference's back-left wall grouping */}
       <RoundWallArt position={[-1.1, 2.55, -3.9]} />
       <WindowsideConsole position={[-1.1, 0, -3.75]} />
     </group>

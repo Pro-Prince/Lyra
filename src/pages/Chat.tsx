@@ -1575,10 +1575,10 @@ export default function Chat() {
                 onClick={toggleWardrobe} 
                 title={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
                 aria-label={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
-                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
                   isWardrobeOpen 
-                    ? 'bg-white/20 text-white border-white/40 shadow-[0_0_16px_rgba(255,255,255,0.25)]' 
-                    : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
+                    ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]' 
+                    : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
                 }`}
               >
                 <Shirt className="w-5 h-5" />
@@ -1587,10 +1587,10 @@ export default function Chat() {
                 onClick={toggleSettings} 
                 title="Voice Settings"
                 aria-label="Voice Settings"
-                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
                   isSettingsOpen 
-                    ? 'bg-white/20 text-white border-white/40 shadow-[0_0_16px_rgba(255,255,255,0.25)]' 
-                    : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
+                    ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]' 
+                    : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
                 }`}
               >
                 <Settings className="w-5 h-5" />
@@ -1599,7 +1599,7 @@ export default function Chat() {
              
             {/* HUD Top Right */}
             <div className={`absolute top-6 right-6 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] active:scale-95 transition-all shadow-lg cursor-pointer">
+              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#241724] border border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white active:scale-95 transition-all shadow-xl cursor-pointer">
                 <Camera className="w-4 h-4" />
                 <span className="text-sm font-medium">Capture</span>
               </button>
