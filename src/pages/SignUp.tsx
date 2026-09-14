@@ -83,14 +83,8 @@ export default function SignUpPage() {
   return (
     <div className="auth-page">
       <div className="auth-brand">
-        <Link 
-          to="/" 
-          className="inline-block cursor-pointer transition-transform active:scale-95"
-          aria-label="Lyra Home"
-        >
-          <img src="/images/Logo.png" alt="Lyra" className="auth-logo-badge" />
-          <h1 className="auth-app-name">Lyra</h1>
-        </Link>
+        <img src="/images/Logo.png" alt="" className="auth-logo-badge" />
+        <h1 className="auth-app-name">Lyra</h1>
         <p className="auth-tagline">A quiet AI companion.</p>
       </div>
 
