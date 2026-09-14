@@ -393,11 +393,11 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     portraitFraming.current = { midY: portraitMidY, distance: portraitDist };
 
     // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are completely visible)
-    const fullBodyPaddingFactor = 1.42; // Generous margin so feet, shoes and floor are fully in frame
+    const fullBodyPaddingFactor = 1.48; // Generous margin so feet, shoes and floor are fully in frame
     let fullBodyDist = (totalHeight * fullBodyPaddingFactor) / (2 * Math.tan(fov / 2));
     if (perspCam.aspect < 1.0) {
       // In narrow/mobile screens, scale distance dynamically to prevent clipping feet
-      fullBodyDist = fullBodyDist / Math.max(0.65, perspCam.aspect);
+      fullBodyDist = fullBodyDist / Math.max(0.62, perspCam.aspect);
     }
     const fullBodyMidY = (headTop + feetBottom) * 0.5;
     fullBodyFraming.current = { midY: fullBodyMidY, distance: fullBodyDist };
@@ -451,9 +451,11 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      // 'room-wide' / 'centered': low-angle upward tilt (camera at waist/hip height 0.72, looking up at 1.05) with full legs in frame
-      targetPos.current.set(companionPosition.x, 0.72, companionPosition.z + distance);
-      lookTarget.current.set(companionPosition.x, 1.05, companionPosition.z);
+      // 'room-wide' / 'centered': gentle camera height (0.80) looking slightly higher (1.02) to keep full body and feet clear of bottom UI
+      const camY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 0.82 : 0.72;
+      const lookY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.00 : 1.05;
+      targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
+      lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
 
     // Clamp camera Y so it never drops below floor level (floor is y=0)

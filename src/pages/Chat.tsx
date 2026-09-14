@@ -1366,7 +1366,7 @@ export default function Chat() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-[176px] left-1/2 -translate-x-1/2 bg-[var(--bg-base)]/70 backdrop-blur-md px-4 py-1.5 rounded-full text-[13px] flex items-center gap-2.5 z-30 shadow-lg border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 whitespace-nowrap"
+                className="absolute bottom-[160px] left-1/2 -translate-x-1/2 bg-[var(--bg-base)]/80 backdrop-blur-md px-4 py-1.5 rounded-full text-[13px] flex items-center gap-2.5 z-30 shadow-lg border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 whitespace-nowrap"
               >
                 <span>Lyra is speaking...</span>
                 <div className="flex items-center gap-0.5 shrink-0">
@@ -1387,9 +1387,9 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute bottom-[148px] left-4 right-4 bg-[#160f17]/85 backdrop-blur-xl px-4 py-3 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                className="absolute bottom-[115px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
               >
-                <p className="text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-3">
+                <p className="text-xs sm:text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-2 sm:line-clamp-3">
                   {formatCleanMessageContent(messages[messages.length - 1].content)}
                 </p>
               </motion.div>
@@ -1540,21 +1540,21 @@ export default function Chat() {
 
                       {/* Chips (Fixed at bottom before input) */}
                       {messages.length <= 1 && (
-                        <div className="shrink-0 flex gap-1.5 overflow-x-auto pb-2 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div className="shrink-0 flex gap-2 overflow-x-auto pb-2.5 px-4 scrollbar-hide select-none max-w-full" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                           {['Tell me a story', 'Sing a song', 'Play a game', 'Motivate me'].map(text => (
                             <button 
                               key={text}
                               onClick={(e) => { e.preventDefault(); setInputText(text); handleSend(text); }}
-                              className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/5 text-xs text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer shadow-xs"
+                              className="shrink-0 inline-flex items-center justify-center whitespace-nowrap px-3.5 py-1.5 rounded-full bg-[var(--bg-drawer)] border border-[var(--text-primary)]/10 text-xs font-medium text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all cursor-pointer shadow-xs active:scale-95 leading-none"
                             >
-                              {text}
+                              <span>{text}</span>
                             </button>
                           ))}
                         </div>
                       )}
 
-                      {/* Input Field (Fixed at very bottom) */}
-                      <div className="flex-none p-3 pt-2 bg-[var(--bg-panel)] border-t border-[var(--text-primary)]/10 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                      {/* Input Field (Fixed at very bottom without border above) */}
+                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                         <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
                           <input 
                             ref={mobileInputRef}
