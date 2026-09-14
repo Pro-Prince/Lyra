@@ -30,7 +30,7 @@ export function WardrobeGrid({
 
   return (
     <div className={`wardrobe-grid wardrobe-grid-${size} ${gridClasses} ${className}`}>
-      {OUTFIT_LIST.map((outfit) => {
+      {OUTFIT_LIST.map((outfit, index) => {
         const isSelected = isSameOutfit(outfit.id, selectedOutfit);
         return (
           <WardrobeCard
@@ -41,6 +41,7 @@ export function WardrobeGrid({
             selectedText={selectedText}
             unselectedText={unselectedText}
             compact={compact ?? isSideBySide}
+            loadDelay={isSelected ? 0 : (index + 1) * 120}
             onSelect={() => {
               if (!isSelected) {
                 onSelect(outfit.id);

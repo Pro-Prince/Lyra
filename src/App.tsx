@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import AppHeader from "./components/AppHeader";
@@ -22,6 +22,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
 import { preloadAllOutfits } from "./lib/outfitCache";
 import { useTheme } from "./hooks/useTheme";
+import { useAuth } from "./hooks/useAuth";
 import AppSplash from "./components/AppSplash";
 
 function ScrollToTop() {
@@ -30,45 +31,97 @@ function ScrollToTop() {
     window.scrollTo(0, 0);
     const root = document.getElementById("root");
     if (root) {
-      root.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      root.scrollTop = 0;
     }
-    document.documentElement.scrollTo(0, 0);
-    document.body.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [pathname]);
   return null;
 }
 
 function AppRoutes() {
+  const location = useLocation();
+  const { isAuthed, isGuestMode, loading } = useAuth();
+  const canAccessChat = (isAuthed || isGuestMode) && !loading;
+  const isChat = location.pathname === "/chat";
+
+  // Track if user has navigated to chat during this session
+  const [hasVisitedChat, setHasVisitedChat] = useState(false);
+
+  useEffect(() => {
+    if (isChat && canAccessChat) {
+      setHasVisitedChat(true);
+    }
+  }, [isChat, canAccessChat]);
+
+  // Reset warm state if user logs out
+  useEffect(() => {
+    if (!canAccessChat && !loading) {
+      setHasVisitedChat(false);
+    }
+  }, [canAccessChat, loading]);
+
+  const keepChatWarm = canAccessChat && hasVisitedChat;
+
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignUpPage />} />
-      <Route path="/auth" element={<LoginPage />} />
-      <Route path="/onboarding" element={
-        <ProtectedRoute>
-          <Onboarding />
-        </ProtectedRoute>
-      } />
-      <Route path="/chat" element={
-        <ProtectedRoute>
+    <>
+      {/* Persistent warm 3D Chat - stays mounted after first visit for instant 0ms tab switching */}
+      {keepChatWarm && (
+        <div
+          id="persistent-chat-root"
+          className="w-full flex-1"
+          style={{ display: isChat ? "block" : "none" }}
+          aria-hidden={!isChat}
+        >
           <Chat />
-        </ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
-      } />
-      <Route path="/account" element={
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
-      } />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/contact" element={<Contact />} />
-    </Routes>
+        </div>
+      )}
+
+      {/* Routes for all other views (or initial protected Chat if not yet warm) */}
+      {(!isChat || !keepChatWarm) && (
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/auth" element={<LoginPage />} />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/contact" element={<Contact />} />
+        </Routes>
+      )}
+    </>
   );
 }
 

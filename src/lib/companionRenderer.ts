@@ -201,7 +201,7 @@ export function safeSetFromObject(box: THREE.Box3, object: THREE.Object3D): THRE
   return box;
 }
 
-async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
+export async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
   if (rawBufferCache.has(url)) {
     return rawBufferCache.get(url)!;
   }
@@ -250,16 +250,8 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
   }
 }
 
-const modelCache: Record<string, VRM> = {};
-
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
   const url = MODEL_FILES[modelId] || modelId;
-
-  if (modelCache[modelId]) {
-    console.log('Cache hit:', modelId);
-    return modelCache[modelId];
-  }
-  console.log('Cache miss, loading:', modelId);
 
   try {
     const buffer = await fetchCompanionBuffer(url);
@@ -274,7 +266,6 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
     }
 
     sanitizeVRMHierarchy(vrm as VRM);
-    modelCache[modelId] = vrm as VRM;
     return vrm as VRM;
   } catch (err: any) {
     console.error(`FULL ERROR loading ${url}:`, err?.message || String(err));
@@ -303,12 +294,7 @@ export function disposeVRM(vrm: VRM) {
     }
   });
 
-  // Remove from cache since its WebGL resources are now destroyed
-  for (const key in modelCache) {
-    if (modelCache[key] === vrm) {
-      delete modelCache[key];
-    }
-  }
+  // Raw array buffers remain safely in rawBufferCache for instant re-instantiation
 }
 
 export function isModelCached(modelId: string): boolean {
@@ -348,8 +334,6 @@ export async function renderStaticPortrait(
 
   if (shouldDispose) {
     try {
-      r.forceContextLoss?.();
-      r.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
       r.dispose();
     } catch {}
   }

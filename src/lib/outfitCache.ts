@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 import { createThumbnailRenderer } from './thumbnailUtils';
-import { loadCompanionModel, renderStaticPortrait, MODEL_FILES, safeUpdateMatrixWorld } from './companionRenderer';
+import { loadCompanionModel, renderStaticPortrait, MODEL_FILES, safeUpdateMatrixWorld, fetchCompanionBuffer } from './companionRenderer';
 import { loadMixamoAnimation } from './retargetMixamo';
 
 export interface CachedOutfitEntry {
@@ -71,8 +71,6 @@ export async function renderPosedOutfit(
 
   if (shouldDispose) {
     try {
-      r.forceContextLoss?.();
-      r.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
       r.dispose();
     } catch {}
   }
@@ -101,46 +99,49 @@ export async function getOutfitRender(
 export function preloadAllOutfits(caller = 'root'): Promise<Record<string, CachedOutfitEntry>> {
   if (loadingPromise) return loadingPromise;
 
+  const isMobileDevice = typeof window !== 'undefined' && (
+    window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  );
+
   loadingPromise = (async () => {
     try {
-      // Prioritize primary model first
+      // Step 1: Pre-fetch network binary buffers asynchronously without blocking JS main thread
       const outfitIds = ['default', 'lyra_casual', 'lyra_dress'];
       for (const id of outfitIds) {
         const url = MODEL_FILES[id] || (id === 'default' ? '/models/lyra.vrm' : `/models/${id}.vrm`);
+        fetchCompanionBuffer(url).catch(() => {});
+      }
+
+      // Step 2: Only parse default model into VRM to keep CPU/GPU fast and responsive
+      const id = 'default';
+      const url = MODEL_FILES[id] || '/models/lyra.vrm';
+      try {
+        const vrm = await loadCompanionModel(id);
+
+        let thumbnail = '';
+        let fullBodyRender = '';
+        let heroPortrait = '';
+
+        // Preload idle animation
+        const clips: Record<string, THREE.AnimationClip> = {};
         try {
-          const vrm = await loadCompanionModel(id);
-
-          let thumbnail = '';
-          let fullBodyRender = '';
-          let heroPortrait = '';
-
-          // Preload idle animation
-          const clips: Record<string, THREE.AnimationClip> = {};
-          try {
-            const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
-            const idleClip = await loadMixamoAnimation(idleUrl, vrm);
-            if (idleClip) clips['idle'] = idleClip;
-          } catch (animErr) {
-            // Silently ignore optional anim load failure
-          }
-
-          const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
-          sessionVrmCache[id] = entry;
-          sessionVrmCache[url] = entry;
-          if (id === 'default') {
-            sessionVrmCache['lyra'] = entry;
-            sessionVrmCache['default'] = entry;
-          }
-
-          if ((id === 'default' || id === 'lyra') && heroPortrait && typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('lyraHeroReady', { detail: heroPortrait }));
-          }
-        } catch (err) {
-          console.warn(`[preloadAllOutfits] Skipped background preload for outfit ${id} (${url}):`, err);
+          const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
+          const idleClip = await loadMixamoAnimation(idleUrl, vrm);
+          if (idleClip) clips['idle'] = idleClip;
+        } catch (animErr) {
+          // Silently ignore optional anim load failure
         }
+
+        const entry: CachedOutfitEntry = { vrm, thumbnail, fullBodyRender, heroPortrait, clips };
+        sessionVrmCache[id] = entry;
+        sessionVrmCache[url] = entry;
+        sessionVrmCache['lyra'] = entry;
+        sessionVrmCache['default'] = entry;
+      } catch (err) {
+        console.warn(`[preloadAllOutfits] Skipped background preload for outfit default:`, err);
       }
     } finally {
-      // Batch renderer removed
+      // Clean up
     }
 
     if (typeof window !== 'undefined') {

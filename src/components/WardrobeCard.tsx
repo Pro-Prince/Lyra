@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { ArrowRight, Check, Loader2, RotateCcw } from 'lucide-react';
-import { loadCompanionModel, safeUpdateVRM } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
 import { frameOutfit, applyRestPose } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
@@ -115,6 +115,7 @@ export interface WardrobeCardProps {
   selectedText?: string;
   unselectedText?: string;
   compact?: boolean;
+  loadDelay?: number;
 }
 
 export function WardrobeCard({
@@ -128,7 +129,8 @@ export function WardrobeCard({
   useFeatureStyle = false,
   selectedText = 'Currently wearing',
   unselectedText = 'Wear this look',
-  compact = false
+  compact = false,
+  loadDelay = 0
 }: WardrobeCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -136,17 +138,16 @@ export function WardrobeCard({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rotationRef = useRef(0);
+  const onDragDeltaRef = useRef<((deltaX: number) => void) | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
-  function handleDrag(deltaX: number) {
-    rotationRef.current += deltaX * 0.01;
-  }
-
-  const dragHandlers = useDragRotate(handleDrag);
+  const dragHandlers = useDragRotate((deltaX: number) => {
+    onDragDeltaRef.current?.(deltaX);
+  });
 
   const handleRetry = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -156,40 +157,67 @@ export function WardrobeCard({
   };
 
   useEffect(() => {
-    console.log('MOUNTED:', modelId, 'canvases now:', document.querySelectorAll('canvas').length);
     let cancelled = false;
     let animId: number | null = null;
+    let delayTimer: any = null;
     let resizeObserver: ResizeObserver | null = null;
     const container = containerRef.current;
     if (!container) return;
 
     rotationRef.current = 0;
 
+    const renderCard = () => {
+      if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
+        modelRef.current.scene.rotation.y = rotationRef.current;
+        safeUpdateVRM(modelRef.current, 0.016);
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      }
+    };
+
+    let velocity = 0;
+    const stepMomentum = () => {
+      if (Math.abs(velocity) > 0.0003) {
+        velocity *= 0.90;
+        rotationRef.current += velocity;
+        renderCard();
+        animId = requestAnimationFrame(stepMomentum);
+      } else {
+        velocity = 0;
+        animId = null;
+        renderCard();
+      }
+    };
+
+    onDragDeltaRef.current = (deltaX: number) => {
+      rotationRef.current += deltaX * 0.012;
+      velocity = deltaX * 0.006;
+      renderCard();
+      if (animId === null && Math.abs(velocity) > 0.0003) {
+        animId = requestAnimationFrame(stepMomentum);
+      }
+    };
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
+
+        if (loadDelay > 0) {
+          await new Promise((r) => {
+            delayTimer = setTimeout(r, loadDelay);
+          });
+        }
+        if (cancelled || !containerRef.current) return;
+
         const vrm = await loadCompanionModel(modelId);
 
         if (cancelled || !containerRef.current) return;
 
         setupCardScene(vrm, containerRef.current, rendererRef, modelRef, sceneRef, cameraRef);
 
-        // Continuous render loop
-        let lastTime = performance.now();
-        function animate() {
-          animId = requestAnimationFrame(animate);
-          const now = performance.now();
-          const delta = Math.min((now - lastTime) / 1000, 0.05);
-          lastTime = now;
-
-          if (rendererRef.current && sceneRef.current && cameraRef.current && modelRef.current?.scene) {
-            modelRef.current.scene.rotation.y = rotationRef.current;
-            safeUpdateVRM(modelRef.current, delta);
-            rendererRef.current.render(sceneRef.current, cameraRef.current);
-          }
-        }
-        animate();
+        // Initial paint
+        renderCard();
+        requestAnimationFrame(renderCard);
 
         // Resize observer
         if (containerRef.current) {
@@ -201,6 +229,7 @@ export function WardrobeCard({
             cameraRef.current.updateProjectionMatrix();
             rendererRef.current.setSize(width, height);
             frameOutfit(modelRef.current.scene, cameraRef.current, height);
+            renderCard();
           });
           resizeObserver.observe(containerRef.current);
         }
@@ -216,19 +245,20 @@ export function WardrobeCard({
     })();
 
     return () => {
-      console.log('UNMOUNTING:', modelId, 'canvases before cleanup:', document.querySelectorAll('canvas').length);
       cancelled = true;
+      if (delayTimer) {
+        clearTimeout(delayTimer);
+        delayTimer = null;
+      }
       if (animId !== null) {
         cancelAnimationFrame(animId);
+        animId = null;
       }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
       if (rendererRef.current) {
         try {
-          console.log('[WardrobeCard] Disposing WebGLRenderer for', modelId);
-          rendererRef.current.forceContextLoss?.();
-          rendererRef.current.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
           rendererRef.current.dispose();
         } catch {}
         if (rendererRef.current.domElement?.parentElement) {
@@ -239,14 +269,17 @@ export function WardrobeCard({
       if (sceneRef.current && modelRef.current?.scene) {
         sceneRef.current.remove(modelRef.current.scene);
       }
+      if (modelRef.current) {
+        try {
+          disposeVRM(modelRef.current);
+        } catch {}
+      }
       modelRef.current = null;
       sceneRef.current = null;
       cameraRef.current = null;
-      setTimeout(() => {
-        console.log('UNMOUNTED:', modelId, 'canvases after cleanup:', document.querySelectorAll('canvas').length);
-      }, 0);
+      onDragDeltaRef.current = null;
     };
-  }, [modelId, retryKey]);
+  }, [modelId, retryKey, loadDelay]);
 
   const { hasDragged, ...pointerHandlers } = dragHandlers;
 

@@ -411,6 +411,7 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     const canvasContainer = gl.domElement.parentElement;
     if (!canvasContainer) return;
 
+    let resizeRaf: number | null = null;
     const updateCamera = () => {
       const width = canvasContainer.clientWidth;
       const height = canvasContainer.clientHeight;
@@ -418,18 +419,21 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
         const perspCam = camera as THREE.PerspectiveCamera;
         perspCam.aspect = width / height;
         perspCam.updateProjectionMatrix();
-        gl.setSize(width, height, false);
         updateFraming();
       }
     };
 
     const ro = new ResizeObserver(() => {
-      updateCamera();
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(updateCamera);
     });
     ro.observe(canvasContainer);
     updateCamera();
 
-    return () => ro.disconnect();
+    return () => {
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      ro.disconnect();
+    };
   }, [camera, gl, vrmScene]);
 
   const fallbackVec = useRef(new THREE.Vector3(0, 0, 0));
@@ -478,9 +482,6 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
 
-  const modelGroupRef = useRef<THREE.Group>(null);
-  const enterAlpha = useRef(0);
-
   const lookTarget = useRef(new THREE.Object3D());
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const clips = useRef<Record<string, THREE.AnimationClip>>({});
@@ -490,7 +491,6 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   useEffect(() => {
     let isCancelled = false;
     let handleOutfitsReady: (() => void) | null = null;
-    enterAlpha.current = 0;
 
     const setupVRM = async () => {
       try {
@@ -929,18 +929,6 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         mixer.current.update(safeDelta);
       }
 
-      // Smooth settling ease when model loads or switches
-      if (enterAlpha.current < 1) {
-        enterAlpha.current = Math.min(1, enterAlpha.current + safeDelta * 2.6);
-        if (modelGroupRef.current) {
-          const t = enterAlpha.current;
-          const ease = 1 - Math.pow(1 - t, 3);
-          modelGroupRef.current.position.y = (1 - ease) * -0.04;
-          const scaleVal = 0.985 + 0.015 * ease;
-          modelGroupRef.current.scale.set(scaleVal, scaleVal, scaleVal);
-        }
-      }
-
       safeUpdateVRM(vrm, safeDelta);
     } catch (frameErr) {
       console.warn('[CompanionStage useFrame] Handled frame update exception:', frameErr);
@@ -949,11 +937,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
   if (!vrm) return null;
 
-  return (
-    <group ref={modelGroupRef} position={[0, 0, 0]}>
-      <primitive object={vrm.scene} />
-    </group>
-  );
+  return <primitive object={vrm.scene} position={[0, 0, 0]} />;
 }
 
 function CustomPostProcessing() {
@@ -989,22 +973,43 @@ function CustomPostProcessing() {
   return null;
 }
 
-function CanvasLifecycleTracker({ modelId }: { modelId: string }) {
-  const { gl } = useThree();
-  useEffect(() => {
-    return () => {
-      console.log('UNMOUNTING:', modelId, 'canvases before cleanup:', document.querySelectorAll('canvas').length);
-      try {
-        gl.forceContextLoss?.();
-        gl.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
-        gl.dispose();
-      } catch {}
-      setTimeout(() => {
-        console.log('UNMOUNTED:', modelId, 'canvases after cleanup:', document.querySelectorAll('canvas').length);
-      }, 0);
-    };
-  }, [gl, modelId]);
-  return null;
+import React from 'react';
+
+class StageErrorBoundary extends React.Component<
+  { children: React.ReactNode; onError?: (error: Error) => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onError?: (error: Error) => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn('[StageErrorBoundary] Caught WebGL/Stage exception:', error);
+    this.props.onError?.(error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-[#3A2335] text-white">
+          <p className="text-xs text-neutral-300 mb-2">Graphics engine restarting...</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+            className="px-3 py-1.5 rounded-lg bg-pink-500/80 hover:bg-pink-500 text-xs font-medium cursor-pointer"
+          >
+            Reload View
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function CompanionStageComponent({
@@ -1022,7 +1027,8 @@ function CompanionStageComponent({
   className = '',
   mode,
   onModelLoaded,
-  onError
+  onError,
+  isActive = true
 }: {
   modelId?: string;
   className?: string;
@@ -1040,6 +1046,7 @@ function CompanionStageComponent({
   transparentBg?: boolean;
   onModelLoaded?: () => void;
   onError?: (err?: string) => void;
+  isActive?: boolean;
 }) {
   const activeModelId = modelId || outfitUrl || '/models/lyra.vrm';
   const effectivePortraitMode = isPortraitMode || mode === 'portrait';
@@ -1071,10 +1078,6 @@ function CompanionStageComponent({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
-
-  useEffect(() => {
-    console.log('MOUNTED:', activeModelId, 'canvases now:', document.querySelectorAll('canvas').length);
-  }, [activeModelId]);
 
   const handleRetry = () => {
     setIsLoaded(false);
@@ -1121,62 +1124,14 @@ function CompanionStageComponent({
     return null;
   }
 
+  const dpr = typeof window !== 'undefined' 
+    ? Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5) 
+    : 1;
+
   return (
-    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#241724]' : 'bg-transparent'} ${className}`}>
-      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#241724]" />}
+    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
+      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#ede2dc]" />}
       
-      {/* Smooth Ambient Room & Model Loading Overlay */}
-      <AnimatePresence>
-        {(!isLoaded && !hasFailed) && (
-          <motion.div 
-            key="stage-loading-overlay"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } }}
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none bg-[#241724] overflow-hidden"
-          >
-            {/* Ambient Radial Aura */}
-            <div 
-              className="absolute inset-0 opacity-60 animate-pulse pointer-events-none"
-              style={{ 
-                background: 'radial-gradient(circle at 50% 45%, rgba(255, 143, 192, 0.18) 0%, rgba(58, 35, 53, 0.45) 50%, rgba(36, 23, 36, 0.95) 100%)' 
-              }} 
-            />
-
-            {/* Glowing Avatar Silhouette & Pulse */}
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <div className="relative flex items-center justify-center">
-                {/* Soft breathing ring */}
-                <div 
-                  className="absolute w-20 h-20 rounded-full border border-[var(--accent-primary,#FF8FC0)]/30 animate-ping opacity-30" 
-                  style={{ animationDuration: '2.5s' }}
-                />
-                <div 
-                  className="w-16 h-16 rounded-2xl bg-[#322132]/90 border border-white/15 p-1 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_24px_rgba(255,143,192,0.2)] backdrop-blur-md flex items-center justify-center overflow-hidden"
-                >
-                  <img 
-                    src="/images/Logo.png" 
-                    alt="Lyra" 
-                    className="w-full h-full object-cover rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Status Text with subtle shimmer */}
-              <div className="flex flex-col items-center gap-1.5">
-                <span className="text-xs font-medium tracking-wide text-white/90 drop-shadow-sm font-heading">
-                  Waking Lyra...
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse delay-150" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse delay-300" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {hasFailed && !silentError && (
           <motion.div 
@@ -1209,66 +1164,80 @@ function CompanionStageComponent({
         )}
       </AnimatePresence>
 
-      {/* Smooth Canvas Container */}
+      {/* Smooth Canvas Container: smoothly mounts room without any loading spinners */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: isLoaded ? 1 : 0.01 }}
-        transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 w-full h-full"
       >
-        <Canvas shadows 
-          id="companion-canvas-container"
-          frameloop={isTabVisible ? "always" : "never"}
-          camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
-          gl={{ 
-            preserveDrawingBuffer: true,
-            alpha: false, 
-            antialias: true, 
-            powerPreference: "high-performance",
-            stencil: false,
-            depth: true,
-            failIfMajorPerformanceCaveat: false
-          }}
-          onCreated={({ gl, scene }) => {
-            gl.domElement.id = 'companion-webgl-canvas';
-            gl.setClearColor(new THREE.Color('#3A2335'), 1);
-            scene.background = new THREE.Color('#3A2335');
-            scene.fog = new THREE.Fog('#3A2335', 18, 50);
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
-            gl.outputColorSpace = THREE.SRGBColorSpace;
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 1.0;
-          }}
-          dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1}
-        >
-          <color attach="background" args={['#3A2335']} />
-          <fog attach="fog" args={['#3A2335', 18, 50]} />
-          <CanvasLifecycleTracker modelId={activeModelId} />
-          <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
-          
-          <RoomEnvironment />
-          {/* <CustomPostProcessing /> Removed to fix baseline lag */}
+        <StageErrorBoundary onError={(err) => handleError(err?.message)}>
+          <Canvas shadows 
+            id="companion-canvas-container"
+            frameloop={isTabVisible && isActive ? "always" : "never"}
+            camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
+            gl={{ 
+              preserveDrawingBuffer: true,
+              alpha: false, 
+              antialias: true, 
+              powerPreference: "high-performance",
+              stencil: false,
+              depth: true,
+              failIfMajorPerformanceCaveat: false
+            }}
+            onCreated={({ gl, scene }) => {
+              gl.domElement.id = 'companion-webgl-canvas';
+              
+              // Safe WebGL context restoration handlers for mobile OS background/resume
+              const handleContextLost = (e: Event) => {
+                e.preventDefault();
+                console.warn('[CompanionStage] WebGL context lost - preventing default crash.');
+              };
+              const handleContextRestored = () => {
+                console.info('[CompanionStage] WebGL context restored.');
+                handleRetry();
+              };
+              gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
+              gl.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
 
-          <Suspense fallback={null}>
-            <VRMModel 
-              url={activeModelId} 
-              emotion={emotion}
-              isProcessing={isProcessing}
-              onLoaded={(scene) => {
-                setVrmSceneRef(scene);
-                setIsLoaded(true);
-                onModelLoaded?.();
-              }} 
-              onReset={() => {
-                setVrmSceneRef(null);
-                setIsLoaded(false);
-              }}
-              onError={handleError}
-              retryKey={retryKey}
-            />
-          </Suspense>
-        </Canvas>
+              gl.setClearColor(new THREE.Color('#3A2335'), 1);
+              scene.background = new THREE.Color('#3A2335');
+              scene.fog = new THREE.Fog('#3A2335', 18, 50);
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = THREE.PCFSoftShadowMap;
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+              gl.toneMapping = THREE.ACESFilmicToneMapping;
+              gl.toneMappingExposure = 1.0;
+            }}
+            dpr={dpr}
+          >
+            <color attach="background" args={['#3A2335']} />
+            <fog attach="fog" args={['#3A2335', 18, 50]} />
+            <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
+            
+            <RoomEnvironment />
+            {/* <CustomPostProcessing /> Removed to fix baseline lag */}
+
+            <Suspense fallback={null}>
+              <VRMModel 
+                url={activeModelId} 
+                emotion={emotion}
+                isProcessing={isProcessing}
+                onLoaded={(scene) => {
+                  setVrmSceneRef(scene);
+                  setIsLoaded(true);
+                  onModelLoaded?.();
+                }} 
+                onReset={() => {
+                  setVrmSceneRef(null);
+                  setIsLoaded(false);
+                }}
+                onError={handleError}
+                retryKey={retryKey}
+              />
+            </Suspense>
+          </Canvas>
+        </StageErrorBoundary>
         
         {/* Soft Cozy Vignette Overlay */}
         <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 75%, rgba(42,24,38,0.2) 100%)' }} />

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
@@ -35,9 +35,9 @@ const ACCENT_COLOR = '#FF8FC0';
 
 const emotionColors: Record<Emotion, string> = {
   warm: '#FF8FC0',
-  playful: '#FFD9B3',
-  thoughtful: '#C9A6FF',
-  calm: '#C9A6FF',
+  playful: '#FFB6D9',
+  thoughtful: '#FF8FC0',
+  calm: '#FF8FC0',
   excited: '#FF8FC0',
   affectionate: '#FF8FC0',
   shy: '#FFB3D9',
@@ -255,6 +255,9 @@ export default function Chat() {
   const isMutedRef = useRef(isMuted);
 
 
+  const location = useLocation();
+  const isChatActive = location.pathname === "/chat";
+
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [isCallMode, setIsCallMode] = useState(false);
   const [isPortraitMode, setIsPortraitMode] = useState(false);
@@ -269,6 +272,22 @@ export default function Chat() {
   const [activeTab, setActiveTab] = useState<'chat' | 'about'>('chat');
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // When switching tabs away from chat, pause audio/speech and close floating drawers
+  useEffect(() => {
+    if (!isChatActive) {
+      stopSpeaking();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsMobileMenuOpen(false);
+      setIsChatDrawerOpen(false);
+      setIsWardrobeOpen(false);
+      setIsSettingsOpen(false);
+    }
+  }, [isChatActive]);
   
   const [showGestureMenu, setShowGestureMenu] = useState(false);
   const lastGestureTimeRef = useRef<number>(0);
@@ -435,8 +454,6 @@ export default function Chat() {
       if (!disclosed) {
         setShowDisclosure(true);
       }
-
-      setupSpeechRecognition();
     }
     loadData();
 
@@ -1205,7 +1222,7 @@ export default function Chat() {
       link.click();
       document.body.removeChild(link);
       
-      showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400"><Camera className="w-4 h-4" /></div> })
+      showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0]"><Camera className="w-4 h-4" /></div> })
       setTimeout(() => {
         setIsCapturingFlash(false);
       }, 450);
@@ -1222,7 +1239,7 @@ export default function Chat() {
         link.click();
         document.body.removeChild(link);
         
-        showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-purple-400"><Camera className="w-4 h-4" /></div> })
+        showSuccess('Snapshot saved to gallery', { icon: <div className="w-8 h-8 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0]"><Camera className="w-4 h-4" /></div> })
         setTimeout(() => {
           setIsCapturingFlash(false);
         }, 450);
@@ -1258,7 +1275,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#180f19] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#0b0a12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
         <AnimatePresence>
@@ -1280,17 +1297,17 @@ export default function Chat() {
           /* ========================================================= */
           /* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */
           /* ========================================================= */
-          <div className="flex flex-col w-full h-full relative overflow-hidden bg-[#241724]">
+          <div className="flex flex-col w-full h-full relative overflow-hidden bg-[#ede2dc]">
           
           {/* Top Navigation Bar - remains compact at the top */}
           <div className={`absolute top-0 left-0 right-0 px-3.5 pt-2.5 pb-2 flex items-center justify-between z-40 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
-                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 active:opacity-75 transition-all duration-300 cursor-pointer rounded-lg hover:bg-white/10"
+                  className="w-9 h-9 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-white/90 hover:bg-[#322132]/95 hover:border-white/40 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
                   aria-label="Open navigation menu"
                 >
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
                 </button>
                 <div className="flex items-center gap-2 cursor-pointer active:opacity-75 transition-all duration-300" onClick={() => navigate('/')}>
                   <img src="/images/Logo.png" alt="Lyra" className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" />
@@ -1300,9 +1317,10 @@ export default function Chat() {
 
               <button 
                 onClick={handleCapture} 
-                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:opacity-75 shadow-md cursor-pointer transition-all duration-300 backdrop-blur-md"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-white/90 hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)] active:opacity-75 shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-all duration-300 cursor-pointer text-sm font-medium"
+                aria-label="Capture Snapshot"
               >
-                <Scan className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                <Camera className="w-4 h-4" />
                 <span>Capture</span>
               </button>
           </div>
@@ -1322,6 +1340,7 @@ export default function Chat() {
                 isPortraitMode={isPortraitMode}
                 isProcessing={isLoading}
                 transparentBg={false}
+                isActive={isChatActive}
               />
               <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
                 <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('laugh', '')} />
@@ -1341,9 +1360,9 @@ export default function Chat() {
               >
                 <span>Lyra is speaking...</span>
                 <div className="flex items-center gap-0.5 shrink-0">
-                  <span style={{ backgroundColor: activeAccent }} className="w-0.5 h-3 rounded-full animate-pulse" />
-                  <span style={{ backgroundColor: activeAccent }} className="w-0.5 h-4 rounded-full animate-pulse delay-75" />
-                  <span style={{ backgroundColor: activeAccent }} className="w-0.5 h-3 rounded-full animate-pulse delay-150" />
+                  <span className="w-0.5 h-3 rounded-full bg-[#FF8FC0] animate-pulse" />
+                  <span className="w-0.5 h-4 rounded-full bg-[#FF8FC0] animate-pulse delay-75" />
+                  <span className="w-0.5 h-3 rounded-full bg-[#FF8FC0] animate-pulse delay-150" />
                 </div>
               </motion.div>
             )}
@@ -1390,7 +1409,7 @@ export default function Chat() {
               className="chat-drawer-handle pointer-events-auto cursor-pointer"
               aria-label="Open chat drawer"
             >
-              <ChevronUp className="w-4 h-4 text-[var(--accent-primary)]" />
+              <ChevronUp className="w-4 h-4 text-[#FF8FC0]" />
               <span>Chat</span>
             </button>
           </div>
@@ -1426,20 +1445,20 @@ export default function Chat() {
                   <div className="flex px-5 pt-1 pb-0 border-b border-[var(--text-primary)]/10 gap-6 shrink-0 bg-[var(--bg-panel)]">
                     <button 
                       onClick={() => setActiveTab('chat')} 
-                      className={`pb-2 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'chat' ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                      className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'chat' ? 'text-[#FF8FC0] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                     >
                       <span>Chat</span>
                       {activeTab === 'chat' && (
-                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
+                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
                       )}
                     </button>
                     <button 
                       onClick={() => setActiveTab('about')} 
-                      className={`pb-2 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'about' ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                      className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'about' ? 'text-[#FF8FC0] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                     >
                       <span>About</span>
                       {activeTab === 'about' && (
-                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: activeAccent }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
+                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
                       )}
                     </button>
                   </div>
@@ -1558,18 +1577,16 @@ export default function Chat() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 min-h-0 overflow-y-auto p-6 text-[var(--text-muted)] text-sm space-y-4 no-scrollbar scrollbar-hide pb-[env(safe-area-inset-bottom)]">
-                      <h3 className="text-[var(--text-primary)] font-medium text-lg">About Lyra</h3>
-                      <p className="leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her. She's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
-                      <div className="bg-[var(--bg-elevated)] p-4 rounded-2xl border border-[var(--text-primary)]/5 space-y-2">
-                        <h4 className="text-[var(--text-primary)] font-medium text-sm">Conversation Starters:</h4>
-                        <ul className="list-disc pl-5 space-y-1.5 text-xs text-[var(--text-muted)]">
-                          <li>"I've missed your voice. Tell me about your day..."</li>
-                          <li>"What's something you've been daydreaming about lately?"</li>
-                          <li>"Let's plan a perfect date together."</li>
-                          <li>"Tell me a secret you haven't shared with anyone else."</li>
-                        </ul>
-                      </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide pb-[env(safe-area-inset-bottom)]">
+                      <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
+                      <p className="mb-4 leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her. She's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
+                      <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>
+                      <ul className="list-disc pl-5 space-y-2 mb-6">
+                        <li>"I've missed your voice. Tell me about your day..."</li>
+                        <li>"What's something you've been daydreaming about lately?"</li>
+                        <li>"Let's plan a perfect date together."</li>
+                        <li>"Tell me a secret you haven't shared with anyone else."</li>
+                      </ul>
                     </div>
                   )}
                 </motion.div>
@@ -1583,7 +1600,7 @@ export default function Chat() {
         /* ========================================================= */
         <div className="flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
-          <div className="companion-screen flex-1 bg-[#241724] group relative overflow-hidden">
+          <div className="companion-screen flex-1 bg-[#ede2dc] group relative overflow-hidden">
             <div className="companion-viewport w-full h-full relative">
             {/* Camera Shutter Flash Effect (Desktop) */}
             {isCapturingFlash && (
@@ -1639,6 +1656,7 @@ export default function Chat() {
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
                   transparentBg={false}
+                  isActive={isChatActive}
                 />
                 {/* TouchInteractionLayer */}
                 <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
@@ -1878,61 +1896,81 @@ export default function Chat() {
               </div>
 
               {/* Menu Links */}
-              <div className="flex-1 py-4 space-y-1 overflow-y-auto no-scrollbar scrollbar-hide">
+              <div className="flex-1 py-4 flex flex-col gap-2.5 overflow-y-auto no-scrollbar scrollbar-hide">
+                {/* Wardrobe Button */}
                 <button
+                  type="button"
                   onClick={openWardrobe}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="flex items-center gap-3">
-                    <Shirt className="w-4 h-4" style={{ color: activeAccent }} />
-                    <span>Wardrobe Style</span>
+                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                    <Shirt className="w-4.5 h-4.5" />
                   </div>
-                  <span className="text-xs text-[var(--accent-primary)] font-medium">
-                    {getOutfitLabel(outfit)}
+                  <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
+                    Wardrobe Style
                   </span>
                 </button>
 
+                {/* Voice Settings Button */}
                 <button
+                  type="button"
                   onClick={openSettings}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <Settings className="w-4 h-4" style={{ color: activeAccent }} />
-                  <span>Voice Settings</span>
+                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                    <Settings className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
+                    Voice Settings
+                  </span>
                 </button>
 
+                {/* Home Button */}
+                <Link
+                  to="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                    <Home className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
+                    Home
+                  </span>
+                </Link>
 
-                <div className="pt-4 mt-4 border-t border-[var(--text-primary)]/10 space-y-1">
-                  <Link
-                    to="/"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
-                  >
-                    <Home className="w-4 h-4" style={{ color: activeAccent }} />
-                    <span>Home</span>
-                  </Link>
-                  <Link
-                    to="/account"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all text-sm font-medium cursor-pointer"
-                  >
-                    <User className="w-4 h-4" style={{ color: activeAccent }} />
-                    <span>Account Settings</span>
-                  </Link>
-                </div>
+                {/* Account Button */}
+                <Link
+                  to="/account"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                    <User className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
+                    Account Settings
+                  </span>
+                </Link>
               </div>
 
               {/* Log Out */}
-              <div className="pt-3 border-t border-[var(--text-primary)]/10">
+              <div className="pt-2">
                 <button
+                  type="button"
                   onClick={async () => {
                     setIsMobileMenuOpen(false);
                     await signOut();
                     navigate("/");
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[var(--text-danger)]/90 hover:text-[var(--text-danger)] hover:bg-[var(--text-danger)]/10 transition-all text-sm font-medium cursor-pointer"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-red-500/20 hover:border-red-500/40 hover:bg-red-500/10 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Log Out</span>
+                  <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center text-red-400 shrink-0 group-hover:bg-red-500/25 transition-colors">
+                    <LogOut className="w-4.5 h-4.5" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#f2a8b8] group-hover:text-red-300 transition-colors">
+                    Log Out
+                  </span>
                 </button>
               </div>
             </motion.aside>
@@ -2033,7 +2071,7 @@ export default function Chat() {
                   <div>
                     <h2 className="font-heading font-medium text-xl sm:text-2xl text-[var(--text-primary)]/95">Wardrobe Style</h2>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                      Currently wearing: <span className="font-semibold text-[var(--accent-primary)]">{getOutfitLabel(outfit)}</span>
+                      Choose an outfit for Lyra
                     </p>
                   </div>
                 </div>

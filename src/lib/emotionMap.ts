@@ -12,7 +12,7 @@ export const EMOTION_MAP: Record<string, EmotionMapping> = {
   },
   playful: {
     expression: 'happy',
-    glowShift: '#C9A6FF',
+    glowShift: '#FFB6D9',
     gesture: 'tilt',
   },
   thoughtful: {
@@ -27,7 +27,7 @@ export const EMOTION_MAP: Record<string, EmotionMapping> = {
   },
   calm: {
     expression: 'relaxed',
-    glowShift: '#C9A6FF',
+    glowShift: '#FF8FC0',
     gesture: 'breathe',
   },
   happy: {
@@ -42,7 +42,7 @@ export const EMOTION_MAP: Record<string, EmotionMapping> = {
   },
   soft: {
     expression: 'relaxed',
-    glowShift: '#C9A6FF',
+    glowShift: '#FFB3D9',
     gesture: 'breathe',
   }
 };

@@ -251,11 +251,11 @@ function MobileHeaderMenu() {
     <>
       <button
         type="button"
-        className="icon-btn min-w-[42px] min-h-[42px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)]"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-white/90 hover:bg-[#322132]/95 hover:border-white/40 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
         onClick={() => setMenuOpen((v) => !v)}
         aria-label={menuOpen ? "Close menu" : "Open menu"}
       >
-        {menuOpen ? <X className="w-5.5 h-5.5 stroke-[2.2]" /> : <Menu className="w-5.5 h-5.5 stroke-[2.2]" />}
+        {menuOpen ? <X className="w-4.5 h-4.5 stroke-[2.2]" /> : <Menu className="w-4.5 h-4.5 stroke-[2.2]" />}
       </button>
 
       <AnimatePresence>
