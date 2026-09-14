@@ -15,6 +15,7 @@ import { VoicePicker } from "../components/VoicePicker";
 import { Heading2 } from "../components/Typography";
 import { PresenceTopBar } from "../components/PresenceTopBar";
 import { useToast } from "../hooks/useToast";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { AppState, useAppState } from "../hooks/useAppState";
 import { preloadAllOutfits, getCachedOutfit, isPreloadComplete, getAllCachedThumbnails } from "../lib/outfitCache";
 import { ControlBar } from "../components/ControlBar";
@@ -256,6 +257,7 @@ export default function Chat() {
   const isSpeakerOnRef = useRef(isSpeakerOn);
 
 
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const [isCallMode, setIsCallMode] = useState(false);
   const [isPortraitMode, setIsPortraitMode] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -1277,10 +1279,11 @@ export default function Chat() {
           )}
         </AnimatePresence>
 
-        {/* ========================================================= */}
-        {/* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */}
-        {/* ========================================================= */}
-        <div className="md:hidden flex flex-col w-full h-full relative overflow-hidden bg-[#ede2dc]">
+        {isMobile ? (
+          /* ========================================================= */
+          /* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */
+          /* ========================================================= */
+          <div className="flex flex-col w-full h-full relative overflow-hidden bg-[#ede2dc]">
           
           {/* Top Navigation Bar - remains compact at the top */}
           <div className={`absolute top-0 left-0 right-0 px-3.5 pt-2.5 pb-2 flex items-center justify-between z-40 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
@@ -1574,10 +1577,11 @@ export default function Chat() {
             )}
           </AnimatePresence>
         </div>
-        {/* ========================================================= */}
-        {/* DESKTOP LAYOUT (>= 768px): Side-by-Side Companion & Panel  */}
-        {/* ========================================================= */}
-        <div className="hidden md:flex flex-row w-full h-full relative">
+        ) : (
+        /* ========================================================= */
+        /* DESKTOP LAYOUT (>= 768px): Side-by-Side Companion & Panel  */
+        /* ========================================================= */
+        <div className="flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
           <div className="companion-screen flex-1 bg-[#ede2dc] group relative overflow-hidden">
             <div className="companion-viewport w-full h-full relative">
@@ -1842,6 +1846,7 @@ export default function Chat() {
             )}
           </div>
         </div>
+        )}
 
         {/* ========================================================= */}
         {/* MOBILE SLIDE-OUT MENU DRAWER (Hamburger ☰)                */}

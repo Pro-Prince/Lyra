@@ -156,6 +156,7 @@ export function WardrobeCard({
   };
 
   useEffect(() => {
+    console.log('MOUNTED:', modelId, 'canvases now:', document.querySelectorAll('canvas').length);
     let cancelled = false;
     let animId: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
@@ -215,6 +216,7 @@ export function WardrobeCard({
     })();
 
     return () => {
+      console.log('UNMOUNTING:', modelId, 'canvases before cleanup:', document.querySelectorAll('canvas').length);
       cancelled = true;
       if (animId !== null) {
         cancelAnimationFrame(animId);
@@ -240,6 +242,9 @@ export function WardrobeCard({
       modelRef.current = null;
       sceneRef.current = null;
       cameraRef.current = null;
+      setTimeout(() => {
+        console.log('UNMOUNTED:', modelId, 'canvases after cleanup:', document.querySelectorAll('canvas').length);
+      }, 0);
     };
   }, [modelId, retryKey]);
 

@@ -962,6 +962,24 @@ function CustomPostProcessing() {
   return null;
 }
 
+function CanvasLifecycleTracker({ modelId }: { modelId: string }) {
+  const { gl } = useThree();
+  useEffect(() => {
+    return () => {
+      console.log('UNMOUNTING:', modelId, 'canvases before cleanup:', document.querySelectorAll('canvas').length);
+      try {
+        gl.forceContextLoss?.();
+        gl.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
+        gl.dispose();
+      } catch {}
+      setTimeout(() => {
+        console.log('UNMOUNTED:', modelId, 'canvases after cleanup:', document.querySelectorAll('canvas').length);
+      }, 0);
+    };
+  }, [gl, modelId]);
+  return null;
+}
+
 function CompanionStageComponent({
   modelId,
   isWardrobeOpen = false,
@@ -1026,6 +1044,10 @@ function CompanionStageComponent({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    console.log('MOUNTED:', activeModelId, 'canvases now:', document.querySelectorAll('canvas').length);
+  }, [activeModelId]);
 
   const handleRetry = () => {
     setIsLoaded(false);
@@ -1145,6 +1167,7 @@ function CompanionStageComponent({
         >
           <color attach="background" args={['#3A2335']} />
           <fog attach="fog" args={['#3A2335', 18, 50]} />
+          <CanvasLifecycleTracker modelId={activeModelId} />
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
