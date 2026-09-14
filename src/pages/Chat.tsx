@@ -253,8 +253,6 @@ export default function Chat() {
   const [viewMode, setViewMode] = useState<'3d' | 'chat'>('3d');
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(isMuted);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const isSpeakerOnRef = useRef(isSpeakerOn);
 
 
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -292,7 +290,6 @@ export default function Chat() {
   const messagesRef = useRef(messages);
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
-  useEffect(() => { isSpeakerOnRef.current = isSpeakerOn; }, [isSpeakerOn]);
 
   const triggerSubtitle = (role: 'user' | 'model', text: string, idStr?: string) => {
     if (!text || !text.trim()) return;
@@ -665,7 +662,7 @@ export default function Chat() {
     }
     
     const { voicePreset } = companionProfileRef.current;
-    const vol = isSpeakerOnRef.current ? 1.0 : 0.35;
+    const vol = 1.0;
     
     queuedChunksRef.current++;
 
@@ -1361,7 +1358,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute bottom-[130px] left-4 right-4 bg-[#160f17]/85 backdrop-blur-xl px-4 py-3 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                className="absolute bottom-[148px] left-4 right-4 bg-[#160f17]/85 backdrop-blur-xl px-4 py-3 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
               >
                 <p className="text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-3">
                   {formatCleanMessageContent(messages[messages.length - 1].content)}
@@ -1370,9 +1367,10 @@ export default function Chat() {
             )}
           </AnimatePresence>
 
-          {/* Control Bar Scrim */}
-          <div className="absolute bottom-[56px] left-0 right-0 pt-16 pb-4 bg-gradient-to-t from-[#160f17]/85 to-transparent z-40 pointer-events-none flex flex-col items-center justify-end">
-            <div className="pointer-events-auto w-full">
+          {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
+          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-12">
+            {/* Control Bar */}
+            <div className="pointer-events-auto w-full pb-3 flex justify-center">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1384,16 +1382,18 @@ export default function Chat() {
                 isPortraitMode={isPortraitMode}
               />
             </div>
-          </div>
 
-          {/* Chat Drawer Handle (Always Visible) */}
-          <button 
-            onClick={() => setIsChatDrawerOpen(true)}
-            className="absolute bottom-0 left-0 right-0 h-[56px] flex items-center justify-center gap-1.5 bg-[var(--bg-surface)] border-t border-[var(--accent-primary)]/15 rounded-t-[20px] z-40 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] font-medium text-sm transition-colors cursor-pointer shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
-          >
-            <ChevronUp className="w-4 h-4" />
-            <span>Chat</span>
-          </button>
+            {/* Chat Drawer Handle (Always Visible) */}
+            <button 
+              type="button"
+              onClick={() => setIsChatDrawerOpen(true)}
+              className="chat-drawer-handle pointer-events-auto cursor-pointer"
+              aria-label="Open chat drawer"
+            >
+              <ChevronUp className="w-4 h-4 text-[var(--accent-primary)]" />
+              <span>Chat</span>
+            </button>
+          </div>
 
           {/* The Pull-up Chat Drawer */}
           <AnimatePresence>

@@ -1276,6 +1276,33 @@ h3, .heading-3 {
   }
 }
 
+.chat-drawer-handle {
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border-top: 1px solid rgba(255, 182, 213, 0.16);
+  border-radius: 20px 20px 0 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.chat-drawer-handle:hover {
+  background: var(--bg-panel);
+  border-color: rgba(255, 182, 213, 0.3);
+}
+
+.chat-drawer-handle:active {
+  opacity: 0.85;
+  transform: scale(0.995);
+}
+
 
 
 

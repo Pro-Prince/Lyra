@@ -432,8 +432,10 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     return () => ro.disconnect();
   }, [camera, gl, vrmScene]);
 
+  const fallbackVec = useRef(new THREE.Vector3(0, 0, 0));
+
   useFrame(() => {
-    const companionPosition = vrmScene ? vrmScene.position : new THREE.Vector3();
+    const companionPosition = vrmScene ? vrmScene.position : fallbackVec.current;
     const { distance } = fullBodyFraming.current;
 
     if (vrmScene && mode === 'portrait') {
@@ -779,6 +781,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
   const movement = useCompanionMovement(vrm?.scene || null);
   const elapsedTimeRef = useRef(0);
+  const _tempGaze = useRef(new THREE.Vector3());
+  const audioBufferRef = useRef<Uint8Array | null>(null);
 
   useFrame((_, delta) => {
     if (!vrm || !vrm.scene || !vrm.scene.parent) return;
@@ -792,11 +796,11 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
       performanceController.update();
 
       // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
-      let targetGaze = targetLookAt.current.clone();
+      _tempGaze.current.copy(targetLookAt.current);
       if (isProcessing) {
-         targetGaze.set(0, 1.15, 2.8);
+         _tempGaze.current.set(0, 1.15, 2.8);
       }
-      lookTarget.current.position.lerp(targetGaze, 0.08);
+      lookTarget.current.position.lerp(_tempGaze.current, 0.08);
 
       // Blink oscillator (expression blendshape)
       const state = blinkState.current;
@@ -844,7 +848,10 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
         if (analyser) {
           const bufferLength = analyser.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
+          if (!audioBufferRef.current || audioBufferRef.current.length !== bufferLength) {
+            audioBufferRef.current = new Uint8Array(bufferLength);
+          }
+          const dataArray = audioBufferRef.current;
           analyser.getByteFrequencyData(dataArray);
 
           // Calculate average amplitude across the entire spectrum
@@ -1145,7 +1152,7 @@ function CompanionStageComponent({
             preserveDrawingBuffer: true,
             alpha: false, 
             antialias: true, 
-            powerPreference: "default",
+            powerPreference: "high-performance",
             stencil: false,
             depth: true,
             failIfMajorPerformanceCaveat: false
@@ -1160,10 +1167,8 @@ function CompanionStageComponent({
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.0;
-            console.log('Tone mapping:', gl.toneMapping);
-            console.log('Exposure:', gl.toneMappingExposure);
           }}
-          dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1}
+          dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 1.5) : 1}
         >
           <color attach="background" args={['#3A2335']} />
           <fog attach="fog" args={['#3A2335', 18, 50]} />

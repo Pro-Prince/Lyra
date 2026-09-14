@@ -1,5 +1,4 @@
-import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 
 // -----------------------------------------------------------------------------
@@ -542,15 +541,6 @@ function RightCabinetAndDecor() {
 // -----------------------------------------------------------------------------
 
 function CozyMushroomLamp({ position }: { position: [number, number, number] }) {
-  const lampLightRef = useRef<THREE.PointLight>(null);
-
-  useFrame(({ clock }) => {
-    if (lampLightRef.current) {
-      const t = clock.getElapsedTime();
-      lampLightRef.current.intensity = 0.6 + Math.sin(t * 1.2) * 0.03;
-    }
-  });
-
   return (
     <group position={position}>
       <mesh position={[0, 0.07, 0]} >
@@ -567,7 +557,6 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
         />
       </mesh>
       <pointLight
-        ref={lampLightRef}
         color={PALETTE.lampGlow}
         intensity={0.6}
         distance={2.8}

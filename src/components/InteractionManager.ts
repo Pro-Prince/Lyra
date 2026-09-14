@@ -46,6 +46,8 @@ export class InteractionManager {
   private pointerDownPos = { x: 0, y: 0, time: 0 };
   private maxClickDistance = 10; // max pixel drift for a tap/click vs drag
   private maxClickDuration = 400; // ms
+  private hoverRafId: number | null = null;
+  private pendingPointerEvent: PointerEvent | null = null;
 
   private onInteract?: (gesture: GestureType, hitPoint?: THREE.Vector3) => void;
   private onIdleTrigger?: (idleAnimation: IdleAnimationType) => void;
@@ -161,19 +163,32 @@ export class InteractionManager {
   private handlePointerMove = (e: PointerEvent) => {
     if (!this.enabled || !this.targetObject) return;
 
-    this.updateNormalizedCoords(e);
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObject(this.targetObject, true);
+    this.pendingPointerEvent = e;
+    if (this.hoverRafId !== null) return;
 
-    const hit = intersects.length > 0;
-    if (hit !== this.isHovered) {
-      this.isHovered = hit;
-      this.domElement.style.cursor = hit ? 'pointer' : '';
-      this.onHoverChange?.(hit);
-    }
+    this.hoverRafId = requestAnimationFrame(() => {
+      this.hoverRafId = null;
+      if (!this.enabled || !this.targetObject || !this.pendingPointerEvent) return;
+
+      this.updateNormalizedCoords(this.pendingPointerEvent);
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const intersects = this.raycaster.intersectObject(this.targetObject, true);
+
+      const hit = intersects.length > 0;
+      if (hit !== this.isHovered) {
+        this.isHovered = hit;
+        this.domElement.style.cursor = hit ? 'pointer' : '';
+        this.onHoverChange?.(hit);
+      }
+    });
   };
 
   private handlePointerLeave = () => {
+    if (this.hoverRafId !== null) {
+      cancelAnimationFrame(this.hoverRafId);
+      this.hoverRafId = null;
+    }
+    this.pendingPointerEvent = null;
     if (this.isHovered) {
       this.isHovered = false;
       this.domElement.style.cursor = '';
@@ -677,6 +692,11 @@ export class InteractionManager {
 
   public dispose() {
     this.isDisposed = true;
+    if (this.hoverRafId !== null) {
+      cancelAnimationFrame(this.hoverRafId);
+      this.hoverRafId = null;
+    }
+    this.pendingPointerEvent = null;
     this.activeTimeouts.forEach(t => clearTimeout(t));
     this.activeTimeouts.clear();
     if (this.idleCheckInterval !== null) {

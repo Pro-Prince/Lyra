@@ -30,6 +30,7 @@ export class PerformanceController {
   private cursorTarget: THREE.Object3D | null = null;
   private gazeInterval: any = null;
   private gazeTimeout: any = null;
+  private freqDataArray: Uint8Array | null = null;
 
   constructor() {
     this.setupGazeInterval();
@@ -90,9 +91,16 @@ export class PerformanceController {
   public getCurrentAmplitude(): number {
     if (!this.analyser) return 0;
     try {
-      const data = new Uint8Array(this.analyser.frequencyBinCount);
-      this.analyser.getByteFrequencyData(data);
-      const avg = data.reduce((a, b) => a + b, 0) / (data.length || 1);
+      const binCount = this.analyser.frequencyBinCount;
+      if (!this.freqDataArray || this.freqDataArray.length !== binCount) {
+        this.freqDataArray = new Uint8Array(binCount);
+      }
+      this.analyser.getByteFrequencyData(this.freqDataArray);
+      let sum = 0;
+      for (let i = 0; i < binCount; i++) {
+        sum += this.freqDataArray[i];
+      }
+      const avg = sum / (binCount || 1);
       return avg / 255; // normalized 0-1
     } catch (_) {
       return 0;

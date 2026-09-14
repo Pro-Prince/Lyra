@@ -17,6 +17,10 @@ const STAGE_RADIUS = 2.2;
 const WALK_SPEED = 0.6;   // units per second
 const TURN_SPEED = Math.PI * 0.6; // radians per second
 
+const _moveDir = new THREE.Vector3();
+const _euler = new THREE.Euler();
+const _nextPos = new THREE.Vector3();
+
 export function useCompanionMovement(
   vrmScene: THREE.Group | null
 ) {
@@ -81,17 +85,17 @@ export function useCompanionMovement(
         vrmScene.rotation.y += step;
       }
     } else if (activeAction.current.startsWith('walk_') || activeAction.current.startsWith('strafe_')) {
-      const moveDir = new THREE.Vector3();
-      if (activeAction.current === ACTIONS.WALK_FORWARD) moveDir.set(0, 0, 1);
-      else if (activeAction.current === ACTIONS.WALK_BACKWARD) moveDir.set(0, 0, -1);
-      else if (activeAction.current === ACTIONS.STRAFE_LEFT) moveDir.set(1, 0, 0);
-      else if (activeAction.current === ACTIONS.STRAFE_RIGHT) moveDir.set(-1, 0, 0);
+      if (activeAction.current === ACTIONS.WALK_FORWARD) _moveDir.set(0, 0, 1);
+      else if (activeAction.current === ACTIONS.WALK_BACKWARD) _moveDir.set(0, 0, -1);
+      else if (activeAction.current === ACTIONS.STRAFE_LEFT) _moveDir.set(1, 0, 0);
+      else if (activeAction.current === ACTIONS.STRAFE_RIGHT) _moveDir.set(-1, 0, 0);
 
-      moveDir.applyEuler(new THREE.Euler(0, vrmScene.rotation.y, 0));
-      moveDir.multiplyScalar(WALK_SPEED * delta);
+      _euler.set(0, vrmScene.rotation.y, 0);
+      _moveDir.applyEuler(_euler);
+      _moveDir.multiplyScalar(WALK_SPEED * delta);
 
-      const nextPos = vrmScene.position.clone().add(moveDir);
-      const dist = Math.sqrt(nextPos.x * nextPos.x + nextPos.z * nextPos.z);
+      _nextPos.copy(vrmScene.position).add(_moveDir);
+      const dist = Math.sqrt(_nextPos.x * _nextPos.x + _nextPos.z * _nextPos.z);
 
       if (dist > STAGE_RADIUS) {
         // Trigger turn around
@@ -99,7 +103,7 @@ export function useCompanionMovement(
         targetRotationY.current = vrmScene.rotation.y + Math.PI;
         crossfadeToAction(ACTIONS.TURN_AROUND, 0.3, true);
       } else {
-        vrmScene.position.copy(nextPos);
+        vrmScene.position.copy(_nextPos);
       }
     }
   };

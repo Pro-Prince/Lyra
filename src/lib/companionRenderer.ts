@@ -113,10 +113,9 @@ function createLoader() {
   return loader;
 }
 
-export function safeUpdateVRM(vrm: VRM | null | undefined, delta: number): void {
+export function sanitizeVRMHierarchy(vrm: VRM | null | undefined): void {
   if (!vrm || !vrm.scene) return;
   try {
-    // Sanitize node parent references: replace undefined with null
     vrm.scene.traverse((child: THREE.Object3D) => {
       if (child.parent === undefined) {
         child.parent = null;
@@ -140,7 +139,14 @@ export function safeUpdateVRM(vrm: VRM | null | undefined, delta: number): void 
         vrm.lookAt.target.matrix = new THREE.Matrix4();
       }
     }
+  } catch (err) {
+    console.warn('[sanitizeVRMHierarchy] Exception:', err);
+  }
+}
 
+export function safeUpdateVRM(vrm: VRM | null | undefined, delta: number): void {
+  if (!vrm) return;
+  try {
     vrm.update(delta);
   } catch (err) {
     console.warn('[safeUpdateVRM] Handled VRM update exception:', err);
@@ -267,6 +273,7 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
       throw new Error('No VRM data in loaded file');
     }
 
+    sanitizeVRMHierarchy(vrm as VRM);
     modelCache[modelId] = vrm as VRM;
     return vrm as VRM;
   } catch (err: any) {
