@@ -1346,6 +1346,7 @@ export default function Chat() {
                 isSpeaking={isLyraSpeaking}
                 onStop={handleStopSpeaking}
                 onToggleView={toggleView}
+                isPortraitMode={isPortraitMode}
               />
             </div>
 
@@ -1574,9 +1575,9 @@ export default function Chat() {
                 onClick={toggleWardrobe} 
                 title={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
                 aria-label={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
-                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer ${
+                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
                   isWardrobeOpen 
-                    ? 'bg-[var(--accent-primary)] text-[var(--bg-base)] border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.4)]' 
+                    ? 'bg-white/20 text-white border-white/40 shadow-[0_0_16px_rgba(255,255,255,0.25)]' 
                     : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1586,9 +1587,9 @@ export default function Chat() {
                 onClick={toggleSettings} 
                 title="Voice Settings"
                 aria-label="Voice Settings"
-                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer ${
+                className={`w-12 h-12 rounded-full backdrop-blur-md border flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-95 ${
                   isSettingsOpen 
-                    ? 'bg-[var(--accent-primary)] text-[var(--bg-base)] border-[var(--accent-primary)] shadow-[0_0_16px_rgba(255,143,192,0.4)]' 
+                    ? 'bg-white/20 text-white border-white/40 shadow-[0_0_16px_rgba(255,255,255,0.25)]' 
                     : 'bg-[var(--bg-elevated)]/40 border-[var(--text-primary)]/10 text-[var(--text-primary)]/80 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)]'
                 }`}
               >
@@ -1598,7 +1599,7 @@ export default function Chat() {
              
             {/* HUD Top Right */}
             <div className={`absolute top-6 right-6 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] transition-all shadow-lg cursor-pointer">
+              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--bg-elevated)]/40 backdrop-blur-md border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 hover:bg-[var(--bg-elevated)]/60 hover:text-[var(--text-primary)] active:scale-95 transition-all shadow-lg cursor-pointer">
                 <Camera className="w-4 h-4" />
                 <span className="text-sm font-medium">Capture</span>
               </button>
@@ -1637,6 +1638,7 @@ export default function Chat() {
                 isSpeaking={isLyraSpeaking}
                 onStop={handleStopSpeaking}
                 onToggleView={toggleView}
+                isPortraitMode={isPortraitMode}
               />
             </div>
 
