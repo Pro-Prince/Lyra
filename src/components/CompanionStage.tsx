@@ -576,32 +576,49 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         };
         window.addEventListener('lyraOutfitsReady', handleOutfitsReady);
 
+        let activeGestureAction: THREE.AnimationAction | null = null;
+        let activeGestureFinishedListener: ((e: any) => void) | null = null;
+
         const playGesture = (name: string) => {
           if (!mixer.current || !clips.current[name]) return;
           const clip = clips.current[name];
           const action = mixer.current.clipAction(clip);
-          if (currentAction.current && currentAction.current !== action) {
-            currentAction.current.crossFadeTo(action, 0.25, false);
+          const idleClip = clips.current['idle'] || clips.current['procedural_idle'];
+          const idleAction = idleClip ? mixer.current.clipAction(idleClip) : null;
+
+          if (activeGestureFinishedListener && mixer.current) {
+            mixer.current.removeEventListener('finished', activeGestureFinishedListener);
+            activeGestureFinishedListener = null;
           }
+          if (activeGestureAction && activeGestureAction !== action) {
+            activeGestureAction.fadeOut(0.3);
+          }
+
           action.reset();
           action.setLoop(THREE.LoopOnce, 1);
-          action.clampWhenFinished = true;
+          action.clampWhenFinished = false;
+          action.fadeIn(0.3);
           action.play();
+
+          activeGestureAction = action;
           currentAction.current = action;
 
           const onFinished = (e: any) => {
-            if (e.action === action) {
-              action.fadeOut(0.3);
-              mixer.current?.removeEventListener('finished', onFinished);
-              if (currentAction.current === action) {
-                 if (clips.current['idle']) {
-                   crossfadeToAction('idle', 0.4, true);
-                 } else {
-                   currentAction.current = null;
-                 }
-              }
+            if (e.action !== action) return;
+            if (idleAction) {
+              idleAction.reset().fadeIn(0.4).play();
+            }
+            action.fadeOut(0.4);
+            if (activeGestureAction === action) {
+              activeGestureAction = null;
+            }
+            if (mixer.current && activeGestureFinishedListener === onFinished) {
+              mixer.current.removeEventListener('finished', onFinished);
+              activeGestureFinishedListener = null;
             }
           };
+
+          activeGestureFinishedListener = onFinished;
           mixer.current.addEventListener('finished', onFinished);
         };
 
@@ -1203,9 +1220,9 @@ function CompanionStageComponent({
               gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
               gl.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
 
-              gl.setClearColor(new THREE.Color('#EDE5DD'), 1);
-              scene.background = new THREE.Color('#EDE5DD');
-              scene.fog = new THREE.Fog('#EDE5DD', 22, 60);
+              gl.setClearColor(new THREE.Color('#3A2335'), 1);
+              scene.background = new THREE.Color('#3A2335');
+              scene.fog = new THREE.Fog('#3A2335', 18, 50);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.outputColorSpace = THREE.SRGBColorSpace;
@@ -1214,8 +1231,8 @@ function CompanionStageComponent({
             }}
             dpr={dpr}
           >
-            <color attach="background" args={['#EDE5DD']} />
-            <fog attach="fog" args={['#EDE5DD', 22, 60]} />
+            <color attach="background" args={['#3A2335']} />
+            <fog attach="fog" args={['#3A2335', 18, 50]} />
             <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
             
             <RoomEnvironment />

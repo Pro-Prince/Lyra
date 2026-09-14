@@ -1208,9 +1208,9 @@ export default function Chat() {
 
       // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
       const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-      bgGradient.addColorStop(0, '#EDE5DD');
-      bgGradient.addColorStop(0.5, '#E6DDD5');
-      bgGradient.addColorStop(1, '#DFCDBB');
+      bgGradient.addColorStop(0, '#1c131a');
+      bgGradient.addColorStop(0.5, '#140D16');
+      bgGradient.addColorStop(1, '#0c070e');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, exportWidth, exportHeight);
 
@@ -1353,9 +1353,9 @@ export default function Chat() {
                 isActive={isChatActive}
               />
               <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
-                <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('laugh', '')} />
+                <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
                 <div className="pointer-events-auto absolute top-[35%] h-[25%] w-[70%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
-                <div className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer" onClick={() => triggerGesture('wave', '')} />
+                <div className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
               </div>
           </div>
 
@@ -1670,9 +1670,9 @@ export default function Chat() {
                 />
                 {/* TouchInteractionLayer */}
                 <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
-                  <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('laugh', '')} />
+                  <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
                   <div className="pointer-events-auto absolute top-[35%] h-[25%] w-[70%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
-                  <div className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer" onClick={() => triggerGesture('wave', '')} />
+                  <div className="pointer-events-auto absolute bottom-[15%] h-[30%] w-[90%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
                 </div>
               </div>
             </div>

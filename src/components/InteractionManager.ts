@@ -227,31 +227,24 @@ export class InteractionManager {
    * Determines and executes a contextual response based on the hit point.
    */
   public triggerAvatarReaction(hitPoint?: THREE.Vector3) {
-    let chosenGesture: GestureType = 'wave';
+    let chosenGesture: GestureType = 'nod';
 
     if (hitPoint && this.targetObject) {
-      // Determine vertical region of the model
+      // Determine vertical region of the model for lightweight interaction
       safeUpdateMatrixWorld(this.targetObject);
       const box = safeSetFromObject(new THREE.Box3(), this.targetObject);
       const height = box.max.y - box.min.y;
       const relativeY = (hitPoint.y - box.min.y) / (height || 1);
 
       if (relativeY > 0.75) {
-        // Head / Face area -> nod, laugh, think, or look around
-        const headGestures: GestureType[] = ['nod', 'think', 'laugh', 'lookAround'];
-        chosenGesture = headGestures[Math.floor(Math.random() * headGestures.length)];
-      } else if (relativeY > 0.45) {
-        // Chest / Upper Torso / Arms -> wave, cheer
-        const torsoGestures: GestureType[] = ['wave', 'cheer', 'wave'];
-        chosenGesture = torsoGestures[Math.floor(Math.random() * torsoGestures.length)];
+        // Head / Face area -> lightweight acknowledging nod or lookAround
+        chosenGesture = Math.random() > 0.3 ? 'nod' : 'lookAround';
       } else {
-        // Lower body -> cheer or look around
-        chosenGesture = Math.random() > 0.5 ? 'cheer' : 'lookAround';
+        // Torso & Body area -> soft acknowledging nod
+        chosenGesture = 'nod';
       }
     } else {
-      // Rotate through idle gestures
-      chosenGesture = this.gestureCycle[this.currentGestureIndex % this.gestureCycle.length];
-      this.currentGestureIndex++;
+      chosenGesture = 'nod';
     }
 
     this.executeGesture(chosenGesture, hitPoint);

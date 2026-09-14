@@ -20,6 +20,7 @@ export class PerformanceController {
   public analyser: AnalyserNode | null = null;
   public currentGestureAction: THREE.AnimationAction | null = null;
   public idleAction: THREE.AnimationAction | null = null;
+  private activeGestureListener: ((e: any) => void) | null = null;
 
   private audioCtx: AudioContext | null = null;
   private mediaSourceMap: WeakMap<HTMLAudioElement, MediaElementAudioSourceNode> = new WeakMap();
@@ -141,11 +142,16 @@ export class PerformanceController {
 
     if (!clip) return;
 
+    if (this.activeGestureListener && this.mixer) {
+      this.mixer.removeEventListener('finished', this.activeGestureListener as any);
+      this.activeGestureListener = null;
+    }
+
     const action = this.mixer.clipAction(clip);
 
     action.reset();
     action.setLoop(THREE.LoopOnce, 1);
-    action.clampWhenFinished = true;
+    action.clampWhenFinished = false; // CRITICAL: do not hold the last frame
     action.fadeIn(0.35); // crossfade in, never a hard cut
 
     const currentAction = this.currentGestureAction;
@@ -157,7 +163,7 @@ export class PerformanceController {
     this.currentGestureAction = action;
 
     const mixer = this.mixer;
-    const idleAction = this.idleAction;
+    const idleAction = this.idleAction || (this.animationClips['idle'] ? mixer.clipAction(this.animationClips['idle']) : (this.animationClips['procedural_idle'] ? mixer.clipAction(this.animationClips['procedural_idle']) : null));
 
     const onFinish = (e: THREE.Event & { action?: THREE.AnimationAction }) => {
       if (e.action === action) {
@@ -166,11 +172,15 @@ export class PerformanceController {
         }
         action.fadeOut(0.4);
         mixer.removeEventListener('finished', onFinish as any);
+        if (this.activeGestureListener === onFinish as any) {
+          this.activeGestureListener = null;
+        }
         if (this.currentGestureAction === action) {
           this.currentGestureAction = null;
         }
       }
     };
+    this.activeGestureListener = onFinish as any;
     mixer.addEventListener('finished', onFinish as any);
   }
 
