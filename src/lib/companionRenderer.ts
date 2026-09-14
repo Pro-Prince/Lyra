@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin } from '@pixiv/three-vrm';
-import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
+import { applyRestPose, applyRelaxedHandPose, settleVRMPhysics, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 
 // Global safety guard for Three.js Object3D matrixWorld updates across all VRM/Canvas scenes
 if (typeof window !== 'undefined' && THREE.Object3D) {
@@ -315,6 +315,8 @@ export async function renderStaticPortrait(
   scene.add(ambient, key, vrm.scene);
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 10);
+  applyRestPose(vrm);
+  settleVRMPhysics(vrm, 90, 0.016);
   if (frame === 'full-body') {
     frameFullBody(vrm.scene, camera, size, 0, 0);
   } else if (frame === 'outfit') {

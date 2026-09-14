@@ -13,7 +13,7 @@ import { RotateCcw } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
-import { applyRestPose } from '../lib/poseUtils';
+import { applyRestPose, settleVRMPhysics } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
 import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
@@ -504,8 +504,9 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
         const cached = getCachedOutfit(url);
 
-        // Apply rest pose
+        // Apply rest pose & pre-settle physics (skirts, hair, ribbons)
         applyRestPose(vrmInstance);
+        settleVRMPhysics(vrmInstance, 90, 0.016);
 
         // Detailed Diagnostics for Checks 1, 2, 3
         // removed console.log

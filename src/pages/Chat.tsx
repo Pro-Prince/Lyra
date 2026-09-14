@@ -725,6 +725,20 @@ export default function Chat() {
     setIsMobileMenuOpen(false);
   };
 
+  const closeWardrobe = () => {
+    setIsWardrobeOpen(false);
+    if (isMobile) {
+      setIsMobileMenuOpen(true);
+    }
+  };
+
+  const closeSettings = () => {
+    setIsSettingsOpen(false);
+    if (isMobile) {
+      setIsMobileMenuOpen(true);
+    }
+  };
+
   const openWardrobe = () => {
     setIsSettingsOpen(false);
     setIsMobileMenuOpen(false);
@@ -1309,10 +1323,6 @@ export default function Chat() {
                 >
                   <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
                 </button>
-                <div className="flex items-center gap-2 cursor-pointer active:opacity-75 transition-all duration-300" onClick={() => navigate('/')}>
-                  <img src="/images/Logo.png" alt="Lyra" className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" />
-                  <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">Lyra</span>
-                </div>
               </div>
 
               <button 
@@ -1875,11 +1885,11 @@ export default function Chat() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              className="fixed inset-y-0 left-0 w-[280px] sm:w-[320px] z-[120] bg-[var(--bg-drawer)] border-r border-[var(--text-primary)]/10 flex flex-col shadow-2xl p-5"
+              transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+              className="fixed inset-0 w-full h-full z-[120] bg-[var(--bg-drawer)] flex flex-col shadow-2xl p-5 sm:p-6 overflow-hidden"
             >
               {/* Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-[var(--text-primary)]/10">
+              <div className="flex items-center justify-between pb-4 border-b border-[var(--text-primary)]/10 shrink-0">
                 <div 
                   className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
                   onClick={() => navigate('/')}
@@ -1890,7 +1900,11 @@ export default function Chat() {
                     <p className="text-[11px] font-medium text-[var(--accent-primary)]">AI Companion</p>
                   </div>
                 </div>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--text-primary)]/5 cursor-pointer">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="w-10 h-10 rounded-full bg-[#241724]/80 border border-white/10 text-white/80 hover:text-white flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                  aria-label="Close menu"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1955,7 +1969,7 @@ export default function Chat() {
               </div>
 
               {/* Log Out */}
-              <div className="pt-2">
+              <div className="pt-2 shrink-0 border-t border-[var(--text-primary)]/10">
                 <button
                   type="button"
                   onClick={async () => {
@@ -2016,8 +2030,8 @@ export default function Chat() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.42 }}
-              className="fixed top-0 md:top-[50px] bottom-0 left-0 w-full sm:w-[460px] md:w-[500px] lg:w-[540px] max-w-[92vw] z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full md:h-[calc(100vh-50px)]"
+              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.38 }}
+              className="fixed inset-0 w-full h-full max-w-none md:max-w-[540px] md:top-[50px] md:inset-y-auto md:bottom-0 md:left-0 md:w-[500px] lg:w-[540px] z-[120] md:z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl md:h-[calc(100vh-50px)]"
             >
               <div className="p-5 sm:p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10 shrink-0 bg-[var(--bg-drawer)]/90 backdrop-blur-md">
                 <div className="flex items-center gap-3.5">
@@ -2030,7 +2044,7 @@ export default function Chat() {
                   </div>
                 </div>
                 <button 
-                  onClick={closeDrawers} 
+                  onClick={closeSettings} 
                   aria-label="Close settings"
                   className="p-2 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-elevated)]/40 active:scale-95 transition-all cursor-pointer"
                 >
@@ -2060,8 +2074,8 @@ export default function Chat() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.42 }}
-              className="fixed top-0 md:top-[50px] bottom-0 left-0 w-full sm:w-[460px] md:w-[500px] lg:w-[540px] max-w-[92vw] z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl h-full md:h-[calc(100vh-50px)]"
+              transition={{ type: "tween", ease: [0.16, 1, 0.3, 1], duration: 0.38 }}
+              className="fixed inset-0 w-full h-full max-w-none md:max-w-[540px] md:top-[50px] md:inset-y-auto md:bottom-0 md:left-0 md:w-[500px] lg:w-[540px] z-[120] md:z-40 bg-[var(--bg-drawer)] md:border-r border-[var(--text-primary)]/10 flex flex-col focus:outline-none shadow-2xl md:h-[calc(100vh-50px)]"
             >
               <div className="p-5 sm:p-6 flex items-center justify-between border-b border-[var(--text-primary)]/10 shrink-0 bg-[var(--bg-drawer)]/90 backdrop-blur-md">
                 <div className="flex items-center gap-3.5">
@@ -2076,7 +2090,7 @@ export default function Chat() {
                   </div>
                 </div>
                 <button 
-                  onClick={closeDrawers} 
+                  onClick={closeWardrobe} 
                   aria-label="Close wardrobe"
                   className="p-2 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-elevated)]/40 active:scale-95 transition-all cursor-pointer"
                 >

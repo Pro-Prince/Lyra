@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { ArrowRight, Check, Loader2, RotateCcw } from 'lucide-react';
 import { loadCompanionModel, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
-import { frameOutfit, applyRestPose } from '../lib/poseUtils';
+import { frameOutfit, applyRestPose, settleVRMPhysics } from '../lib/poseUtils';
 import { useOutfitThumbnail } from '../lib/outfitCache';
 
 export function useDragRotate(onDrag: (deltaX: number) => void) {
@@ -97,8 +97,9 @@ export function setupCardScene(
   modelRef.current = vrm;
   scene.add(vrm.scene);
 
-  // Apply rest pose & frame outfit
+  // Apply rest pose & fully settle physics so skirts, dresses, and hair hang naturally
   applyRestPose(vrm);
+  settleVRMPhysics(vrm, 100, 0.016);
   frameOutfit(vrm.scene, camera, height);
   vrm.scene.updateMatrixWorld(true);
 }
@@ -215,9 +216,22 @@ export function WardrobeCard({
 
         setupCardScene(vrm, containerRef.current, rendererRef, modelRef, sceneRef, cameraRef);
 
-        // Initial paint
+        // Initial render with model and skirt fully settled
         renderCard();
-        requestAnimationFrame(renderCard);
+
+        // Run a short 20-frame settle loop to ensure GPU pipeline flushes cleanly and rests
+        let settleFrames = 20;
+        const settleStep = () => {
+          if (cancelled) return;
+          renderCard();
+          settleFrames--;
+          if (settleFrames > 0) {
+            animId = requestAnimationFrame(settleStep);
+          } else {
+            animId = null;
+          }
+        };
+        settleStep();
 
         // Resize observer
         if (containerRef.current) {

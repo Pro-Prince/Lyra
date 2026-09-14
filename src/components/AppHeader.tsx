@@ -83,14 +83,6 @@ function MobileNavDropdown({ onClose }: { onClose: () => void }) {
         {isAuthed ? (
           /* AFTER LOGIN (MOBILE) */
           <div className="flex flex-col gap-1.5">
-            {session?.user?.email && (
-              <div className="px-3 pt-1.5 pb-2 text-center border-b border-white/[0.08] dark:border-white/[0.08]">
-                <p className="text-xs font-normal text-[var(--text-muted)] truncate max-w-[200px] mx-auto">
-                  {session.user.email}
-                </p>
-              </div>
-            )}
-
             {/* HOME */}
             <Link
               to="/"

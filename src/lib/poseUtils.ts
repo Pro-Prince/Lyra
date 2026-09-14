@@ -111,6 +111,38 @@ export function applyRestPose(vrm: VRM) {
   h.update();
 }
 
+/**
+ * Pre-settles spring bone physics (skirts, dresses, hair, ribbons) to natural hanging rest.
+ * Solves the issue where models initially appear with flared or airborne skirts in bind pose.
+ */
+export function settleVRMPhysics(vrm: VRM | null | undefined, steps: number = 100, delta: number = 0.016): void {
+  if (!vrm || !vrm.scene) return;
+  try {
+    safeUpdateMatrixWorld(vrm.scene);
+
+    for (let i = 0; i < steps; i++) {
+      try {
+        vrm.update(delta);
+      } catch {
+        break;
+      }
+    }
+
+    // Zero out residual velocities so bones rest statically without initial bounce
+    if (vrm.springBoneManager && (vrm.springBoneManager as any).joints) {
+      for (const joint of (vrm.springBoneManager as any).joints) {
+        if (joint._prevTail && joint._currentTail) {
+          joint._prevTail.copy(joint._currentTail);
+        }
+      }
+    }
+
+    safeUpdateMatrixWorld(vrm.scene);
+  } catch (err) {
+    console.warn('[settleVRMPhysics] Handled exception:', err);
+  }
+}
+
 export function frameOutfit(
   vrmScene: THREE.Group,
   camera: THREE.PerspectiveCamera,

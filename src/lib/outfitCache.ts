@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { applyRestPose, applyRelaxedHandPose, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
+import { applyRestPose, applyRelaxedHandPose, settleVRMPhysics, frameFullBody, framePortrait, frameOutfit } from './poseUtils';
 import { createThumbnailRenderer } from './thumbnailUtils';
 import { loadCompanionModel, renderStaticPortrait, MODEL_FILES, safeUpdateMatrixWorld, fetchCompanionBuffer } from './companionRenderer';
 import { loadMixamoAnimation } from './retargetMixamo';
@@ -32,6 +32,7 @@ export async function renderPosedOutfit(
 
   const vrm = vrmUrlOrInstance;
   applyRestPose(vrm);
+  settleVRMPhysics(vrm, 90, 0.016);
   applyRelaxedHandPose(vrm, 'left');
   applyRelaxedHandPose(vrm, 'right');
   vrm.humanoid?.update();
