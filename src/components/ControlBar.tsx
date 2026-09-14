@@ -52,23 +52,34 @@ export function ControlBar({
       </button>
 
       {/* 2. Talk / Stop Button (Middle) */}
-      <button
-        type="button"
-        onClick={handleTalkStopClick}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
-          isVoiceActive
-            ? 'bg-[var(--accent-primary,#FF8FC0)] text-[#130b13] border-white/40 shadow-[0_4px_20px_rgba(255,143,192,0.4),inset_0_2px_6px_rgba(255,255,255,0.6)] animate-pulse'
-            : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
-        }`}
-        title={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
-        aria-label={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
-      >
-        {isVoiceActive ? (
-          <Square className="w-5 h-5 fill-current" />
-        ) : (
-          <Mic className="w-6 h-6" />
+      <div className="relative flex items-center justify-center">
+        {/* Animated Audio Swash Waves when active */}
+        {isVoiceActive && (
+          <>
+            <span className="absolute inset-0 rounded-full border border-rose-500/50 bg-rose-500/20 animate-mic-swash-1 pointer-events-none" />
+            <span className="absolute inset-0 rounded-full border border-rose-500/40 bg-rose-500/15 animate-mic-swash-2 pointer-events-none" />
+            <span className="absolute inset-0 rounded-full border border-rose-500/30 bg-rose-500/10 animate-mic-swash-3 pointer-events-none" />
+          </>
         )}
-      </button>
+
+        <button
+          type="button"
+          onClick={handleTalkStopClick}
+          className={`relative z-10 w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
+            isVoiceActive
+              ? 'bg-[#1e101d]/90 backdrop-blur-md border-rose-500/60 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.35),inset_0_0_12px_rgba(244,63,94,0.2)]'
+              : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
+          }`}
+          title={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
+          aria-label={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
+        >
+          {isVoiceActive ? (
+            <Square className="w-5 h-5 fill-current text-rose-400" />
+          ) : (
+            <Mic className="w-6 h-6" />
+          )}
+        </button>
+      </div>
 
       {/* 3. Mute / Speaker Button (Right) */}
       <button
