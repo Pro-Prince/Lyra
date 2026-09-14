@@ -129,52 +129,52 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ showToast, showError, showWarning, showSuccess, showInfo, dismissToast }}>
       {children}
       
-      {/* Toast Visual Viewport: Elegantly floats at top center */}
+      {/* Toast Visual Viewport: Elegantly floats at top center below header on mobile */}
       <div 
         id="toast-viewport"
-        className="fixed top-5 sm:top-6 left-1/2 -translate-x-1/2 z-[1001] max-w-lg w-[calc(100%-2rem)] sm:w-auto pointer-events-none flex flex-col items-center"
+        className="fixed top-[62px] sm:top-6 left-1/2 -translate-x-1/2 z-[1001] max-w-sm sm:max-w-lg w-[calc(100%-2.5rem)] sm:w-auto pointer-events-none flex flex-col items-center"
       >
         <AnimatePresence mode="wait">
           {currentToast && (
             <motion.div
               key={currentToast.id}
-              initial={{ y: -24, opacity: 0, scale: 0.96 }}
+              initial={{ y: -16, opacity: 0, scale: 0.95 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -16, opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="pointer-events-auto w-full sm:w-auto min-w-[300px] max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/12 rounded-2xl p-3.5 sm:px-4 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-between gap-3 overflow-hidden relative group"
+              exit={{ y: -12, opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="pointer-events-auto w-full sm:w-auto min-w-[240px] sm:min-w-[300px] max-w-[340px] sm:max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/12 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:p-3.5 sm:px-4 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-between gap-2.5 sm:gap-3 overflow-hidden relative group"
             >
               {/* Icon & Message Container */}
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0">
                   {currentToast.icon ? (
                      currentToast.icon
                   ) : currentToast.type === 'error' ? (
-                    <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400">
-                      <AlertCircle className="w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-400">
+                      <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   ) : currentToast.type === 'warning' ? (
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-300">
-                      <AlertTriangle className="w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-300">
+                      <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   ) : currentToast.type === 'success' ? (
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 className="w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-xl bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
-                      <Sparkles className="w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   )}
                 </div>
 
-                <p className="text-xs sm:text-[13px] font-body font-medium leading-snug text-[var(--text-primary)] min-w-0">
+                <p className="text-[11.5px] sm:text-[13px] font-body font-medium leading-snug text-[var(--text-primary)] min-w-0">
                   {currentToast.message}
                 </p>
               </div>
 
               {/* Action and/or Close button */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {currentToast.action && (
                   <button
                     type="button"
@@ -182,7 +182,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       currentToast.action?.onClick();
                       dismissToast(currentToast.id);
                     }}
-                    className="px-3 py-1.5 rounded-full bg-[var(--accent-primary)] text-[#1a121c] font-body font-semibold text-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-sm"
+                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-[var(--accent-primary)] text-[#1a121c] font-body font-semibold text-[11px] sm:text-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-xs"
                   >
                     {currentToast.action.label}
                   </button>
@@ -191,10 +191,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => dismissToast(currentToast.id)}
-                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10 active:scale-90 transition-all cursor-pointer"
+                  className="p-1 sm:p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10 active:scale-90 transition-all cursor-pointer"
                   aria-label="Dismiss notification"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </motion.div>
