@@ -478,6 +478,9 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
 
+  const modelGroupRef = useRef<THREE.Group>(null);
+  const enterAlpha = useRef(0);
+
   const lookTarget = useRef(new THREE.Object3D());
   const mixer = useRef<THREE.AnimationMixer | null>(null);
   const clips = useRef<Record<string, THREE.AnimationClip>>({});
@@ -487,6 +490,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   useEffect(() => {
     let isCancelled = false;
     let handleOutfitsReady: (() => void) | null = null;
+    enterAlpha.current = 0;
 
     const setupVRM = async () => {
       try {
@@ -925,6 +929,18 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
         mixer.current.update(safeDelta);
       }
 
+      // Smooth settling ease when model loads or switches
+      if (enterAlpha.current < 1) {
+        enterAlpha.current = Math.min(1, enterAlpha.current + safeDelta * 2.6);
+        if (modelGroupRef.current) {
+          const t = enterAlpha.current;
+          const ease = 1 - Math.pow(1 - t, 3);
+          modelGroupRef.current.position.y = (1 - ease) * -0.04;
+          const scaleVal = 0.985 + 0.015 * ease;
+          modelGroupRef.current.scale.set(scaleVal, scaleVal, scaleVal);
+        }
+      }
+
       safeUpdateVRM(vrm, safeDelta);
     } catch (frameErr) {
       console.warn('[CompanionStage useFrame] Handled frame update exception:', frameErr);
@@ -933,7 +949,11 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
   if (!vrm) return null;
 
-  return <primitive object={vrm.scene} position={[0, 0, 0]} />;
+  return (
+    <group ref={modelGroupRef} position={[0, 0, 0]}>
+      <primitive object={vrm.scene} />
+    </group>
+  );
 }
 
 function CustomPostProcessing() {
@@ -1102,9 +1122,61 @@ function CompanionStageComponent({
   }
 
   return (
-    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
-      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#ede2dc]" />}
+    <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#241724]' : 'bg-transparent'} ${className}`}>
+      {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#241724]" />}
       
+      {/* Smooth Ambient Room & Model Loading Overlay */}
+      <AnimatePresence>
+        {(!isLoaded && !hasFailed) && (
+          <motion.div 
+            key="stage-loading-overlay"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } }}
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none bg-[#241724] overflow-hidden"
+          >
+            {/* Ambient Radial Aura */}
+            <div 
+              className="absolute inset-0 opacity-60 animate-pulse pointer-events-none"
+              style={{ 
+                background: 'radial-gradient(circle at 50% 45%, rgba(255, 143, 192, 0.18) 0%, rgba(58, 35, 53, 0.45) 50%, rgba(36, 23, 36, 0.95) 100%)' 
+              }} 
+            />
+
+            {/* Glowing Avatar Silhouette & Pulse */}
+            <div className="relative z-10 flex flex-col items-center gap-4">
+              <div className="relative flex items-center justify-center">
+                {/* Soft breathing ring */}
+                <div 
+                  className="absolute w-20 h-20 rounded-full border border-[var(--accent-primary,#FF8FC0)]/30 animate-ping opacity-30" 
+                  style={{ animationDuration: '2.5s' }}
+                />
+                <div 
+                  className="w-16 h-16 rounded-2xl bg-[#322132]/90 border border-white/15 p-1 shadow-[0_8px_32px_rgba(0,0,0,0.35),0_0_24px_rgba(255,143,192,0.2)] backdrop-blur-md flex items-center justify-center overflow-hidden"
+                >
+                  <img 
+                    src="/images/Logo.png" 
+                    alt="Lyra" 
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Status Text with subtle shimmer */}
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-xs font-medium tracking-wide text-white/90 drop-shadow-sm font-heading">
+                  Waking Lyra...
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse delay-150" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary,#FF8FC0)] animate-pulse delay-300" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {hasFailed && !silentError && (
           <motion.div 
@@ -1137,11 +1209,11 @@ function CompanionStageComponent({
         )}
       </AnimatePresence>
 
-      {/* Smooth Canvas Container: smoothly mounts room without any loading spinners */}
+      {/* Smooth Canvas Container */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
+        animate={{ opacity: isLoaded ? 1 : 0.01 }}
+        transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 w-full h-full"
       >
         <Canvas shadows 

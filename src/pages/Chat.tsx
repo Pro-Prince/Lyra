@@ -1258,7 +1258,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#0b0a12] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
+    <div className="chat-layout chat-page-container w-full h-[100dvh] md:h-[calc(100vh-56px)] bg-[#180f19] flex flex-col md:flex-row font-body overflow-hidden" style={{ '--accent': activeAccent } as React.CSSProperties}>
 
         {/* Click-away overlay when a drawer or mobile menu is open */}
         <AnimatePresence>
@@ -1280,7 +1280,7 @@ export default function Chat() {
           /* ========================================================= */
           /* MOBILE LAYOUT (< 768px): Matches Lyra Mobile UI & Theme   */
           /* ========================================================= */
-          <div className="flex flex-col w-full h-full relative overflow-hidden bg-[#ede2dc]">
+          <div className="flex flex-col w-full h-full relative overflow-hidden bg-[#241724]">
           
           {/* Top Navigation Bar - remains compact at the top */}
           <div className={`absolute top-0 left-0 right-0 px-3.5 pt-2.5 pb-2 flex items-center justify-between z-40 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
@@ -1583,7 +1583,7 @@ export default function Chat() {
         /* ========================================================= */
         <div className="flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
-          <div className="companion-screen flex-1 bg-[#ede2dc] group relative overflow-hidden">
+          <div className="companion-screen flex-1 bg-[#241724] group relative overflow-hidden">
             <div className="companion-viewport w-full h-full relative">
             {/* Camera Shutter Flash Effect (Desktop) */}
             {isCapturingFlash && (
