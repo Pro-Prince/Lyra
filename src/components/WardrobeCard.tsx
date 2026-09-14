@@ -250,29 +250,21 @@ export function WardrobeCard({
 
   const { hasDragged, ...pointerHandlers } = dragHandlers;
 
-  const handleClick = () => {
-    if (hasDragged()) return; // Don't trigger select if user was dragging to rotate
-    if (error) {
-      handleRetry();
-      return;
-    }
-    if (onSelect) onSelect();
-  };
-
   return (
     <div
-      className={`outfit-card group relative cursor-pointer select-none transition-all duration-300 ${
+      className={`outfit-card group relative select-none transition-all duration-300 ${
         isSelected 
           ? "bg-[var(--accent-primary)]/[0.05] border-[var(--accent-primary)]/40" 
           : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10"
       } ${compact ? 'p-2 sm:p-3 md:p-3.5 rounded-xl sm:rounded-2xl' : 'p-4 rounded-2xl'} border ${className}`}
-      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      {...pointerHandlers}
     >
       {/* 3D Canvas Container */}
-      <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/20 border border-[var(--text-primary)]/5">
+      <div 
+        className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/20 border border-[var(--text-primary)]/5 cursor-grab active:cursor-grabbing touch-none"
+        {...pointerHandlers}
+      >
         <div ref={containerRef} className="outfit-card-canvas w-full h-full" />
 
         {/* Loading placeholder */}

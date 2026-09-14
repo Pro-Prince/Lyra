@@ -31,11 +31,7 @@ export default function LoginPage() {
   }, [isAuthed, authLoading, navigate]);
 
   if (authLoading) {
-    return (
-      <div className="fixed inset-0 z-[99999] bg-[var(--bg-base)]">
-        <SplashScreen />
-      </div>
-    );
+    return null;
   }
 
   const handleGoogleLogin = async () => {

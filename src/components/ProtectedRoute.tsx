@@ -8,11 +8,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 z-[99999] bg-[var(--bg-base)]">
-        <SplashScreen />
-      </div>
-    );
+    return null;
   }
 
   if (!isAuthed && !isGuestMode) {
