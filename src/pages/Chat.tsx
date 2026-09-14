@@ -1208,9 +1208,9 @@ export default function Chat() {
 
       // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
       const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-      bgGradient.addColorStop(0, '#1c131a');
-      bgGradient.addColorStop(0.5, '#140D16');
-      bgGradient.addColorStop(1, '#0c070e');
+      bgGradient.addColorStop(0, '#EDE5DD');
+      bgGradient.addColorStop(0.5, '#E6DDD5');
+      bgGradient.addColorStop(1, '#DFCDBB');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, exportWidth, exportHeight);
 

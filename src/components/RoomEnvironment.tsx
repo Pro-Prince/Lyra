@@ -2,44 +2,48 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 
 // -----------------------------------------------------------------------------
-// COLOR PALETTE — base albedo lightened from the original values.
-// Dark colors absorb most light that hits them; no amount of extra light
-// intensity fixes a surface that's nearly black to begin with. Lightening
-// these by roughly 20-25% while keeping the same moody mauve/plum/walnut
-// identity gives every light source something to actually reflect off.
+// COLOR PALETTE — Modern, Fresh, Aesthetic Scandinavian / Japandi Room
+// Warm soft oat plaster walls, light oak wood flooring, creamy bouclé textiles,
+// and soft pastel accents (blush pink, lilac, sage green, golden sunlight).
 // -----------------------------------------------------------------------------
 const PALETTE = {
-  wallPlaster: '#5C3E52',      // was #462E3F
-  wallAccentPlum: '#4A2C42',   // was #382233
-  shadowPlum: '#3A2436',       // was #2A1826
-  trimMauve: '#65465A',        // was #52374A
+  // Walls & Architectural plaster - Fresh, bright, warm oat/cream
+  wallPlaster: '#EDE5DD',       // Fresh soft oat/cream plaster wall
+  wallAccent: '#E2D5CA',        // Gentle warm architectural shadow
+  wallRecessed: '#D9CAC0',      // Soft shadow for arches and alcoves
+  trimWood: '#BFA895',          // Light natural oak trim
+  
+  // Flooring - Blonde Scandinavian Oak
+  oakFloor: '#C2AC99',          // Modern light oak wood plank
+  oakWoodDark: '#8A7260',       // Light walnut/oak accent for cabinet tops
+  oakWoodLight: '#D4C3B2',      // Natural beech/oak
 
-  warmCream: '#F4ECE4',
-  softBeige: '#E6D7CC',
-  curtainWhite: '#FAF3ED',
+  // Textiles & Bouclé Furniture
+  warmCream: '#FAF6F0',         // Soft bouclé warm cream sofa/lounge
   porcelainWhite: '#FCF8F5',
+  curtainWhite: '#FAF3ED',
+  
+  // Modern Aesthetic Pastels
+  lyraPink: '#F4A2C7',          // Soft pastel pink
+  blushPink: '#E8B4C8',         // Dusty rose
+  pastelLilac: '#D0B6E6',       // Lavender/lilac accent
+  softTerracotta: '#DE9B87',     // Warm terracotta
+  sageGreen: '#A3B899',         // Muted eucalyptus/sage green
 
-  darkWalnut: '#4A2C29',       // was #3B2321
-  walnutPlank: '#432A26',      // was #321D1C
-  walnutLight: '#5A3936',      // was #4A2E2C
+  // Lighting
+  sunlightKey: '#FFF2E3',       // Golden hour natural window sunlight
+  warmLedGlow: '#FFE8D1',       // Cozy warm LED backlight
+  lampGlow: '#FFE0C2',          // Warm ambient lamp glow
+  coolFill: '#C4D4E8',          // Soft sky fill
 
-  lyraPink: '#F299C2',
-  softPinkTextile: '#ECA0C4',
-  dustyBlush: '#D47E9E',
-  pastelLilac: '#C79CD8',
-
-  warmSunsetKey: '#FFD9BD',
-  warmIndirectLed: '#FFE8C8',
-  lampGlow: '#FFDDB6',
-  coolMoonFill: '#8C9FC7',     // NEW: dedicated cool fill color for contrast against the warm key
-
-  leafGreen: '#4D7856',
-  leafGreenLight: '#689672',
-  leafGreenDark: '#35533D',
+  // Plants
+  leafGreen: '#5B8C66',
+  leafGreenLight: '#7BA385',
+  leafGreenDark: '#41634A',
 };
 
 // -----------------------------------------------------------------------------
-// 2. FLOOR-TO-CEILING WINDOW & EVENING SKYLINE (LEFT WALL)
+// 1. FLOOR-TO-CEILING WINDOW & EVENING SKYLINE (LEFT WALL)
 // -----------------------------------------------------------------------------
 function PanoramicBalconyWindow() {
   const sunsetTexture = useMemo(() => {
@@ -50,18 +54,20 @@ function PanoramicBalconyWindow() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
+    // Dreamy sunset sky gradient
     const grad = ctx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, '#241427');
-    grad.addColorStop(0.35, '#48243E');
-    grad.addColorStop(0.65, '#8C4666');
-    grad.addColorStop(0.85, '#D9798C');
-    grad.addColorStop(1.0, '#FFB285');
+    grad.addColorStop(0, '#4B436D');   // Soft twilight indigo top
+    grad.addColorStop(0.3, '#8C658A');  // Dreamy lavender middle
+    grad.addColorStop(0.55, '#DA829B'); // Blush pink horizon
+    grad.addColorStop(0.8, '#FFA688');  // Golden apricot
+    grad.addColorStop(1.0, '#FFD1AA');  // Warm peach sky
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
 
+    // Sun glow
     const sunGrad = ctx.createRadialGradient(180, 420, 8, 180, 420, 240);
-    sunGrad.addColorStop(0, 'rgba(255, 240, 210, 0.85)');
-    sunGrad.addColorStop(0.3, 'rgba(255, 175, 135, 0.4)');
+    sunGrad.addColorStop(0, 'rgba(255, 245, 220, 0.9)');
+    sunGrad.addColorStop(0.35, 'rgba(255, 185, 145, 0.45)');
     sunGrad.addColorStop(1, 'rgba(255, 140, 150, 0)');
     ctx.fillStyle = sunGrad;
     ctx.fillRect(0, 0, 512, 512);
@@ -74,15 +80,17 @@ function PanoramicBalconyWindow() {
 
   return (
     <group position={[-4.6, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {/* Sky Canvas */}
       <mesh position={[-0.5, 2.3, -0.25]}>
         <planeGeometry args={[5.2, 5.0]} />
         {sunsetTexture ? (
           <meshBasicMaterial map={sunsetTexture} side={THREE.DoubleSide} />
         ) : (
-          <meshBasicMaterial color="#8C4666" side={THREE.DoubleSide} />
+          <meshBasicMaterial color="#DA829B" side={THREE.DoubleSide} />
         )}
       </mesh>
 
+      {/* Skyline silhouettes */}
       <group position={[-0.5, 0.9, -0.2]}>
         {[
           { x: -1.9, w: 0.35, h: 2.1 },
@@ -99,49 +107,51 @@ function PanoramicBalconyWindow() {
           <group key={i} position={[b.x, b.h / 2 - 1.0, 0]}>
             <mesh>
               <planeGeometry args={[b.w, b.h]} />
-              <meshBasicMaterial color="#221323" />
+              <meshBasicMaterial color="#36293A" />
             </mesh>
             {[...Array(3)].map((_, wIdx) => (
               <mesh key={wIdx} position={[(wIdx % 2 === 0 ? 0.05 : -0.05), (wIdx - 1) * 0.45, 0.001]}>
                 <planeGeometry args={[0.035, 0.07]} />
-                <meshBasicMaterial color="#FFE4A0" opacity={0.55} transparent />
+                <meshBasicMaterial color="#FFE4A0" opacity={0.65} transparent />
               </mesh>
             ))}
           </group>
         ))}
       </group>
 
+      {/* Light Oak Window Frame */}
       <group position={[-0.5, 2.3, 0]}>
-        <mesh position={[0, 2.35, 0.04]}  receiveShadow>
+        <mesh position={[0, 2.35, 0.04]} receiveShadow>
           <boxGeometry args={[4.4, 0.1, 0.12]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
         </mesh>
-        <mesh position={[0, -2.35, 0.06]}  receiveShadow>
+        <mesh position={[0, -2.35, 0.06]} receiveShadow>
           <boxGeometry args={[4.4, 0.12, 0.18]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.45} />
         </mesh>
-        <mesh position={[-2.2, 0, 0.04]}  receiveShadow>
+        <mesh position={[-2.2, 0, 0.04]} receiveShadow>
           <boxGeometry args={[0.1, 4.7, 0.12]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
         </mesh>
-        <mesh position={[2.2, 0, 0.04]}  receiveShadow>
+        <mesh position={[2.2, 0, 0.04]} receiveShadow>
           <boxGeometry args={[0.1, 4.7, 0.12]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0, 0.04]} >
+        <mesh position={[0, 0, 0.04]}>
           <boxGeometry args={[0.05, 4.7, 0.08]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0.7, 0.04]} >
+        <mesh position={[0, 0.7, 0.04]}>
           <boxGeometry args={[4.4, 0.04, 0.06]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
         </mesh>
 
+        {/* Sheer White Curtains */}
         <group position={[-1.9, 0, 0.12]}>
-          <mesh  receiveShadow>
+          <mesh receiveShadow>
             <planeGeometry args={[1.0, 4.6]} />
             <meshStandardMaterial
-              color="#FDE8F1"
+              color="#FAF0F5"
               roughness={0.8}
               transparent
               opacity={0.65}
@@ -150,14 +160,14 @@ function PanoramicBalconyWindow() {
           </mesh>
           <mesh position={[0.15, 0, 0.02]}>
             <cylinderGeometry args={[0.06, 0.06, 4.6, 12]} />
-            <meshStandardMaterial color="#F8DCE8" roughness={0.8} transparent opacity={0.55} />
+            <meshStandardMaterial color="#F5E4EC" roughness={0.8} transparent opacity={0.55} />
           </mesh>
         </group>
         <group position={[1.9, 0, 0.12]}>
-          <mesh  receiveShadow>
+          <mesh receiveShadow>
             <planeGeometry args={[1.0, 4.6]} />
             <meshStandardMaterial
-              color="#FDE8F1"
+              color="#FAF0F5"
               roughness={0.8}
               transparent
               opacity={0.65}
@@ -166,17 +176,18 @@ function PanoramicBalconyWindow() {
           </mesh>
           <mesh position={[-0.15, 0, 0.02]}>
             <cylinderGeometry args={[0.06, 0.06, 4.6, 12]} />
-            <meshStandardMaterial color="#F8DCE8" roughness={0.8} transparent opacity={0.55} />
+            <meshStandardMaterial color="#F5E4EC" roughness={0.8} transparent opacity={0.55} />
           </mesh>
         </group>
       </group>
 
+      {/* Volumetric Sunbeam Light Ray */}
       <mesh position={[0.2, 1.8, 1.2]} rotation={[-Math.PI / 2 + 0.35, 0, 0.2]}>
         <planeGeometry args={[2.8, 6.5]} />
         <meshBasicMaterial
-          color="#FFE9D2"
+          color="#FFF0DB"
           transparent
-          opacity={0.035}
+          opacity={0.05}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
@@ -187,30 +198,40 @@ function PanoramicBalconyWindow() {
 }
 
 // -----------------------------------------------------------------------------
-// ROUND MINIMALIST WALL ART (pink + purple circle canvases on the back wall)
+// 2. MODERN AESTHETIC WALL ART (Arch & circle canvas prints on back wall)
 // -----------------------------------------------------------------------------
 function RoundWallArt({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
+      {/* Arch / Circle Canvas 1 */}
       <group position={[-0.55, 0, 0]}>
-        <mesh  receiveShadow>
-          <boxGeometry args={[0.62, 0.62, 0.03]} />
-          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.6} />
+        <mesh receiveShadow>
+          <boxGeometry args={[0.65, 0.85, 0.025]} />
+          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0, 0.018]}>
-          <circleGeometry args={[0.2, 32]} />
-          <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.5} />
+        <mesh position={[0, 0.08, 0.015]}>
+          <circleGeometry args={[0.22, 32]} />
+          <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.4} />
+        </mesh>
+        <mesh position={[0, -0.18, 0.015]}>
+          <planeGeometry args={[0.44, 0.22]} />
+          <meshStandardMaterial color={PALETTE.softTerracotta} roughness={0.4} />
         </mesh>
       </group>
 
+      {/* Canvas 2 */}
       <group position={[0.55, -0.06, 0]}>
-        <mesh  receiveShadow>
-          <boxGeometry args={[0.62, 0.62, 0.03]} />
-          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.6} />
+        <mesh receiveShadow>
+          <boxGeometry args={[0.65, 0.85, 0.025]} />
+          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0, 0.018]}>
-          <circleGeometry args={[0.2, 32]} />
-          <meshStandardMaterial color={PALETTE.pastelLilac} roughness={0.5} />
+        <mesh position={[0, 0.05, 0.015]}>
+          <circleGeometry args={[0.24, 32]} />
+          <meshStandardMaterial color={PALETTE.pastelLilac} roughness={0.4} />
+        </mesh>
+        <mesh position={[0, -0.18, 0.015]}>
+          <circleGeometry args={[0.15, 32]} />
+          <meshStandardMaterial color={PALETTE.sageGreen} roughness={0.4} />
         </mesh>
       </group>
     </group>
@@ -218,18 +239,18 @@ function RoundWallArt({ position }: { position: [number, number, number] }) {
 }
 
 // -----------------------------------------------------------------------------
-// LOW WINDOWSIDE CONSOLE (under the wall art, books + plush bunny + plant)
+// 3. LOW WINDOWSIDE CONSOLE (under wall art)
 // -----------------------------------------------------------------------------
 function WindowsideConsole({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.28, 0]}  receiveShadow>
+      <mesh position={[0, 0.28, 0]} receiveShadow>
         <boxGeometry args={[2.0, 0.5, 0.4]} />
-        <meshStandardMaterial color={PALETTE.trimMauve} roughness={0.6} />
+        <meshStandardMaterial color={PALETTE.wallAccent} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.535, 0]}  receiveShadow>
+      <mesh position={[0, 0.535, 0]} receiveShadow>
         <boxGeometry args={[2.05, 0.03, 0.43]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.42} />
+        <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
       </mesh>
 
       <PastelBookRow position={[-0.6, 0.55, 0.02]} rotation={[0, 0.06, 0]} />
@@ -248,36 +269,36 @@ function PlushBunnyToy({
 }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.07, 0]} >
+      <mesh position={[0, 0.07, 0]}>
         <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
+        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
       </mesh>
-      <mesh position={[0, 0.16, 0.01]} >
+      <mesh position={[0, 0.16, 0.01]}>
         <sphereGeometry args={[0.06, 16, 16]} />
-        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
+        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
       </mesh>
-      <mesh position={[-0.025, 0.24, 0]} rotation={[0, 0, -0.15]} >
+      <mesh position={[-0.025, 0.24, 0]} rotation={[0, 0, -0.15]}>
         <capsuleGeometry args={[0.018, 0.09, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
+        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
       </mesh>
-      <mesh position={[0.025, 0.24, 0]} rotation={[0, 0, 0.15]} >
+      <mesh position={[0.025, 0.24, 0]} rotation={[0, 0, 0.15]}>
         <capsuleGeometry args={[0.018, 0.09, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
+        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
       </mesh>
       <mesh position={[-0.025, 0.26, 0.005]} rotation={[0, 0, -0.15]}>
         <capsuleGeometry args={[0.008, 0.06, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.9} />
+        <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.8} />
       </mesh>
       <mesh position={[0.025, 0.26, 0.005]} rotation={[0, 0, 0.15]}>
         <capsuleGeometry args={[0.008, 0.06, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.9} />
+        <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.8} />
       </mesh>
     </group>
   );
 }
 
 // -----------------------------------------------------------------------------
-// GLOWING ROUND ORB LAMP (shelf decor item)
+// 4. GLOWING ROUND ORB LAMP (shelf decor item)
 // -----------------------------------------------------------------------------
 function RoundGlowOrb({ position }: { position: [number, number, number] }) {
   return (
@@ -285,52 +306,54 @@ function RoundGlowOrb({ position }: { position: [number, number, number] }) {
       <mesh>
         <sphereGeometry args={[0.075, 20, 20]} />
         <meshStandardMaterial
-          color="#FFEAD0"
-          emissive="#FFC98A"
-          emissiveIntensity={0.8}
-          roughness={0.3}
+          color="#FFF2E0"
+          emissive="#FFD39B"
+          emissiveIntensity={0.85}
+          roughness={0.25}
         />
       </mesh>
-      <pointLight color="#FFC98A" intensity={0.35} distance={1.4} decay={2} />
+      <pointLight color="#FFD39B" intensity={0.45} distance={1.6} decay={2} />
     </group>
   );
 }
 
 // -----------------------------------------------------------------------------
-// 3. BOTTOM-LEFT: COZY ROUNDED LOUNGE CHAIR, FLOWER CUSHION & SIDE TABLE
-// A small rim light is added here specifically to separate this large,
-// dark-ish silhouette from the equally dark wall behind it, otherwise a
-// cream sofa against a plum wall in low light can lose its edges entirely.
+// 5. BOTTOM-LEFT: COZY BOUCLÉ LOUNGE CHAIR, FLOWER CUSHION & SIDE TABLE
 // -----------------------------------------------------------------------------
 function BottomLeftLoungeCorner() {
   return (
     <group position={[-2.4, 0, 0.65]} rotation={[0, 0.32, 0]}>
-      {/* NEW: small warm rim light grazing the sofa's edge from window-side */}
-      <pointLight color={PALETTE.warmSunsetKey} intensity={0.4} distance={2.2} position={[-0.6, 0.9, 0.8]} decay={2} />
+      {/* Warm rim light grazing the sofa edge */}
+      <pointLight color={PALETTE.sunlightKey} intensity={0.45} distance={2.4} position={[-0.6, 0.9, 0.8]} decay={2} />
 
       <group position={[0, 0.32, 0]}>
-        <mesh  receiveShadow scale={[1.25, 0.72, 1.25]}>
+        {/* Main Bouclé Chair Cushion */}
+        <mesh receiveShadow scale={[1.25, 0.72, 1.25]}>
           <sphereGeometry args={[0.8, 28, 20]} />
-          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
-        </mesh>
-        <mesh  receiveShadow position={[-0.22, 0.3, -0.22]} scale={[1.05, 0.78, 1.05]}>
-          <sphereGeometry args={[0.62, 22, 18]} />
-          <meshStandardMaterial color="#EFE2D6" roughness={0.9} />
+          <meshStandardMaterial color={PALETTE.warmCream} roughness={0.88} />
         </mesh>
 
+        {/* Backrest */}
+        <mesh receiveShadow position={[-0.22, 0.3, -0.22]} scale={[1.05, 0.78, 1.05]}>
+          <sphereGeometry args={[0.62, 22, 18]} />
+          <meshStandardMaterial color="#FAF3EB" roughness={0.88} />
+        </mesh>
+
+        {/* Throw Blanket */}
         <group position={[0.38, 0.18, 0.2]} rotation={[0.18, 0.25, -0.38]}>
-          <mesh  receiveShadow>
+          <mesh receiveShadow>
             <boxGeometry args={[0.5, 0.04, 0.8]} />
-            <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.85} />
+            <meshStandardMaterial color={PALETTE.blushPink} roughness={0.85} />
           </mesh>
-          <mesh position={[0.24, -0.12, 0]} rotation={[0, 0, 0.55]} >
+          <mesh position={[0.24, -0.12, 0]} rotation={[0, 0, 0.55]}>
             <boxGeometry args={[0.035, 0.3, 0.78]} />
-            <meshStandardMaterial color="#E48EBA" roughness={0.85} />
+            <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.85} />
           </mesh>
         </group>
 
+        {/* Plush Flower Pillow */}
         <group position={[0.02, 0.44, 0.3]} rotation={[0.42, 0.12, 0.08]}>
-          <mesh  position={[0, 0, 0.05]}>
+          <mesh position={[0, 0, 0.05]}>
             <cylinderGeometry args={[0.1, 0.1, 0.04, 20]} rotation={[Math.PI / 2, 0, 0]} />
             <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.8} />
           </mesh>
@@ -339,7 +362,6 @@ function BottomLeftLoungeCorner() {
             return (
               <mesh
                 key={i}
-                
                 position={[Math.cos(angle) * 0.2, Math.sin(angle) * 0.2, 0]}
               >
                 <sphereGeometry args={[0.12, 14, 14]} scale={[1, 1, 0.42]} />
@@ -350,10 +372,11 @@ function BottomLeftLoungeCorner() {
         </group>
       </group>
 
+      {/* Light Oak Round Side Table */}
       <group position={[-0.95, 0, 0.25]}>
-        <mesh position={[0, 0.42, 0]}  receiveShadow>
+        <mesh position={[0, 0.42, 0]} receiveShadow>
           <cylinderGeometry args={[0.26, 0.26, 0.03, 24]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
         </mesh>
         {[0, 1, 2].map((i) => {
           const a = (i * Math.PI * 2) / 3;
@@ -362,18 +385,18 @@ function BottomLeftLoungeCorner() {
               key={i}
               position={[Math.sin(a) * 0.15, 0.2, Math.cos(a) * 0.15]}
               rotation={[0.08 * Math.cos(a), 0, -0.08 * Math.sin(a)]}
-              
             >
               <cylinderGeometry args={[0.013, 0.01, 0.42, 10]} />
-              <meshStandardMaterial color={PALETTE.walnutPlank} roughness={0.4} />
+              <meshStandardMaterial color={PALETTE.oakWoodLight} roughness={0.4} />
             </mesh>
           );
         })}
-        <mesh position={[0.04, 0.445, -0.02]} >
+        {/* Book + Mug */}
+        <mesh position={[0.04, 0.445, -0.02]}>
           <boxGeometry args={[0.14, 0.02, 0.18]} />
-          <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.5} />
+          <meshStandardMaterial color={PALETTE.pastelLilac} roughness={0.5} />
         </mesh>
-        <mesh position={[-0.06, 0.47, 0.04]} >
+        <mesh position={[-0.06, 0.47, 0.04]}>
           <cylinderGeometry args={[0.035, 0.03, 0.07, 16]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.3} />
         </mesh>
@@ -385,29 +408,32 @@ function BottomLeftLoungeCorner() {
 }
 
 // -----------------------------------------------------------------------------
-// 4. CENTER CIRCULAR RUG (UNDERNEATH LYRA)
+// 6. CENTER CIRCULAR AESTHETIC RUG (UNDERNEATH LYRA)
 // -----------------------------------------------------------------------------
 function CenterPlushRug() {
   return (
     <group position={[0, 0, 0.08]}>
+      {/* Base warm ivory rug */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]} receiveShadow>
-        <circleGeometry args={[1.75, 48]} />
+        <circleGeometry args={[1.82, 48]} />
         <meshStandardMaterial
-          color="#DECFC6"
-          roughness={0.92}
+          color="#FAF5EF"
+          roughness={0.9}
           side={THREE.DoubleSide}
         />
       </mesh>
+      {/* Inner subtle weave ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.007, 0]} receiveShadow>
-        <ringGeometry args={[1.52, 1.58, 48]} />
-        <meshStandardMaterial color="#CEBCB1" roughness={0.95} side={THREE.DoubleSide} />
+        <ringGeometry args={[1.58, 1.64, 48]} />
+        <meshStandardMaterial color="#EAE0D7" roughness={0.92} side={THREE.DoubleSide} />
       </mesh>
+      {/* Accent blush pink outer trim */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
-        <ringGeometry args={[1.73, 1.76, 48]} />
+        <ringGeometry args={[1.78, 1.82, 48]} />
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
-          emissiveIntensity={0.5}
+          emissiveIntensity={0.35}
           roughness={0.6}
           side={THREE.DoubleSide}
         />
@@ -417,58 +443,63 @@ function CenterPlushRug() {
 }
 
 // -----------------------------------------------------------------------------
-// 5. BACKGROUND: BUILT-IN RECESSED SHELVING UNIT
+// 7. BACKGROUND: BUILT-IN RECESSED ARCH SHELVING UNIT
 // -----------------------------------------------------------------------------
 function BuiltInRecessedShelving() {
   return (
     <group position={[1.4, 1.65, -3.8]}>
+      {/* Recessed Backing Panel */}
       <mesh position={[0, 0.1, -0.15]} receiveShadow>
         <planeGeometry args={[2.2, 3.2]} />
-        <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
+        <meshStandardMaterial color={PALETTE.wallRecessed} roughness={0.8} />
       </mesh>
 
+      {/* Recessed Sides */}
       <mesh position={[-1.1, 0.1, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[0.3, 3.2]} />
-        <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
+        <meshStandardMaterial color={PALETTE.wallRecessed} roughness={0.8} />
       </mesh>
       <mesh position={[1.1, 0.1, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[0.3, 3.2]} />
-        <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
+        <meshStandardMaterial color={PALETTE.wallRecessed} roughness={0.8} />
       </mesh>
       <mesh position={[0, 1.7, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[2.2, 0.3]} />
-        <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
+        <meshStandardMaterial color={PALETTE.wallRecessed} roughness={0.8} />
       </mesh>
 
-      <mesh position={[0, 1.85, -0.15]} rotation={[0, Math.PI / 2, 0]} receiveShadow >
+      {/* Arch Crown */}
+      <mesh position={[0, 1.85, -0.15]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <cylinderGeometry args={[1.1, 1.1, 2.2, 24, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={PALETTE.wallRecessed} roughness={0.8} side={THREE.DoubleSide} />
       </mesh>
 
+      {/* Light Oak Shelves + LED Strip Lighting */}
       {[-0.8, -0.05, 0.7, 1.45].map((y, i) => (
         <group position={[0, y, 0]} key={i}>
-          <mesh  receiveShadow>
+          <mesh receiveShadow>
             <boxGeometry args={[2.18, 0.05, 0.28]} />
-            <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
+            <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
           </mesh>
           <pointLight
-            color={PALETTE.warmIndirectLed}
-            intensity={0.35}
-            distance={1.9}
+            color={PALETTE.warmLedGlow}
+            intensity={0.4}
+            distance={2.0}
             decay={2}
             position={[0, -0.08, 0.08]}
           />
           <mesh position={[0, -0.03, 0.135]}>
             <boxGeometry args={[2.1, 0.012, 0.012]} />
             <meshStandardMaterial
-              color={PALETTE.warmIndirectLed}
-              emissive={PALETTE.warmIndirectLed}
+              color={PALETTE.warmLedGlow}
+              emissive={PALETTE.warmLedGlow}
               emissiveIntensity={1.0}
             />
           </mesh>
         </group>
       ))}
 
+      {/* Shelf Items */}
       <HangingShelfPothos position={[-0.65, 1.47, 0.02]} />
       <PorcelainBunny position={[0.45, 1.47, 0.02]} rotation={[0, -0.25, 0]} scale={0.7} />
       <PorcelainBunny position={[0.72, 1.47, 0.01]} rotation={[0, 0.2, 0]} scale={0.55} />
@@ -489,29 +520,32 @@ function BuiltInRecessedShelving() {
 }
 
 // -----------------------------------------------------------------------------
-// 6. RIGHT SIDE: LOW-PROFILE CABINET, MUSHROOM LAMP & NEON BUNNY SIGN
+// 8. RIGHT SIDE: LOW-PROFILE CABINET, MUSHROOM LAMP & NEON BUNNY SIGN
 // -----------------------------------------------------------------------------
 function RightCabinetAndDecor() {
   return (
     <group position={[3.2, 0, -3.5]}>
       <group position={[0, 0.42, 0]}>
-        <mesh  receiveShadow>
+        {/* Cabinet Body */}
+        <mesh receiveShadow>
           <boxGeometry args={[1.55, 0.52, 0.48]} />
-          <meshStandardMaterial color={PALETTE.trimMauve} roughness={0.6} />
+          <meshStandardMaterial color={PALETTE.wallAccent} roughness={0.6} />
         </mesh>
-        <mesh position={[0, 0.27, 0]}  receiveShadow>
+        {/* Top Surface */}
+        <mesh position={[0, 0.27, 0]} receiveShadow>
           <boxGeometry args={[1.6, 0.035, 0.52]} />
-          <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.42} />
+          <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
         </mesh>
+        {/* Legs */}
         {[
           [-0.65, -0.34, 0.16],
           [0.65, -0.34, 0.16],
           [-0.65, -0.34, -0.16],
           [0.65, -0.34, -0.16],
         ].map(([lx, ly, lz], i) => (
-          <mesh key={i} position={[lx, ly, lz]} >
+          <mesh key={i} position={[lx, ly, lz]}>
             <cylinderGeometry args={[0.016, 0.01, 0.18, 10]} />
-            <meshStandardMaterial color={PALETTE.walnutPlank} roughness={0.4} />
+            <meshStandardMaterial color={PALETTE.oakWoodLight} roughness={0.4} />
           </mesh>
         ))}
 
@@ -522,6 +556,7 @@ function RightCabinetAndDecor() {
 
       <NeonBunnySign position={[0.15, 1.95, -0.18]} />
 
+      {/* Wall Framed Polaroid Prints */}
       <group position={[-0.45, 1.15, -0.2]}>
         <mesh position={[0, 0, 0]} rotation={[0, 0, 0.06]}>
           <boxGeometry args={[0.18, 0.22, 0.01]} />
@@ -543,22 +578,22 @@ function RightCabinetAndDecor() {
 function CozyMushroomLamp({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.07, 0]} >
+      <mesh position={[0, 0.07, 0]}>
         <cylinderGeometry args={[0.055, 0.075, 0.14, 20]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.35} />
       </mesh>
-      <mesh position={[0, 0.17, 0]}  receiveShadow>
+      <mesh position={[0, 0.17, 0]} receiveShadow>
         <sphereGeometry args={[0.14, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
         <meshStandardMaterial
           color={PALETTE.porcelainWhite}
           emissive="#FFE2C6"
-          emissiveIntensity={0.6}
+          emissiveIntensity={0.65}
           roughness={0.25}
         />
       </mesh>
       <pointLight
         color={PALETTE.lampGlow}
-        intensity={0.6}
+        intensity={0.65}
         distance={2.8}
         decay={2}
       />
@@ -593,7 +628,7 @@ function NeonBunnySign({ position }: { position: [number, number, number] }) {
         <circleGeometry args={[0.02, 3]} />
         <meshStandardMaterial color={PALETTE.lyraPink} emissive={PALETTE.lyraPink} emissiveIntensity={1.2} />
       </mesh>
-      <pointLight color={PALETTE.lyraPink} intensity={0.5} distance={2.4} position={[0, 0.08, 0.15]} />
+      <pointLight color={PALETTE.lyraPink} intensity={0.55} distance={2.5} position={[0, 0.08, 0.15]} />
     </group>
   );
 }
@@ -609,21 +644,21 @@ function PorcelainBunny({
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh position={[0, 0.08, 0]} >
+      <mesh position={[0, 0.08, 0]}>
         <sphereGeometry args={[0.085, 14, 14]} />
-        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
-      <mesh position={[0, 0.18, 0.01]} >
+      <mesh position={[0, 0.18, 0.01]}>
         <sphereGeometry args={[0.065, 14, 14]} />
-        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
-      <mesh position={[-0.025, 0.26, 0]} rotation={[0, 0, -0.1]} >
+      <mesh position={[-0.025, 0.26, 0]} rotation={[0, 0, -0.1]}>
         <capsuleGeometry args={[0.015, 0.08, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
-      <mesh position={[0.025, 0.26, 0]} rotation={[0, 0, 0.1]} >
+      <mesh position={[0.025, 0.26, 0]} rotation={[0, 0, 0.1]}>
         <capsuleGeometry args={[0.015, 0.08, 6, 8]} />
-        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
     </group>
   );
@@ -632,7 +667,7 @@ function PorcelainBunny({
 function ScentedCandle({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.04, 0]} >
+      <mesh position={[0, 0.04, 0]}>
         <cylinderGeometry args={[0.035, 0.035, 0.08, 16]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.2} transparent opacity={0.85} />
       </mesh>
@@ -653,17 +688,17 @@ function PastelBookRow({
 }) {
   return (
     <group position={position} rotation={rotation}>
-      <mesh position={[0, 0.015, 0]}  receiveShadow>
+      <mesh position={[0, 0.015, 0]} receiveShadow>
         <boxGeometry args={[0.16, 0.03, 0.22]} />
-        <meshStandardMaterial color="#D892AE" roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.blushPink} roughness={0.5} />
       </mesh>
-      <mesh position={[0.01, 0.045, 0.01]} rotation={[0, 0.06, 0]}  receiveShadow>
+      <mesh position={[0.01, 0.045, 0.01]} rotation={[0, 0.06, 0]} receiveShadow>
         <boxGeometry args={[0.15, 0.028, 0.2]} />
-        <meshStandardMaterial color="#B08DB8" roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.pastelLilac} roughness={0.5} />
       </mesh>
-      <mesh position={[-0.01, 0.07, -0.01]} rotation={[0, -0.05, 0]}  receiveShadow>
+      <mesh position={[-0.01, 0.07, -0.01]} rotation={[0, -0.05, 0]} receiveShadow>
         <boxGeometry args={[0.14, 0.024, 0.18]} />
-        <meshStandardMaterial color="#E8D2C6" roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.warmCream} roughness={0.5} />
       </mesh>
     </group>
   );
@@ -678,9 +713,9 @@ function SmallFramedPhoto({
 }) {
   return (
     <group position={position} rotation={rotation}>
-      <mesh >
+      <mesh>
         <boxGeometry args={[0.16, 0.2, 0.018]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
+        <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
       </mesh>
       <mesh position={[0, 0, 0.01]}>
         <planeGeometry args={[0.12, 0.16]} />
@@ -693,13 +728,13 @@ function SmallFramedPhoto({
 function StorageBox({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh  receiveShadow>
+      <mesh receiveShadow>
         <boxGeometry args={[0.2, 0.09, 0.14]} />
-        <meshStandardMaterial color={PALETTE.softBeige} roughness={0.6} />
+        <meshStandardMaterial color={PALETTE.wallAccent} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.05, 0]} >
+      <mesh position={[0, 0.05, 0]}>
         <boxGeometry args={[0.21, 0.015, 0.15]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.4} />
+        <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.4} />
       </mesh>
     </group>
   );
@@ -708,7 +743,7 @@ function StorageBox({ position }: { position: [number, number, number] }) {
 function HangingShelfPothos({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.06, 0]} >
+      <mesh position={[0, 0.06, 0]}>
         <cylinderGeometry args={[0.07, 0.055, 0.12, 16]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
@@ -727,7 +762,6 @@ function HangingShelfPothos({ position }: { position: [number, number, number] }
               key={lIdx}
               position={[Math.sin(lIdx * 2) * 0.02, -v.l * prog, 0]}
               rotation={[0.3, 0.2 * lIdx, 0]}
-              
             >
               <sphereGeometry args={[0.03, 6, 6]} scale={[1, 1.3, 0.25]} />
               <meshStandardMaterial
@@ -745,7 +779,7 @@ function HangingShelfPothos({ position }: { position: [number, number, number] }
 function SmallPottedSucculent({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.06, 0]}  receiveShadow>
+      <mesh position={[0, 0.06, 0]} receiveShadow>
         <cylinderGeometry args={[0.065, 0.05, 0.12, 16]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
@@ -759,7 +793,7 @@ function SmallPottedSucculent({ position, scale = 1 }: { position: [number, numb
         { rot: [0.25, -1.5, 0.18], pos: [0.03, 0.19, -0.01] },
       ].map((leaf, idx) => (
         <group key={idx} position={leaf.pos as [number, number, number]} rotation={leaf.rot as [number, number, number]}>
-          <mesh position={[0, 0.06, 0]} rotation={[0.35, 0, 0]} >
+          <mesh position={[0, 0.06, 0]} rotation={[0.35, 0, 0]}>
             <sphereGeometry args={[0.045, 8, 8]} scale={[1, 1.25, 0.28]} />
             <meshStandardMaterial color={PALETTE.leafGreen} roughness={0.5} />
           </mesh>
@@ -772,7 +806,7 @@ function SmallPottedSucculent({ position, scale = 1 }: { position: [number, numb
 function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.18, 0]}  receiveShadow>
+      <mesh position={[0, 0.18, 0]} receiveShadow>
         <cylinderGeometry args={[0.18, 0.14, 0.36, 20]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.4} />
       </mesh>
@@ -787,11 +821,11 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
         { rot: [0.15, 0.8, -0.04], pos: [0, 0.65, 0], s: 1.3 },
       ].map((l, idx) => (
         <group key={idx} position={l.pos as [number, number, number]} rotation={l.rot as [number, number, number]} scale={l.s}>
-          <mesh position={[0, 0.1, 0]} >
+          <mesh position={[0, 0.1, 0]}>
             <cylinderGeometry args={[0.012, 0.012, 0.22, 6]} />
             <meshStandardMaterial color={PALETTE.leafGreenDark} roughness={0.6} />
           </mesh>
-          <mesh position={[0, 0.22, 0]} rotation={[0.4, 0, 0]}  receiveShadow>
+          <mesh position={[0, 0.22, 0]} rotation={[0.4, 0, 0]} receiveShadow>
             <sphereGeometry args={[0.12, 12, 12]} scale={[1, 1.5, 0.2]} />
             <meshStandardMaterial
               color={idx % 2 === 0 ? PALETTE.leafGreen : PALETTE.leafGreenLight}
@@ -805,86 +839,76 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 }
 
 // -----------------------------------------------------------------------------
-// 7. MAIN ROOM ENVIRONMENT SCENE GRAPH
-//
-// LIGHTING REDESIGNED WITH A CLEAR KEY / FILL / RIM HIERARCHY, replacing the
-// previous five same-weight directional lights:
-//
-//   KEY   — warm sunset directional from the window, the dominant light
-//   FILL  — cool moonlight-toned directional, opposite side, soft, this is
-//           what creates depth: warm vs cool, not just "more light"
-//   RIM   — a soft pink accent from behind/above, separates her silhouette
-//           and the furniture edges from the dark background
-//   HEMI  — a hemisphere light so no surface ever goes to true black
-//           regardless of which way it faces
-//
+// 9. MAIN ROOM ENVIRONMENT SCENE GRAPH
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
   return (
     <group>
-      {/* HEMI: broad, gentle fill from all directions, prevents pure-black
-          surfaces on anything facing away from the directional lights */}
-      <hemisphereLight color="#8A6478" groundColor={PALETTE.darkWalnut} intensity={1.0} />
+      {/* Broad, gentle ambient hemisphere fill light */}
+      <hemisphereLight color="#FFF0E6" groundColor="#C2B2A3" intensity={1.2} />
 
-      <ambientLight color="#6B4D5F" intensity={1.1} />
+      <ambientLight color="#FAF0E6" intensity={1.1} />
 
-      {/* KEY — warm, dominant, motivated by the sunset window */}
+      {/* Main Golden Window Sunlight Key Light */}
       <directionalLight
-        color={PALETTE.warmSunsetKey}
-        intensity={1.8}
-        position={[-6.0, 3.8, 1.5]}
+        color={PALETTE.sunlightKey}
+        intensity={2.1}
+        position={[-6.0, 4.0, 2.0]}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-bias={-0.0001}
       />
 
-      {/* FILL — cool, soft, opposite side, this contrast is what creates
-          real depth instead of a uniformly pink-tinted flat room */}
+      {/* Soft Sky Fill Light */}
       <directionalLight
-        color={PALETTE.coolMoonFill}
-        intensity={0.55}
-        position={[3.5, 2.6, -1.5]}
+        color={PALETTE.coolFill}
+        intensity={0.5}
+        position={[3.5, 3.0, -1.0]}
       />
 
-      {/* RIM — soft pink accent from above/behind, separates silhouettes
-          from the dark background */}
+      {/* Warm Ambient Backlight / Rim Light */}
       <directionalLight
         color="#FFE5F2"
         intensity={0.7}
-        position={[0.2, 3.6, -2.8]}
+        position={[0.0, 3.8, -2.5]}
       />
 
-      <pointLight color="#FFEBD6" intensity={0.4} position={[0, 4.0, -0.5]} distance={12} />
+      <pointLight color="#FFEBD6" intensity={0.45} position={[0, 4.0, -0.5]} distance={12} />
 
+      {/* Blonde Oak Plank Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial
-          color={PALETTE.walnutPlank}
-          roughness={0.4}
-          metalness={0.06}
+          color={PALETTE.oakFloor}
+          roughness={0.45}
+          metalness={0.02}
           side={THREE.DoubleSide}
         />
       </mesh>
 
+      {/* Fresh Warm Plaster Back Wall */}
       <mesh position={[0, 5.0, -3.95]} receiveShadow>
         <planeGeometry args={[50, 12]} />
-        <meshStandardMaterial color={PALETTE.wallPlaster} roughness={0.9} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={PALETTE.wallPlaster} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
 
+      {/* Warm Ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 5.0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial color="#402B3A" roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial color="#E6DDD5" roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
 
+      {/* Light Wood Baseboard */}
       <mesh position={[0, 0.08, -3.92]} receiveShadow>
         <boxGeometry args={[50, 0.16, 0.05]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
       </mesh>
 
+      {/* Light Wood Crown Molding */}
       <mesh position={[0, 3.8, -3.92]} receiveShadow>
         <boxGeometry args={[50, 0.06, 0.05]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
+        <meshStandardMaterial color={PALETTE.oakWoodDark} roughness={0.5} />
       </mesh>
 
       <PanoramicBalconyWindow />

@@ -1203,9 +1203,9 @@ function CompanionStageComponent({
               gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
               gl.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
 
-              gl.setClearColor(new THREE.Color('#3A2335'), 1);
-              scene.background = new THREE.Color('#3A2335');
-              scene.fog = new THREE.Fog('#3A2335', 18, 50);
+              gl.setClearColor(new THREE.Color('#EDE5DD'), 1);
+              scene.background = new THREE.Color('#EDE5DD');
+              scene.fog = new THREE.Fog('#EDE5DD', 22, 60);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.outputColorSpace = THREE.SRGBColorSpace;
@@ -1214,8 +1214,8 @@ function CompanionStageComponent({
             }}
             dpr={dpr}
           >
-            <color attach="background" args={['#3A2335']} />
-            <fog attach="fog" args={['#3A2335', 18, 50]} />
+            <color attach="background" args={['#EDE5DD']} />
+            <fog attach="fog" args={['#EDE5DD', 22, 60]} />
             <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
             
             <RoomEnvironment />
