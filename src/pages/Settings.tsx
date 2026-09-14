@@ -304,24 +304,23 @@ export default function Settings() {
           variants={entranceVariants}
           className="account-panel md:col-span-12 shadow-sm"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-8">
-            <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-8">
+            <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
               <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shrink-0 mt-1 sm:mt-0.5">
                 <BookOpen className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
-                  {memories.length > 0 && (
-                    <span className="text-xs font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[var(--accent-primary)]/15 inline-flex items-center gap-1.5 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
-                      <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
-                    </span>
-                  )}
-                </div>
+                <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Memories gathered along the way</p>
               </div>
             </div>
+
+            {memories.length > 0 && (
+              <span className="text-xs font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[var(--accent-primary)]/15 inline-flex items-center gap-1.5 shrink-0 ml-auto mt-0.5 sm:mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+                <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
+              </span>
+            )}
           </div>
 
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
