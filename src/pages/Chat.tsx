@@ -1279,12 +1279,12 @@ export default function Chat() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
-                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 active:scale-95 transition-all cursor-pointer rounded-lg hover:bg-white/10"
+                  className="p-1.5 -ml-1 text-[var(--text-primary)]/90 hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 active:opacity-75 transition-all duration-300 cursor-pointer rounded-lg hover:bg-white/10"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
-                <div className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform" onClick={() => navigate('/')}>
+                <div className="flex items-center gap-2 cursor-pointer active:opacity-75 transition-all duration-300" onClick={() => navigate('/')}>
                   <img src="/images/Logo.png" alt="Lyra" className="w-7 h-7 rounded-[8px] object-cover border-[1.5px] border-[var(--accent-primary)]/70 shadow-sm" />
                   <span className="font-heading font-medium text-base text-[var(--text-primary)] tracking-wide">Lyra</span>
                 </div>
@@ -1292,7 +1292,7 @@ export default function Chat() {
 
               <button 
                 onClick={handleCapture} 
-                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:scale-95 shadow-md cursor-pointer transition-all backdrop-blur-md"
+                className="px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/70 hover:bg-[var(--bg-elevated)] border border-transparent hover:border-[var(--accent-primary)]/40 active:border-[var(--accent-primary)]/60 text-[var(--text-primary)]/90 text-xs font-medium flex items-center gap-1.5 active:opacity-75 shadow-md cursor-pointer transition-all duration-300 backdrop-blur-md"
               >
                 <Scan className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>Capture</span>
@@ -1584,10 +1584,10 @@ export default function Chat() {
                 onClick={toggleWardrobe} 
                 title={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
                 aria-label={`Wardrobe Style (Currently wearing: ${getOutfitLabel(outfit)})`}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:opacity-75 ${
                   isWardrobeOpen 
-                    ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]' 
-                    : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
+                    ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]' 
+                    : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
                 }`}
               >
                 <Shirt className="w-5 h-5" />
@@ -1596,10 +1596,10 @@ export default function Chat() {
                 onClick={toggleSettings} 
                 title="Voice Settings"
                 aria-label="Voice Settings"
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:opacity-75 ${
                   isSettingsOpen 
-                    ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]' 
-                    : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
+                    ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]' 
+                    : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
                 }`}
               >
                 <Settings className="w-5 h-5" />
@@ -1608,7 +1608,7 @@ export default function Chat() {
              
             {/* HUD Top Right */}
             <div className={`absolute top-6 right-6 z-20 transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#241724] border border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white active:scale-95 transition-all shadow-xl cursor-pointer">
+              <button onClick={handleCapture} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-white/90 hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)] active:opacity-75 shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-all duration-300 cursor-pointer">
                 <Camera className="w-4 h-4" />
                 <span className="text-sm font-medium">Capture</span>
               </button>

@@ -40,10 +40,10 @@ export function ControlBar({
       <button
         type="button"
         onClick={onToggleView}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
+        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:opacity-75 ${
           isPortraitMode
-            ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]'
-            : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
+            ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]'
+            : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
         }`}
         title={isPortraitMode ? "Switch to Full-Body View" : "Switch to Portrait View"}
         aria-label="Reframe Camera"
@@ -55,10 +55,10 @@ export function ControlBar({
       <button
         type="button"
         onClick={handleTalkStopClick}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
+        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:opacity-75 ${
           isVoiceActive
-            ? 'bg-[#0f080f] text-white border-white/50 shadow-[inset_0_2px_6px_rgba(0,0,0,0.9)] animate-pulse'
-            : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
+            ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/40 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_8px_rgba(0,0,0,0.5)] animate-pulse'
+            : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
         }`}
         title={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
         aria-label={isVoiceActive ? "Stop (Listening or Speaking)" : "Talk to Lyra"}
@@ -74,10 +74,10 @@ export function ControlBar({
       <button
         type="button"
         onClick={onToggleMute}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all shadow-xl cursor-pointer active:scale-95 ${
+        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:opacity-75 ${
           isMuted
-            ? 'bg-[#0f080f] text-white border-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.8),0_0_12px_rgba(0,0,0,0.5)]'
-            : 'bg-[#241724] border-white/15 text-white/90 hover:bg-[#322132] hover:border-white/30 hover:text-white'
+            ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]'
+            : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
         }`}
         title={isMuted ? "Unmute Lyra's voice" : "Mute Lyra's voice"}
         aria-label={isMuted ? "Unmute Lyra's voice" : "Mute Lyra's voice"}
