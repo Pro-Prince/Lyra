@@ -165,12 +165,14 @@ export default function Landing() {
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
 
   useEffect(() => {
+    let t: number;
     if (location.state?.scrollTo) {
       const target = location.state.scrollTo;
-      setTimeout(() => {
+      t = window.setTimeout(() => {
         document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
+    return () => clearTimeout(t);
   }, [location.state]);
 
   useEffect(() => {

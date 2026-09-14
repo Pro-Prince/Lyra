@@ -244,8 +244,16 @@ async function fetchCompanionBuffer(url: string): Promise<ArrayBuffer> {
   }
 }
 
+const modelCache: Record<string, VRM> = {};
+
 export async function loadCompanionModel(modelId: string): Promise<VRM> {
   const url = MODEL_FILES[modelId] || modelId;
+
+  if (modelCache[modelId]) {
+    console.log('Cache hit:', modelId);
+    return modelCache[modelId];
+  }
+  console.log('Cache miss, loading:', modelId);
 
   try {
     const buffer = await fetchCompanionBuffer(url);
@@ -259,11 +267,40 @@ export async function loadCompanionModel(modelId: string): Promise<VRM> {
       throw new Error('No VRM data in loaded file');
     }
 
+    modelCache[modelId] = vrm as VRM;
     return vrm as VRM;
   } catch (err: any) {
     console.error(`FULL ERROR loading ${url}:`, err?.message || String(err));
     if (err?.stack) console.error('Error stack:', err.stack);
     throw err;
+  }
+}
+
+export function disposeMaterial(material: any) {
+  Object.values(material).forEach((value: any) => {
+    if (value && value.isTexture) value.dispose();
+  });
+  if (material.dispose) material.dispose();
+}
+
+export function disposeVRM(vrm: VRM) {
+  if (!vrm || !vrm.scene) return;
+  vrm.scene.traverse((obj: any) => {
+    if (obj.isMesh) {
+      if (obj.geometry) obj.geometry.dispose();
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach((m) => disposeMaterial(m));
+      } else if (obj.material) {
+        disposeMaterial(obj.material);
+      }
+    }
+  });
+
+  // Remove from cache since its WebGL resources are now destroyed
+  for (const key in modelCache) {
+    if (modelCache[key] === vrm) {
+      delete modelCache[key];
+    }
   }
 }
 

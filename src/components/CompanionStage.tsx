@@ -15,7 +15,7 @@ import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
 import { applyRestPose } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
-import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM } from '../lib/companionRenderer';
+import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
 import { performanceController } from '../lib/PerformanceController';
 import { InteractionManager } from './InteractionManager';
@@ -673,7 +673,12 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
       if (handleOutfitsReady) {
         window.removeEventListener('lyraOutfitsReady', handleOutfitsReady);
       }
-      setVrm(null);
+      setVrm(prev => {
+        if (prev) {
+          disposeVRM(prev);
+        }
+        return null;
+      });
       if (onReset) onReset();
       if (mixer.current) {
         mixer.current.stopAllAction();
@@ -1143,7 +1148,7 @@ function CompanionStageComponent({
           <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
           
           <RoomEnvironment />
-          <CustomPostProcessing />
+          {/* <CustomPostProcessing /> Removed to fix baseline lag */}
 
           <Suspense fallback={null}>
             <VRMModel 

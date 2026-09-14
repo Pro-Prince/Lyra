@@ -62,10 +62,14 @@ function AmbientMotes() {
     return [geo, speeds];
   }, [dustCount]);
 
+  const frameCount = useRef(0);
+
   useFrame((_, delta) => {
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
     if (!dustRef.current) return;
     const pos = dustRef.current.geometry.attributes.position;
-    const dt = Math.min(delta, 0.1);
+    const dt = Math.min(delta * 2, 0.1); // Multiply delta by 2 to compensate
 
     for (let i = 0; i < dustCount; i++) {
       let y = pos.getY(i) + dustSpeeds[i] * dt * 60;
@@ -128,17 +132,21 @@ function DriftingSakura() {
     return geo;
   }, []);
 
+  const frameCount = useRef(0);
+
   useFrame(({ clock }, delta) => {
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
     if (!meshRef.current) return;
     const t = clock.getElapsedTime();
-    const dt = Math.min(delta, 0.1);
+    const dt = Math.min(delta * 2, 0.1); // Multiply delta by 2 to compensate
 
     particles.forEach((p, i) => {
       p.y -= p.speedY * dt * 60;
       p.x += (Math.sin(t * p.swaySpeed + p.phase) * p.swayAmp + 0.001) * dt * 60;
       p.z += Math.cos(t * p.swaySpeed * 0.8 + p.phase) * (p.swayAmp * 0.5) * dt * 60;
-      p.rotX += p.rotSpeed;
-      p.rotY += p.rotSpeed;
+      p.rotX += p.rotSpeed * 2;
+      p.rotY += p.rotSpeed * 2;
 
       if (p.y < 0.1 || p.x > 4.5 || p.x < -4.5) {
         p.y = 3.6 + Math.random() * 0.4;
@@ -243,33 +251,33 @@ function PanoramicBalconyWindow() {
       </group>
 
       <group position={[-0.5, 2.3, 0]}>
-        <mesh position={[0, 2.35, 0.04]} castShadow receiveShadow>
+        <mesh position={[0, 2.35, 0.04]}  receiveShadow>
           <boxGeometry args={[4.4, 0.1, 0.12]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
         </mesh>
-        <mesh position={[0, -2.35, 0.06]} castShadow receiveShadow>
+        <mesh position={[0, -2.35, 0.06]}  receiveShadow>
           <boxGeometry args={[4.4, 0.12, 0.18]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
         </mesh>
-        <mesh position={[-2.2, 0, 0.04]} castShadow receiveShadow>
+        <mesh position={[-2.2, 0, 0.04]}  receiveShadow>
           <boxGeometry args={[0.1, 4.7, 0.12]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
         </mesh>
-        <mesh position={[2.2, 0, 0.04]} castShadow receiveShadow>
+        <mesh position={[2.2, 0, 0.04]}  receiveShadow>
           <boxGeometry args={[0.1, 4.7, 0.12]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0, 0.04]} castShadow>
+        <mesh position={[0, 0, 0.04]} >
           <boxGeometry args={[0.05, 4.7, 0.08]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0.7, 0.04]} castShadow>
+        <mesh position={[0, 0.7, 0.04]} >
           <boxGeometry args={[4.4, 0.04, 0.06]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
         </mesh>
 
         <group position={[-1.9, 0, 0.12]}>
-          <mesh castShadow receiveShadow>
+          <mesh  receiveShadow>
             <planeGeometry args={[1.0, 4.6]} />
             <meshStandardMaterial
               color="#FDE8F1"
@@ -285,7 +293,7 @@ function PanoramicBalconyWindow() {
           </mesh>
         </group>
         <group position={[1.9, 0, 0.12]}>
-          <mesh castShadow receiveShadow>
+          <mesh  receiveShadow>
             <planeGeometry args={[1.0, 4.6]} />
             <meshStandardMaterial
               color="#FDE8F1"
@@ -324,7 +332,7 @@ function RoundWallArt({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <group position={[-0.55, 0, 0]}>
-        <mesh castShadow receiveShadow>
+        <mesh  receiveShadow>
           <boxGeometry args={[0.62, 0.62, 0.03]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.6} />
         </mesh>
@@ -335,7 +343,7 @@ function RoundWallArt({ position }: { position: [number, number, number] }) {
       </group>
 
       <group position={[0.55, -0.06, 0]}>
-        <mesh castShadow receiveShadow>
+        <mesh  receiveShadow>
           <boxGeometry args={[0.62, 0.62, 0.03]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.6} />
         </mesh>
@@ -354,11 +362,11 @@ function RoundWallArt({ position }: { position: [number, number, number] }) {
 function WindowsideConsole({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.28, 0]}  receiveShadow>
         <boxGeometry args={[2.0, 0.5, 0.4]} />
         <meshStandardMaterial color={PALETTE.trimMauve} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.535, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.535, 0]}  receiveShadow>
         <boxGeometry args={[2.05, 0.03, 0.43]} />
         <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.42} />
       </mesh>
@@ -379,19 +387,19 @@ function PlushBunnyToy({
 }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.07, 0]} castShadow>
+      <mesh position={[0, 0.07, 0]} >
         <sphereGeometry args={[0.08, 16, 16]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
       </mesh>
-      <mesh position={[0, 0.16, 0.01]} castShadow>
+      <mesh position={[0, 0.16, 0.01]} >
         <sphereGeometry args={[0.06, 16, 16]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
       </mesh>
-      <mesh position={[-0.025, 0.24, 0]} rotation={[0, 0, -0.15]} castShadow>
+      <mesh position={[-0.025, 0.24, 0]} rotation={[0, 0, -0.15]} >
         <capsuleGeometry args={[0.018, 0.09, 6, 8]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
       </mesh>
-      <mesh position={[0.025, 0.24, 0]} rotation={[0, 0, 0.15]} castShadow>
+      <mesh position={[0.025, 0.24, 0]} rotation={[0, 0, 0.15]} >
         <capsuleGeometry args={[0.018, 0.09, 6, 8]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.95} />
       </mesh>
@@ -440,28 +448,28 @@ function BottomLeftLoungeCorner() {
       <pointLight color={PALETTE.warmSunsetKey} intensity={0.4} distance={2.2} position={[-0.6, 0.9, 0.8]} decay={2} />
 
       <group position={[0, 0.32, 0]}>
-        <mesh castShadow receiveShadow scale={[1.25, 0.72, 1.25]}>
+        <mesh  receiveShadow scale={[1.25, 0.72, 1.25]}>
           <sphereGeometry args={[0.8, 28, 20]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
         </mesh>
-        <mesh castShadow receiveShadow position={[-0.22, 0.3, -0.22]} scale={[1.05, 0.78, 1.05]}>
+        <mesh  receiveShadow position={[-0.22, 0.3, -0.22]} scale={[1.05, 0.78, 1.05]}>
           <sphereGeometry args={[0.62, 22, 18]} />
           <meshStandardMaterial color="#EFE2D6" roughness={0.9} />
         </mesh>
 
         <group position={[0.38, 0.18, 0.2]} rotation={[0.18, 0.25, -0.38]}>
-          <mesh castShadow receiveShadow>
+          <mesh  receiveShadow>
             <boxGeometry args={[0.5, 0.04, 0.8]} />
             <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.85} />
           </mesh>
-          <mesh position={[0.24, -0.12, 0]} rotation={[0, 0, 0.55]} castShadow>
+          <mesh position={[0.24, -0.12, 0]} rotation={[0, 0, 0.55]} >
             <boxGeometry args={[0.035, 0.3, 0.78]} />
             <meshStandardMaterial color="#E48EBA" roughness={0.85} />
           </mesh>
         </group>
 
         <group position={[0.02, 0.44, 0.3]} rotation={[0.42, 0.12, 0.08]}>
-          <mesh castShadow position={[0, 0, 0.05]}>
+          <mesh  position={[0, 0, 0.05]}>
             <cylinderGeometry args={[0.1, 0.1, 0.04, 20]} rotation={[Math.PI / 2, 0, 0]} />
             <meshStandardMaterial color={PALETTE.lyraPink} roughness={0.8} />
           </mesh>
@@ -470,7 +478,7 @@ function BottomLeftLoungeCorner() {
             return (
               <mesh
                 key={i}
-                castShadow
+                
                 position={[Math.cos(angle) * 0.2, Math.sin(angle) * 0.2, 0]}
               >
                 <sphereGeometry args={[0.12, 14, 14]} scale={[1, 1, 0.42]} />
@@ -482,7 +490,7 @@ function BottomLeftLoungeCorner() {
       </group>
 
       <group position={[-0.95, 0, 0.25]}>
-        <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
+        <mesh position={[0, 0.42, 0]}  receiveShadow>
           <cylinderGeometry args={[0.26, 0.26, 0.03, 24]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
         </mesh>
@@ -493,18 +501,18 @@ function BottomLeftLoungeCorner() {
               key={i}
               position={[Math.sin(a) * 0.15, 0.2, Math.cos(a) * 0.15]}
               rotation={[0.08 * Math.cos(a), 0, -0.08 * Math.sin(a)]}
-              castShadow
+              
             >
               <cylinderGeometry args={[0.013, 0.01, 0.42, 10]} />
               <meshStandardMaterial color={PALETTE.walnutPlank} roughness={0.4} />
             </mesh>
           );
         })}
-        <mesh position={[0.04, 0.445, -0.02]} castShadow>
+        <mesh position={[0.04, 0.445, -0.02]} >
           <boxGeometry args={[0.14, 0.02, 0.18]} />
           <meshStandardMaterial color={PALETTE.softPinkTextile} roughness={0.5} />
         </mesh>
-        <mesh position={[-0.06, 0.47, 0.04]} castShadow>
+        <mesh position={[-0.06, 0.47, 0.04]} >
           <cylinderGeometry args={[0.035, 0.03, 0.07, 16]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.3} />
         </mesh>
@@ -571,14 +579,14 @@ function BuiltInRecessedShelving() {
         <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} />
       </mesh>
 
-      <mesh position={[0, 1.85, -0.15]} rotation={[0, Math.PI / 2, 0]} receiveShadow castShadow>
+      <mesh position={[0, 1.85, -0.15]} rotation={[0, Math.PI / 2, 0]} receiveShadow >
         <cylinderGeometry args={[1.1, 1.1, 2.2, 24, 1, false, 0, Math.PI]} />
         <meshStandardMaterial color={PALETTE.wallAccentPlum} roughness={0.8} side={THREE.DoubleSide} />
       </mesh>
 
       {[-0.8, -0.05, 0.7, 1.45].map((y, i) => (
         <group position={[0, y, 0]} key={i}>
-          <mesh castShadow receiveShadow>
+          <mesh  receiveShadow>
             <boxGeometry args={[2.18, 0.05, 0.28]} />
             <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
           </mesh>
@@ -626,11 +634,11 @@ function RightCabinetAndDecor() {
   return (
     <group position={[3.2, 0, -3.5]}>
       <group position={[0, 0.42, 0]}>
-        <mesh castShadow receiveShadow>
+        <mesh  receiveShadow>
           <boxGeometry args={[1.55, 0.52, 0.48]} />
           <meshStandardMaterial color={PALETTE.trimMauve} roughness={0.6} />
         </mesh>
-        <mesh position={[0, 0.27, 0]} castShadow receiveShadow>
+        <mesh position={[0, 0.27, 0]}  receiveShadow>
           <boxGeometry args={[1.6, 0.035, 0.52]} />
           <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.42} />
         </mesh>
@@ -640,7 +648,7 @@ function RightCabinetAndDecor() {
           [-0.65, -0.34, -0.16],
           [0.65, -0.34, -0.16],
         ].map(([lx, ly, lz], i) => (
-          <mesh key={i} position={[lx, ly, lz]} castShadow>
+          <mesh key={i} position={[lx, ly, lz]} >
             <cylinderGeometry args={[0.016, 0.01, 0.18, 10]} />
             <meshStandardMaterial color={PALETTE.walnutPlank} roughness={0.4} />
           </mesh>
@@ -683,11 +691,11 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
 
   return (
     <group position={position}>
-      <mesh position={[0, 0.07, 0]} castShadow>
+      <mesh position={[0, 0.07, 0]} >
         <cylinderGeometry args={[0.055, 0.075, 0.14, 20]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.35} />
       </mesh>
-      <mesh position={[0, 0.17, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.17, 0]}  receiveShadow>
         <sphereGeometry args={[0.14, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
         <meshStandardMaterial
           color={PALETTE.porcelainWhite}
@@ -702,8 +710,6 @@ function CozyMushroomLamp({ position }: { position: [number, number, number] }) 
         intensity={0.6}
         distance={2.8}
         decay={2}
-        castShadow
-        shadow-bias={-0.0001}
       />
     </group>
   );
@@ -752,19 +758,19 @@ function PorcelainBunny({
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh position={[0, 0.08, 0]} castShadow>
+      <mesh position={[0, 0.08, 0]} >
         <sphereGeometry args={[0.085, 14, 14]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
       </mesh>
-      <mesh position={[0, 0.18, 0.01]} castShadow>
+      <mesh position={[0, 0.18, 0.01]} >
         <sphereGeometry args={[0.065, 14, 14]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
       </mesh>
-      <mesh position={[-0.025, 0.26, 0]} rotation={[0, 0, -0.1]} castShadow>
+      <mesh position={[-0.025, 0.26, 0]} rotation={[0, 0, -0.1]} >
         <capsuleGeometry args={[0.015, 0.08, 6, 8]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
       </mesh>
-      <mesh position={[0.025, 0.26, 0]} rotation={[0, 0, 0.1]} castShadow>
+      <mesh position={[0.025, 0.26, 0]} rotation={[0, 0, 0.1]} >
         <capsuleGeometry args={[0.015, 0.08, 6, 8]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.4} />
       </mesh>
@@ -775,7 +781,7 @@ function PorcelainBunny({
 function ScentedCandle({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.04, 0]} castShadow>
+      <mesh position={[0, 0.04, 0]} >
         <cylinderGeometry args={[0.035, 0.035, 0.08, 16]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.2} transparent opacity={0.85} />
       </mesh>
@@ -796,15 +802,15 @@ function PastelBookRow({
 }) {
   return (
     <group position={position} rotation={rotation}>
-      <mesh position={[0, 0.015, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.015, 0]}  receiveShadow>
         <boxGeometry args={[0.16, 0.03, 0.22]} />
         <meshStandardMaterial color="#D892AE" roughness={0.5} />
       </mesh>
-      <mesh position={[0.01, 0.045, 0.01]} rotation={[0, 0.06, 0]} castShadow receiveShadow>
+      <mesh position={[0.01, 0.045, 0.01]} rotation={[0, 0.06, 0]}  receiveShadow>
         <boxGeometry args={[0.15, 0.028, 0.2]} />
         <meshStandardMaterial color="#B08DB8" roughness={0.5} />
       </mesh>
-      <mesh position={[-0.01, 0.07, -0.01]} rotation={[0, -0.05, 0]} castShadow receiveShadow>
+      <mesh position={[-0.01, 0.07, -0.01]} rotation={[0, -0.05, 0]}  receiveShadow>
         <boxGeometry args={[0.14, 0.024, 0.18]} />
         <meshStandardMaterial color="#E8D2C6" roughness={0.5} />
       </mesh>
@@ -821,7 +827,7 @@ function SmallFramedPhoto({
 }) {
   return (
     <group position={position} rotation={rotation}>
-      <mesh castShadow>
+      <mesh >
         <boxGeometry args={[0.16, 0.2, 0.018]} />
         <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.45} />
       </mesh>
@@ -836,11 +842,11 @@ function SmallFramedPhoto({
 function StorageBox({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh castShadow receiveShadow>
+      <mesh  receiveShadow>
         <boxGeometry args={[0.2, 0.09, 0.14]} />
         <meshStandardMaterial color={PALETTE.softBeige} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.05, 0]} castShadow>
+      <mesh position={[0, 0.05, 0]} >
         <boxGeometry args={[0.21, 0.015, 0.15]} />
         <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.4} />
       </mesh>
@@ -851,7 +857,7 @@ function StorageBox({ position }: { position: [number, number, number] }) {
 function HangingShelfPothos({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh position={[0, 0.06, 0]} castShadow>
+      <mesh position={[0, 0.06, 0]} >
         <cylinderGeometry args={[0.07, 0.055, 0.12, 16]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
@@ -870,7 +876,7 @@ function HangingShelfPothos({ position }: { position: [number, number, number] }
               key={lIdx}
               position={[Math.sin(lIdx * 2) * 0.02, -v.l * prog, 0]}
               rotation={[0.3, 0.2 * lIdx, 0]}
-              castShadow
+              
             >
               <sphereGeometry args={[0.03, 6, 6]} scale={[1, 1.3, 0.25]} />
               <meshStandardMaterial
@@ -888,7 +894,7 @@ function HangingShelfPothos({ position }: { position: [number, number, number] }
 function SmallPottedSucculent({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.06, 0]}  receiveShadow>
         <cylinderGeometry args={[0.065, 0.05, 0.12, 16]} />
         <meshStandardMaterial color={PALETTE.porcelainWhite} roughness={0.35} />
       </mesh>
@@ -902,7 +908,7 @@ function SmallPottedSucculent({ position, scale = 1 }: { position: [number, numb
         { rot: [0.25, -1.5, 0.18], pos: [0.03, 0.19, -0.01] },
       ].map((leaf, idx) => (
         <group key={idx} position={leaf.pos as [number, number, number]} rotation={leaf.rot as [number, number, number]}>
-          <mesh position={[0, 0.06, 0]} rotation={[0.35, 0, 0]} castShadow>
+          <mesh position={[0, 0.06, 0]} rotation={[0.35, 0, 0]} >
             <sphereGeometry args={[0.045, 8, 8]} scale={[1, 1.25, 0.28]} />
             <meshStandardMaterial color={PALETTE.leafGreen} roughness={0.5} />
           </mesh>
@@ -915,7 +921,7 @@ function SmallPottedSucculent({ position, scale = 1 }: { position: [number, numb
 function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 0.18, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.18, 0]}  receiveShadow>
         <cylinderGeometry args={[0.18, 0.14, 0.36, 20]} />
         <meshStandardMaterial color={PALETTE.warmCream} roughness={0.4} />
       </mesh>
@@ -930,11 +936,11 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
         { rot: [0.15, 0.8, -0.04], pos: [0, 0.65, 0], s: 1.3 },
       ].map((l, idx) => (
         <group key={idx} position={l.pos as [number, number, number]} rotation={l.rot as [number, number, number]} scale={l.s}>
-          <mesh position={[0, 0.1, 0]} castShadow>
+          <mesh position={[0, 0.1, 0]} >
             <cylinderGeometry args={[0.012, 0.012, 0.22, 6]} />
             <meshStandardMaterial color={PALETTE.leafGreenDark} roughness={0.6} />
           </mesh>
-          <mesh position={[0, 0.22, 0]} rotation={[0.4, 0, 0]} castShadow receiveShadow>
+          <mesh position={[0, 0.22, 0]} rotation={[0.4, 0, 0]}  receiveShadow>
             <sphereGeometry args={[0.12, 12, 12]} scale={[1, 1.5, 0.2]} />
             <meshStandardMaterial
               color={idx % 2 === 0 ? PALETTE.leafGreen : PALETTE.leafGreenLight}
@@ -977,8 +983,8 @@ export function RoomEnvironment() {
         intensity={1.8}
         position={[-6.0, 3.8, 1.5]}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-bias={-0.0001}
       />
 

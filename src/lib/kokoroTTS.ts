@@ -132,6 +132,8 @@ export function stopSpeaking() {
   activePlaybackSessionId++;
   speechQueue = [];
   isQueueBusy = false;
+  
+  stopVisemeAnimation();
 
   if (activeAbortController) {
     try {
@@ -147,6 +149,9 @@ export function stopSpeaking() {
       activeAudioElement.onerror = null;
       activeAudioElement.pause();
       activeAudioElement.currentTime = 0;
+      if (activeAudioElement.src.startsWith('blob:')) {
+        URL.revokeObjectURL(activeAudioElement.src);
+      }
       activeAudioElement.src = '';
     } catch (_) {}
     activeAudioElement = null;

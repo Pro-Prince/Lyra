@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
+import { getAudioContext } from './audioContext';
 
 export const GESTURE_POOL: Record<string, string[]> = {
   happy: ['gesture_happy_01', 'gesture_happy_02', 'gesture_wave', 'cheer', 'laugh'],
@@ -28,6 +29,7 @@ export class PerformanceController {
   private currentEmotion: string = 'warm';
   private cursorTarget: THREE.Object3D | null = null;
   private gazeInterval: any = null;
+  private gazeTimeout: any = null;
 
   constructor() {
     this.setupGazeInterval();
@@ -55,18 +57,9 @@ export class PerformanceController {
 
   public setupAnalyser(audioElement: HTMLAudioElement): AnalyserNode | null {
     try {
-      if (!this.audioCtx) {
-        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioCtxClass) {
-          this.audioCtx = new AudioCtxClass();
-        }
-      }
-
+      this.audioCtx = getAudioContext();
+      
       if (!this.audioCtx) return null;
-
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume().catch(() => {});
-      }
 
       let source = this.mediaSourceMap.get(audioElement);
       if (!source) {
@@ -86,6 +79,7 @@ export class PerformanceController {
 
       source.connect(this.analyser);
       this.analyser.connect(this.audioCtx.destination);
+
       return this.analyser;
     } catch (e) {
       console.warn('[PerformanceController] Web Audio setup exception:', e);
@@ -224,14 +218,15 @@ export class PerformanceController {
   private setupGazeInterval() {
     if (typeof window === 'undefined') return;
     if (this.gazeInterval) clearInterval(this.gazeInterval);
-
+    if (this.gazeTimeout) clearTimeout(this.gazeTimeout);
     this.gazeInterval = setInterval(() => {
       if (!this.vrm || !this.vrm.lookAt) return;
 
       if (Math.random() < 0.3) {
         const cursorTarget = this.cursorTarget || this.vrm.lookAt.target;
         this.vrm.lookAt.target = null; // briefly stop tracking
-        setTimeout(() => {
+        if (this.gazeTimeout) clearTimeout(this.gazeTimeout);
+        this.gazeTimeout = setTimeout(() => {
           if (this.vrm && this.vrm.lookAt) {
             this.vrm.lookAt.target = cursorTarget;
           }
@@ -259,6 +254,10 @@ export class PerformanceController {
     if (this.gazeInterval) {
       clearInterval(this.gazeInterval);
       this.gazeInterval = null;
+    }
+    if (this.gazeTimeout) {
+      clearTimeout(this.gazeTimeout);
+      this.gazeTimeout = null;
     }
   }
 }

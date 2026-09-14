@@ -324,6 +324,7 @@ export class InteractionManager {
     const duration = 2400; // ms total
     const startTime = performance.now();
     let isCancelled = false;
+    let animId: number | null = null;
 
     if (expr) {
       expr.setValue('relaxed', 0.6);
@@ -347,7 +348,7 @@ export class InteractionManager {
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         headNode.rotation.set(0, 0, 0);
         if (neckNode) neckNode.rotation.set(0, 0, 0);
@@ -361,6 +362,7 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       headNode.rotation.set(0, 0, 0);
       if (neckNode) neckNode.rotation.set(0, 0, 0);
       if (expr) {
@@ -369,7 +371,7 @@ export class InteractionManager {
       }
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private performBlinkFlutterAnimation(onComplete: () => void) {
@@ -380,6 +382,7 @@ export class InteractionManager {
     }
 
     let isCancelled = false;
+    let animId: number | null = null;
     const duration = 800; // ms
     const startTime = performance.now();
 
@@ -399,7 +402,7 @@ export class InteractionManager {
       expr.setValue('blink', blinkVal);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         expr.setValue('blink', 0);
         onComplete();
@@ -408,10 +411,11 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       expr.setValue('blink', 0);
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private performLookAroundAnimation(onComplete: () => void) {
@@ -432,6 +436,7 @@ export class InteractionManager {
     }
 
     let isCancelled = false;
+    let animId: number | null = null;
     const duration = 2800; // ms
     const startTime = performance.now();
 
@@ -460,7 +465,7 @@ export class InteractionManager {
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         headNode.rotation.set(0, 0, 0);
         if (neckNode) neckNode.rotation.set(0, 0, 0);
@@ -470,11 +475,12 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       headNode.rotation.set(0, 0, 0);
       if (neckNode) neckNode.rotation.set(0, 0, 0);
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private performShySmileAnimation(onComplete: () => void) {
@@ -482,6 +488,7 @@ export class InteractionManager {
     const headNode = this.vrm?.humanoid?.getNormalizedBoneNode('head');
 
     let isCancelled = false;
+    let animId: number | null = null;
     const duration = 2200;
     const startTime = performance.now();
 
@@ -503,7 +510,7 @@ export class InteractionManager {
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         if (expr) {
           expr.setValue('happy', 0);
@@ -516,6 +523,7 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       if (expr) {
         expr.setValue('happy', 0);
         expr.setValue('blush', 0);
@@ -523,7 +531,7 @@ export class InteractionManager {
       if (headNode) headNode.rotation.set(0, 0, 0);
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private performCuriousNodAnimation(onComplete: () => void) {
@@ -536,6 +544,7 @@ export class InteractionManager {
     }
 
     let isCancelled = false;
+    let animId: number | null = null;
     const duration = 1800;
     const startTime = performance.now();
 
@@ -553,7 +562,7 @@ export class InteractionManager {
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         headNode.rotation.set(0, 0, 0);
         if (expr) expr.setValue('relaxed', 0);
@@ -563,11 +572,12 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       headNode.rotation.set(0, 0, 0);
       if (expr) expr.setValue('relaxed', 0);
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private performSighAnimation(onComplete: () => void) {
@@ -576,6 +586,7 @@ export class InteractionManager {
     const headNode = this.vrm?.humanoid?.getNormalizedBoneNode('head');
 
     let isCancelled = false;
+    let animId: number | null = null;
     const duration = 2400;
     const startTime = performance.now();
 
@@ -598,7 +609,7 @@ export class InteractionManager {
       }
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       } else {
         if (expr) expr.setValue('relaxed', 0);
         if (spineNode) spineNode.rotation.set(0, 0, 0);
@@ -609,12 +620,13 @@ export class InteractionManager {
 
     this.activeIdleCancelFn = () => {
       isCancelled = true;
+      if (animId !== null) cancelAnimationFrame(animId);
       if (expr) expr.setValue('relaxed', 0);
       if (spineNode) spineNode.rotation.set(0, 0, 0);
       if (headNode) headNode.rotation.set(0, 0, 0);
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
   }
 
   private executeGesture(gesture: GestureType, hitPoint?: THREE.Vector3) {

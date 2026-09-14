@@ -102,13 +102,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    let batchRenderer: THREE.WebGLRenderer | null = null;
-    try {
-      batchRenderer = createThumbnailRenderer(300, 300);
-    } catch (renderErr) {
-      console.warn('[preloadAllOutfits] Batch renderer init skipped:', renderErr);
-    }
-
     try {
       // Prioritize primary model first
       const outfitIds = ['default', 'lyra_casual', 'lyra_dress'];
@@ -120,16 +113,6 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
           let thumbnail = '';
           let fullBodyRender = '';
           let heroPortrait = '';
-
-          if (batchRenderer) {
-            try {
-              thumbnail = await renderStaticPortrait(id, batchRenderer, { frame: 'outfit', size: 256 });
-              heroPortrait = await renderStaticPortrait(id, batchRenderer, { frame: 'portrait', size: 256 });
-              fullBodyRender = heroPortrait;
-            } catch (rErr) {
-              console.warn(`[preloadAllOutfits] Snapshot render skipped for ${id}:`, rErr);
-            }
-          }
 
           // Preload idle animation
           const clips: Record<string, THREE.AnimationClip> = {};
@@ -157,13 +140,7 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         }
       }
     } finally {
-      if (batchRenderer) {
-        try {
-          batchRenderer.forceContextLoss?.();
-          batchRenderer.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
-          batchRenderer.dispose();
-        } catch {}
-      }
+      // Batch renderer removed
     }
 
     if (typeof window !== 'undefined') {

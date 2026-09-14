@@ -224,7 +224,9 @@ export function WardrobeCard({
       }
       if (rendererRef.current) {
         try {
+          console.log('[WardrobeCard] Disposing WebGLRenderer for', modelId);
           rendererRef.current.forceContextLoss?.();
+          rendererRef.current.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
           rendererRef.current.dispose();
         } catch {}
         if (rendererRef.current.domElement?.parentElement) {

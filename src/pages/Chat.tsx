@@ -282,6 +282,7 @@ export default function Chat() {
   const companionProfileRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
+  const manualMicStopRef = useRef<boolean>(false);
 
   // Refs for callbacks
   const isCallModeRef = useRef(isCallMode);
@@ -472,8 +473,8 @@ export default function Chat() {
       recognition.interimResults = true;
       recognition.lang = "en-US";
       recognition.onresult = (event: any) => {
-        // If microphone is muted, or Lyra is currently speaking or processing, drop mic input to avoid loopback
-        if (isMutedRef.current || appStateRef.current === AppState.SPEAKING || appStateRef.current === AppState.PROCESSING) {
+        // If Lyra is currently speaking or processing, drop mic input to avoid loopback
+        if (appStateRef.current === AppState.SPEAKING || appStateRef.current === AppState.PROCESSING) {
           return;
         }
 
@@ -510,11 +511,10 @@ export default function Chat() {
         setAppState(AppState.IDLE);
       };
       recognition.onend = () => { 
-         if (isMutedRef.current) {
-            setAppState(AppState.IDLE);
+         setAppState(AppState.IDLE); 
+         if (manualMicStopRef.current) {
             return;
          }
-         setAppState(AppState.IDLE); 
          if ((isCallModeRef.current || micMode === 'hands-free') && appStateRef.current !== AppState.SPEAKING && appStateRef.current !== AppState.PROCESSING) {
             try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
          }
@@ -577,9 +577,12 @@ export default function Chat() {
       const next = !prev;
       isMutedRef.current = next;
       if (next) {
-        stopSpeaking();
+        cancelSpeech();
         if (appStateRef.current === AppState.SPEAKING) {
           setAppState(AppState.IDLE);
+          if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
+            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
+          }
         }
         showInfo("Muted • Lyra's voice output disabled");
       } else {
@@ -597,15 +600,20 @@ export default function Chat() {
     cancelSpeech();
     setAppState(AppState.IDLE);
     showInfo("Stopped Lyra speaking mid-sentence.");
+    if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
+       try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
+    }
   };
 
   const toggleMic = () => {
     if (isListening) {
+      manualMicStopRef.current = true;
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch(e) {}
       }
       setAppState(AppState.IDLE);
     } else {
+      manualMicStopRef.current = false;
       cancelSpeech();
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -678,7 +686,7 @@ export default function Chat() {
         queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
         if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
           setAppState(AppState.IDLE);
-          if (isCallModeRef.current && !isMutedRef.current) {
+          if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
             try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
           }
         }

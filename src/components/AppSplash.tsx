@@ -19,6 +19,8 @@ export function AppSplash({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let t1: number;
+    let t2: number;
     // Real critical work: fonts must be loaded + minimum 800ms for smooth brand feel
     const fontPromise = typeof document !== 'undefined' && document.fonts 
       ? document.fonts.ready 
@@ -26,13 +28,22 @@ export function AppSplash({ children }: { children: React.ReactNode }) {
 
     const criticalWork = Promise.all([
       fontPromise,
-      new Promise((resolve) => setTimeout(resolve, 800)),
+      new Promise((resolve) => { t1 = window.setTimeout(resolve, 800); }),
     ]);
 
     // Absolute hard ceiling at 2.5 seconds (never exceeds 2.5s under any condition)
-    const hardCap = new Promise((resolve) => setTimeout(resolve, 2500));
+    const hardCap = new Promise((resolve) => { t2 = window.setTimeout(resolve, 2500); });
 
-    Promise.race([criticalWork, hardCap]).then(() => setReady(true));
+    let isMounted = true;
+    Promise.race([criticalWork, hardCap]).then(() => {
+      if (isMounted) setReady(true);
+    });
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
   return (
