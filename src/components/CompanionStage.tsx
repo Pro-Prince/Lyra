@@ -1127,8 +1127,12 @@ function CompanionStageComponent({
     return null;
   }
 
+  const isMobile = typeof window !== 'undefined' && (
+    window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  );
+
   const dpr = typeof window !== 'undefined' 
-    ? Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5) 
+    ? Math.min(window.devicePixelRatio || 1, isMobile ? 1.0 : 1.25) 
     : 1;
 
   return (
@@ -1180,10 +1184,10 @@ function CompanionStageComponent({
             frameloop={isTabVisible && isActive ? "always" : "never"}
             camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
             gl={{ 
-              preserveDrawingBuffer: true,
+              preserveDrawingBuffer: false,
               alpha: false, 
-              antialias: true, 
-              powerPreference: "high-performance",
+              antialias: !isMobile, 
+              powerPreference: isMobile ? "default" : "high-performance",
               stencil: false,
               depth: true,
               failIfMajorPerformanceCaveat: false

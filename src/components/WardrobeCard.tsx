@@ -4,7 +4,7 @@ import { VRM } from '@pixiv/three-vrm';
 import { ArrowRight, Check, Loader2, RotateCcw } from 'lucide-react';
 import { loadCompanionModel, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
 import { frameOutfit, applyRestPose, settleVRMPhysics } from '../lib/poseUtils';
-import { useOutfitThumbnail } from '../lib/outfitCache';
+import { useOutfitThumbnail, getOutfitRender } from '../lib/outfitCache';
 
 export function useDragRotate(onDrag: (deltaX: number) => void) {
   const isDragging = useRef(false);
@@ -145,6 +145,12 @@ export function WardrobeCard({
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [staticThumb, setStaticThumb] = useState<string | null>(null);
+
+  const isMobile = typeof window !== 'undefined' && (
+    window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  );
+  const cachedThumb = useOutfitThumbnail(modelId);
 
   const dragHandlers = useDragRotate((deltaX: number) => {
     onDragDeltaRef.current?.(deltaX);
@@ -157,7 +163,41 @@ export function WardrobeCard({
     setRetryKey(prev => prev + 1);
   };
 
+  // Static snapshot render for mobile to avoid WebGL context limits (iOS/Android crash prevention)
   useEffect(() => {
+    if (!isMobile) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        if (cachedThumb) {
+          setStaticThumb(cachedThumb);
+          setLoading(false);
+          return;
+        }
+        const dataUrl = await getOutfitRender(modelId, undefined, { frame: 'outfit', size: 280 });
+        if (!cancelled) {
+          setStaticThumb(dataUrl);
+          setLoading(false);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err?.message || 'Failed to load preview');
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [modelId, retryKey, isMobile, cachedThumb]);
+
+  // 3D Canvas setup for Desktop mode
+  useEffect(() => {
+    if (isMobile) return;
     let cancelled = false;
     let animId: number | null = null;
     let delayTimer: any = null;
@@ -293,9 +333,11 @@ export function WardrobeCard({
       cameraRef.current = null;
       onDragDeltaRef.current = null;
     };
-  }, [modelId, retryKey, loadDelay]);
+  }, [modelId, retryKey, loadDelay, isMobile]);
 
   const { hasDragged, ...pointerHandlers } = dragHandlers;
+
+  const displayThumb = cachedThumb || staticThumb;
 
   return (
     <div
@@ -307,12 +349,20 @@ export function WardrobeCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 3D Canvas Container */}
+      {/* Container */}
       <div 
-        className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/20 border border-[var(--text-primary)]/5 cursor-grab active:cursor-grabbing touch-none"
-        {...pointerHandlers}
+        className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/20 border border-[var(--text-primary)]/5 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center"
+        {...(!isMobile ? pointerHandlers : {})}
       >
-        <div ref={containerRef} className="outfit-card-canvas w-full h-full" />
+        {isMobile && displayThumb ? (
+          <img 
+            src={displayThumb} 
+            alt={label} 
+            className="w-full h-full object-contain p-2 transition-transform duration-300 group-hover:scale-105" 
+          />
+        ) : (
+          <div ref={containerRef} className="outfit-card-canvas w-full h-full" />
+        )}
 
         {/* Loading placeholder */}
         {loading && (

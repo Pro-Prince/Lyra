@@ -310,16 +310,18 @@ export default function Settings() {
                 <BookOpen className="w-4.5 h-4.5 sm:w-5 sm:h-5 shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
-                <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <h2 className="font-heading font-semibold text-lg sm:text-2xl text-[var(--text-primary)] leading-tight">What She Remembers</h2>
+                  {memories.length > 0 && (
+                    <span className="text-xs font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[var(--accent-primary)]/15 inline-flex items-center gap-1.5 shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+                      <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 sm:mt-1 font-body leading-relaxed">Memories gathered along the way</p>
               </div>
             </div>
-            {memories.length > 0 && (
-              <span className="text-xs font-semibold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[var(--accent-primary)]/15 self-start sm:self-auto flex items-center gap-1.5 shrink-0 ml-12 sm:ml-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
-                <span>{memories.length} item{memories.length === 1 ? '' : 's'}</span>
-              </span>
-            )}
           </div>
 
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
@@ -378,14 +380,14 @@ export default function Settings() {
           <div className="w-full h-px bg-[var(--text-primary)]/[0.06] mb-5 sm:mb-8" />
 
           {/* Action Row - aligned with Profile Save button row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[var(--bg-base)]/40 border border-[var(--text-primary)]/15 font-body">
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 sm:gap-4 p-3.5 sm:p-5 rounded-2xl bg-[var(--bg-base)]/40 border border-[var(--text-primary)]/15 font-body">
+            <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 w-full sm:w-auto min-w-0">
               <label 
                 htmlFor="wipe-confirm-input" 
                 className="inline-label font-body text-xs sm:text-sm font-semibold tracking-normal text-[var(--text-primary)]/90 flex items-center gap-1.5 select-none shrink-0"
               >
                 <span>Type</span>
-                <kbd className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-mono font-bold text-xs tracking-wider uppercase shadow-xs">
+                <kbd className="px-1.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-mono font-bold text-[11px] sm:text-xs tracking-wider uppercase shadow-xs">
                   WIPE
                 </kbd>
                 <span>to confirm:</span>
@@ -398,7 +400,7 @@ export default function Settings() {
                 placeholder="WIPE"
                 autoComplete="off"
                 spellCheck={false}
-                className={`wipe-input h-11 text-center text-sm font-mono font-bold tracking-widest uppercase px-3 rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/12 hover:border-rose-500/40 focus:border-rose-500/60 focus:outline-none transition-all placeholder:text-[var(--text-muted)]/40 placeholder:font-mono placeholder:tracking-widest ${
+                className={`wipe-input h-9 sm:h-11 text-center text-xs sm:text-sm font-mono font-bold tracking-widest uppercase px-2 sm:px-3 rounded-lg sm:rounded-xl bg-[var(--bg-base)] border border-[var(--text-primary)]/12 hover:border-rose-500/40 focus:border-rose-500/60 focus:outline-none transition-all placeholder:text-[var(--text-muted)]/40 placeholder:font-mono placeholder:tracking-widest ${
                   wipeConfirm === "WIPE"
                     ? "!border-rose-500/80 !bg-rose-500/15 text-rose-200"
                     : ""
@@ -411,7 +413,7 @@ export default function Settings() {
               size="sm"
               onClick={handleWipeAllData}
               disabled={wipeConfirm !== "WIPE"}
-              className="h-11 text-xs sm:text-sm whitespace-nowrap px-5 sm:px-6 w-full sm:w-auto justify-center shadow-xs shrink-0"
+              className="h-9 sm:h-11 text-xs sm:text-sm whitespace-nowrap px-4 sm:px-6 w-full sm:w-auto justify-center shadow-xs shrink-0"
               icon={Trash2}
               iconPlacement="left"
             >

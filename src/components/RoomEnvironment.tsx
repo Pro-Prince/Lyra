@@ -820,6 +820,11 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 //
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
+  const isMobile = typeof window !== 'undefined' && (
+    window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  );
+  const shadowMapSize = isMobile ? 512 : 1024;
+
   return (
     <group>
       {/* HEMI: broad, gentle fill from all directions, prevents pure-black
@@ -834,8 +839,8 @@ export function RoomEnvironment() {
         intensity={1.8}
         position={[-6.0, 3.8, 1.5]}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={shadowMapSize}
+        shadow-mapSize-height={shadowMapSize}
         shadow-bias={-0.0001}
       />
 

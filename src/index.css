@@ -1182,8 +1182,8 @@ h3, .heading-3 {
 
 .account-panel input.wipe-input,
 #wipe-confirm-input {
-  width: 130px !important;
-  max-width: 150px !important;
+  width: 88px !important;
+  max-width: 96px !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   text-align: center !important;
   letter-spacing: 0.12em !important;

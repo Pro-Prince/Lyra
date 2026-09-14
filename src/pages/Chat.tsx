@@ -1315,7 +1315,7 @@ export default function Chat() {
           
           {/* Top Navigation Bar - remains compact at the top */}
           <div className={`absolute top-0 left-0 right-0 px-3.5 pt-2.5 pb-2 flex items-center justify-between z-40 bg-gradient-to-b from-black/60 via-black/20 to-transparent backdrop-blur-[2px] transition-all duration-200 ${isCapturingFlash ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setIsMobileMenuOpen(true)} 
                   className="w-9 h-9 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-white/90 hover:bg-[#322132]/95 hover:border-white/40 hover:text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
@@ -1323,6 +1323,21 @@ export default function Chat() {
                 >
                   <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
                 </button>
+
+                <Link
+                  to="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('/');
+                  }}
+                  className="header-logo flex items-center gap-2 group transition-transform active:scale-95 cursor-pointer bg-[#241724]/80 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-full text-white shadow-sm"
+                  aria-label="Lyra Home"
+                >
+                  <img src="/images/Logo.png" alt="Lyra" className="w-5.5 h-5.5 object-cover rounded-md border border-[var(--accent-primary)]/40" />
+                  <span className="font-heading font-semibold text-sm text-white tracking-tight">
+                    Lyra
+                  </span>
+                </Link>
               </div>
 
               <button 
@@ -1892,12 +1907,15 @@ export default function Chat() {
               <div className="flex items-center justify-between pb-4 border-b border-[var(--text-primary)]/10 shrink-0">
                 <div 
                   className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform"
-                  onClick={() => navigate('/')}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate('/');
+                  }}
                 >
-                  <img src="/images/Logo.png" alt="Lyra" className="w-10 h-10 rounded-[10px] object-cover border-[1.5px] border-[var(--accent-primary)]/60 group-hover:border-[var(--accent-primary)] transition-colors" />
+                  <img src="/images/Logo.png" alt="Lyra" className="w-9 h-9 rounded-lg object-cover border border-[var(--accent-primary)]/50" />
                   <div>
-                    <h3 className="font-heading font-medium text-[var(--text-primary)] text-base group-hover:text-[var(--accent-primary)] transition-colors">Lyra</h3>
-                    <p className="text-[11px] font-medium text-[var(--accent-primary)]">AI Companion</p>
+                    <h3 className="font-heading font-medium text-[var(--text-primary)] text-base group-hover:text-[var(--accent-primary)] transition-colors leading-tight">Lyra</h3>
+                    <p className="text-[11px] font-medium text-[var(--accent-primary)] leading-tight">AI Companion</p>
                   </div>
                 </div>
                 <button 
