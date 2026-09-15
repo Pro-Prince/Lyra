@@ -844,46 +844,43 @@ export function RoomEnvironment() {
 
   return (
     <group>
-      {/* Gentle hemisphere fill light matching natural room lighting */}
-      <hemisphereLight color="#FFFFFF" groundColor="#3B2E37" intensity={1.2} />
+      {/* Warm hemisphere fill light matching room's sunset sky & plum floor tones */}
+      <hemisphereLight color="#FFE2D1" groundColor="#4A323B" intensity={0.9} />
 
-      {/* Ambient light for overall soft illumination */}
-      <ambientLight color="#FFF5FA" intensity={1.3} />
+      {/* Soft warm ambient light to eliminate harsh stark-white glare */}
+      <ambientLight color="#FFDEEB" intensity={0.75} />
 
-      {/* KEY LIGHT - Soft warm key directional light */}
+      {/* KEY LIGHT - Golden Sunset light streaming in from the left window */}
       <directionalLight
-        color={PALETTE.warmSunsetKey}
-        intensity={1.8}
-        position={[-3.5, 4.5, 2.5]}
+        color="#FFAA75"
+        intensity={1.6}
+        position={[-3.5, 3.8, 2.0]}
         castShadow
         shadow-mapSize-width={shadowRes}
         shadow-mapSize-height={shadowRes}
-        shadow-radius={4}
+        shadow-radius={6}
         shadow-bias={-0.0004}
       />
 
-      {/* FILL LIGHT - Soft cool fill light from opposite side */}
+      {/* FILL LIGHT - Cozy amber glow from the right-side table lamp & shelf LEDs */}
       <directionalLight
-        color={PALETTE.coolMoonFill}
-        intensity={0.65}
-        position={[3.5, 3.0, 1.2]}
+        color="#FFBE82"
+        intensity={1.0}
+        position={[3.0, 2.2, 1.2]}
       />
 
-      {/* RIM LIGHT - Soft pink accent rim light to separate silhouette */}
+      {/* RIM LIGHT - Soft rosy rim light separating silhouette cleanly */}
       <directionalLight
-        color="#FFE5F2"
-        intensity={0.8}
-        position={[0, 4.0, -2.5]}
+        color="#FFC2DC"
+        intensity={0.7}
+        position={[0, 3.5, -2.0]}
       />
 
-      {/* Transparent Shadow Receiver Plane on Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[30, 30]} />
-        <shadowMaterial transparent opacity={0.35} />
+      {/* Natural Shadow Receiver Plane on Floor (No artificial disc/circle) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} receiveShadow>
+        <planeGeometry args={[20, 20]} />
+        <shadowMaterial transparent opacity={0.22} />
       </mesh>
-
-      {/* Contact Shadow for Grounding character feet */}
-      <ContactShadow position={[0, 0.005, 0]} radius={0.7} opacity={0.38} />
     </group>
   );
 }
