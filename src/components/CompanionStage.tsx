@@ -392,12 +392,12 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     const portraitMidY = (headTop + shoulderY) / 2;
     portraitFraming.current = { midY: portraitMidY, distance: portraitDist };
 
-    // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are completely visible)
-    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.35 : 1.48; // Ensure full body clearance on mobile
+    // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are framed larger without button overlap)
+    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.20 : 1.26; // Frame larger on screen
     let fullBodyDist = (totalHeight * fullBodyPaddingFactor) / (2 * Math.tan(fov / 2));
     if (perspCam.aspect < 1.0) {
-      // In narrow/mobile screens, scale distance dynamically so feet and shoes are completely framed
-      fullBodyDist = fullBodyDist / Math.max(0.62, perspCam.aspect);
+      // In narrow/mobile screens, scale distance dynamically so feet and shoes are completely framed above control bar
+      fullBodyDist = fullBodyDist / Math.max(0.68, perspCam.aspect);
     }
     const fullBodyMidY = (headTop + feetBottom) * 0.5;
     fullBodyFraming.current = { midY: fullBodyMidY, distance: fullBodyDist };
@@ -451,10 +451,10 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      // 'room-wide' / 'centered': center camera on full body so entire avatar from head to shoes is framed without bottom cutoff
+      // 'room-wide' / 'centered': center camera on full body so entire avatar from head to shoes is framed larger without bottom button cutoff
       const isMobileAspect = (camera as THREE.PerspectiveCamera).aspect < 1.0;
-      const camY = isMobileAspect ? 0.85 : 0.72;
-      const lookY = isMobileAspect ? 0.90 : 1.05;
+      const camY = isMobileAspect ? 0.88 : 0.82;
+      const lookY = isMobileAspect ? 0.98 : 1.08;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
@@ -1301,13 +1301,14 @@ function CompanionStageComponent({
       {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#ede2dc]" />}
 
       {/* Responsive Room Environment Background Image */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden bg-[#241623]">
         <picture className="w-full h-full block">
           <source media="(min-width: 768px)" srcSet="/Room Desktop Version.png" />
           <img
             src="/Room Mobile Version.png"
             alt="Room Environment"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover md:object-cover object-center"
+            style={{ objectPosition: 'center center' }}
           />
         </picture>
       </div>
