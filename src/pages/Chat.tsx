@@ -1398,11 +1398,11 @@ export default function Chat() {
             <button 
               type="button"
               onClick={() => setIsChatDrawerOpen(true)}
-              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pb-1"
+              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pb-[env(safe-area-inset-bottom,0px)]"
               aria-label="Open chat drawer"
             >
               <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
-              <span className="text-[11px] font-medium text-[var(--accent-primary)]">Chat</span>
+              <span className="text-[11px] font-medium text-[var(--accent-primary)] mb-0.5">Chat</span>
             </button>
           </div>
 
