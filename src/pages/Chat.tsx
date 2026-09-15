@@ -1360,25 +1360,6 @@ export default function Chat() {
               </div>
           </div>
 
-          {/* Speaking Status Pill */}
-          <AnimatePresence>
-            {isLyraSpeaking && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-[160px] left-1/2 -translate-x-1/2 bg-[var(--bg-base)]/80 backdrop-blur-md px-4 py-1.5 rounded-full text-[13px] flex items-center gap-2.5 z-30 shadow-lg border border-[var(--text-primary)]/10 text-[var(--text-primary)]/90 whitespace-nowrap"
-              >
-                <span>Lyra is speaking...</span>
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <span className="w-0.5 h-3 rounded-full bg-[#FF8FC0] animate-pulse" />
-                  <span className="w-0.5 h-4 rounded-full bg-[#FF8FC0] animate-pulse delay-75" />
-                  <span className="w-0.5 h-3 rounded-full bg-[#FF8FC0] animate-pulse delay-150" />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Floating Subtitle for Latest Message (Above Lyra's Head) */}
           <AnimatePresence>
             {!isChatDrawerOpen && messages.length > 0 && messages[messages.length - 1].role === 'model' && (
@@ -1398,31 +1379,34 @@ export default function Chat() {
           </AnimatePresence>
 
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
-          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-16 pb-0">
-            {/* Control Bar */}
-            <div className="pointer-events-auto w-full pb-1 flex justify-center scale-100 sm:scale-110">
-              <ControlBar
-                isListening={isListening}
-                onToggleListening={toggleMic}
-                isMuted={isMuted}
-                onToggleMute={toggleMute}
-                isSpeaking={isLyraSpeaking}
-                onStop={handleStopSpeaking}
-                onToggleView={toggleView}
-                isPortraitMode={isPortraitMode}
-              />
-            </div>
+          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/40 to-transparent pt-8 pb-0">
+            {/* Unified Bottom Dock */}
+            <div className="pointer-events-auto w-full flex flex-col items-center gap-0">
+              {/* Control Bar - Positioned Lower */}
+              <div className="flex justify-center scale-100 sm:scale-110">
+                <ControlBar
+                  isListening={isListening}
+                  onToggleListening={toggleMic}
+                  isMuted={isMuted}
+                  onToggleMute={toggleMute}
+                  isSpeaking={isLyraSpeaking}
+                  onStop={handleStopSpeaking}
+                  onToggleView={toggleView}
+                  isPortraitMode={isPortraitMode}
+                />
+              </div>
 
-            {/* Chat Drawer Handle (Always Visible) */}
-            <button 
-              type="button"
-              onClick={() => setIsChatDrawerOpen(true)}
-              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pb-0.5"
-              aria-label="Open chat drawer"
-            >
-              <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
-              <span className="text-[10px] font-medium text-[var(--accent-primary)]">Chat</span>
-            </button>
+              {/* Chat Drawer Handle (Absolute Bottom Edge) */}
+              <button 
+                type="button"
+                onClick={() => setIsChatDrawerOpen(true)}
+                className="chat-drawer-handle cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pt-1 pb-1.5"
+                aria-label="Open chat drawer"
+              >
+                <ChevronUp className="w-3.5 h-3.5 text-[#FF8FC0] animate-bounce-slow -mb-1" />
+                <span className="text-[9px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Chat</span>
+              </button>
+            </div>
           </div>
 
           {/* The Pull-up Chat Drawer */}
