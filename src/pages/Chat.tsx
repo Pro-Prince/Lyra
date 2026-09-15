@@ -1369,6 +1369,22 @@ export default function Chat() {
               </div>
           </div>
 
+          {/* Floating Mobile Controls - Restored to room view under Lyra */}
+          <div className={`absolute bottom-8 left-0 right-0 z-30 flex justify-center transition-all duration-300 ${isCapturingFlash || isChatDrawerOpen ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
+            <div className="scale-95 sm:scale-100">
+              <ControlBar
+                isListening={isListening}
+                onToggleListening={toggleMic}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+                isSpeaking={isLyraSpeaking}
+                onStop={handleStopSpeaking}
+                onToggleView={toggleView}
+                isPortraitMode={isPortraitMode}
+              />
+            </div>
+          </div>
+
           {/* Floating Subtitle for Latest Message (Above Lyra's Head) */}
           <AnimatePresence>
             {!isChatDrawerOpen && messages.length > 0 && messages[messages.length - 1].role === 'model' && (
@@ -1517,24 +1533,10 @@ export default function Chat() {
                         </div>
                       )}
 
-                      {/* Control Bar - Positioned inside drawer for mobile */}
-                      <div className="px-4 pb-2 flex justify-center scale-90 sm:scale-100">
-                        <ControlBar
-                          isListening={isListening}
-                          onToggleListening={toggleMic}
-                          isMuted={isMuted}
-                          onToggleMute={toggleMute}
-                          isSpeaking={isLyraSpeaking}
-                          onStop={handleStopSpeaking}
-                          onToggleView={toggleView}
-                          isPortraitMode={isPortraitMode}
-                        />
-                      </div>
-
                       {/* Input Field (Fixed at very bottom without border above) */}
-                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                        <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
-                          <input 
+                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[env(safe-area-inset-bottom)]">
+                    <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner mb-0.5">
+                      <input 
                             ref={mobileInputRef}
                             type="text" 
                             value={inputText}
@@ -1894,9 +1896,9 @@ export default function Chat() {
                 <button
                   type="button"
                   onClick={openWardrobe}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-full bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
                     <Shirt className="w-4.5 h-4.5" />
                   </div>
                   <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
@@ -1908,9 +1910,9 @@ export default function Chat() {
                 <button
                   type="button"
                   onClick={openSettings}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-full bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
                     <Settings className="w-4.5 h-4.5" />
                   </div>
                   <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
@@ -1922,9 +1924,9 @@ export default function Chat() {
                 <Link
                   to="/"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-full bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
                     <Home className="w-4.5 h-4.5" />
                   </div>
                   <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
@@ -1936,9 +1938,9 @@ export default function Chat() {
                 <Link
                   to="/account"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-full bg-[#241724]/90 border border-white/10 hover:border-[#FF8FC0]/40 active:border-[#FF8FC0]/60 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-[#FF8FC0]/15 border border-[#FF8FC0]/25 flex items-center justify-center text-[#FF8FC0] shrink-0 group-hover:bg-[#FF8FC0]/25 transition-colors">
                     <User className="w-4.5 h-4.5" />
                   </div>
                   <span className="text-[14px] font-medium text-[var(--text-primary)]/95 group-hover:text-white transition-colors">
@@ -1956,9 +1958,9 @@ export default function Chat() {
                     await signOut();
                     navigate("/");
                   }}
-                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl bg-[#241724]/90 border border-red-500/20 hover:border-red-500/40 hover:bg-red-500/10 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
+                  className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-full bg-[#241724]/90 border border-red-500/20 hover:border-red-500/40 hover:bg-red-500/10 active:scale-[0.98] transition-all duration-200 cursor-pointer text-left shadow-sm group"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center text-red-400 shrink-0 group-hover:bg-red-500/25 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center text-red-400 shrink-0 group-hover:bg-red-500/25 transition-colors">
                     <LogOut className="w-4.5 h-4.5" />
                   </div>
                   <span className="text-[14px] font-medium text-[#f2a8b8] group-hover:text-red-300 transition-colors">

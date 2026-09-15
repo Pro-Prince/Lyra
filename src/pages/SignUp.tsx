@@ -17,6 +17,10 @@ export default function SignUpPage() {
   const { isAuthed, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (!authLoading && isAuthed) {
       isOnboardingCompleted().then((completed) => {
         if (completed) {

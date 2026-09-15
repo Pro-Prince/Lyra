@@ -263,8 +263,13 @@ async function startServer() {
     try {
       const { history, systemPrompt } = req.body;
       const aiClient = getAI();
+      if (!aiClient) {
+        console.error("[Gemini API] Client initialization failed.");
+        return res.status(500).json({ error: "AI Client not initialized. Check API Key." });
+      }
 
       const sanitized = sanitizeHistory(history);
+      console.log(`[Gemini API] Requesting non-streaming response for ${sanitized.length} messages...`);
 
       const response = await generateContentWithRetry(aiClient, {
         contents: sanitized,
@@ -297,8 +302,9 @@ async function startServer() {
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages, companionProfile, isCallMode, memories, recentMessages, profile, systemPrompt } = req.body;
-
       const userText = messages?.[messages.length - 1]?.content || "";
+
+      console.log(`[Lyra Server /api/chat] User message received: "${userText.substring(0, 50)}${userText.length > 50 ? '...' : ''}"`);
 
       // 1. Crisis / Self-Harm Keyword Check
       const crisisKeywords = ["suicide", "kill myself", "want to die", "end my life", "harm myself", "end it all"];
@@ -312,6 +318,11 @@ async function startServer() {
       }
 
       const aiClient = getAI();
+      if (!aiClient) {
+        console.error("[Gemini API] Client initialization failed for streaming.");
+        res.status(500).json({ error: "AI Client not initialized. Check API Key." });
+        return;
+      }
 
       let systemInstruction = systemPrompt;
 

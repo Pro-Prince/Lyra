@@ -1142,7 +1142,6 @@ h3, .heading-3 {
 @media (max-width: 900px) {
   .chat-layout {
     height: 100dvh;
-    height: calc(100dvh - 56px);
     display: flex;
     flex-direction: column;
   }
@@ -1264,7 +1263,8 @@ h3, .heading-3 {
 @media (max-width: 768px) {
   /* Full screen canvas viewport layout */
   .chat-page-container {
-    height: calc(100svh - 54px) !important;
+    height: 100svh !important;
+    height: 100dvh !important;
     overflow: hidden !important;
     position: relative !important;
   }
