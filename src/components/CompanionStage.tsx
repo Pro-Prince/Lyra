@@ -452,8 +452,8 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
       // 'room-wide' / 'centered': gentle camera height (0.80) looking slightly higher (1.02) to keep full body and feet clear of bottom UI
-      const camY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 0.92 : 0.72;
-      const lookY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.15 : 1.05;
+      const camY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.02 : 0.72;
+      const lookY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.25 : 1.05;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
@@ -913,6 +913,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
   const _tempGaze = useRef(new THREE.Vector3());
   const audioBufferRef = useRef<Uint8Array | null>(null);
 
+  const frameCountRef = useRef(0);
+
   useFrame((_, delta) => {
     if (!vrm || !vrm.scene || !vrm.scene.parent) return;
     
@@ -920,6 +922,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       const safeDelta = Math.min(delta, 0.04);
       elapsedTimeRef.current += safeDelta;
       const time = elapsedTimeRef.current;
+      frameCountRef.current++;
 
       movement.update(safeDelta);
       performanceController.update();
@@ -927,12 +930,15 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       // Procedural breathing (runs continuously across gestures, idle, and listening states)
       updateBreathing(vrm, time, safeDelta);
 
-      // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
-      _tempGaze.current.copy(targetLookAt.current);
-      if (isProcessing) {
-         _tempGaze.current.set(0, 1.15, 2.8);
+      // Gaze tracking damping - slightly throttled on mobile
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile || frameCountRef.current % 2 === 0) {
+        _tempGaze.current.copy(targetLookAt.current);
+        if (isProcessing) {
+           _tempGaze.current.set(0, 1.15, 2.8);
+        }
+        lookTarget.current.position.lerp(_tempGaze.current, 0.08);
       }
-      lookTarget.current.position.lerp(_tempGaze.current, 0.08);
 
       // Blink oscillator (expression blendshape)
       const state = blinkState.current;
@@ -955,8 +961,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         }
       }
 
-      // Emotion & Lip Sync (expression blendshapes)
-      if (vrm.expressionManager) {
+      // Emotion & Lip Sync (expression blendshapes) - Throttled on mobile
+      if (vrm.expressionManager && (!isMobile || frameCountRef.current % 2 === 0)) {
         const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
         const happyVal = vrm.expressionManager.getValue('happy') || 0;
         const relaxedVal = vrm.expressionManager.getValue('relaxed') || 0;
@@ -973,12 +979,12 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
             vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
         }
 
-        // Real-time Web Audio API frequency analysis
+        // Real-time Web Audio API frequency analysis - Throttled
         const analyser = analyserRef.current;
         let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
         let hasAudio = false;
 
-        if (analyser) {
+        if (analyser && (!isMobile || frameCountRef.current % 3 === 0)) {
           const bufferLength = analyser.frequencyBinCount;
           if (!audioBufferRef.current || audioBufferRef.current.length !== bufferLength) {
             audioBufferRef.current = new Uint8Array(bufferLength);
@@ -1035,19 +1041,18 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
             visemeWeights.ee = (visemeWeights.ee / sumWeights) * normalizedAmp;
             visemeWeights.oh = (visemeWeights.oh / sumWeights) * normalizedAmp;
           }
-        }
+          
+          // Apply weights smoothly to VRM expression blendshapes
+          for (let i = 0; i < VISEMES.length; i++) {
+            const v = VISEMES[i];
+            const currentWeight = vrm.expressionManager.getValue(v) || 0;
+            const targetWeight = hasAudio 
+              ? (visemeWeights[v] || 0) 
+              : (currentViseme.current === v ? 1.0 : 0.0);
 
-        // Apply weights smoothly to VRM expression blendshapes
-        for (let i = 0; i < VISEMES.length; i++) {
-          const v = VISEMES[i];
-          const currentWeight = vrm.expressionManager.getValue(v) || 0;
-          // Fall back gracefully to standard timed visemes if user has not interacted with page to resume audio ctx yet
-          const targetWeight = hasAudio 
-            ? (visemeWeights[v] || 0) 
-            : (currentViseme.current === v ? 1.0 : 0.0);
-
-          if (Math.abs(currentWeight - targetWeight) > 0.01) {
-            vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
+            if (Math.abs(currentWeight - targetWeight) > 0.01) {
+              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
+            }
           }
         }
       }
@@ -1270,9 +1275,25 @@ function CompanionStageComponent({
     return null;
   }
 
-  const dpr = typeof window !== 'undefined' 
-    ? Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.25 : 1.5) 
-    : 1;
+  const dpr = useMemo(() => {
+    if (typeof window === 'undefined') return 1;
+    // High-performance strategy: Limit DPR on mobile to 1.0 or 1.25 to prevent lag
+    // Desktop gets max 1.5 for crispness without wasting GPU cycles on 4K+ screens
+    const isMobile = window.innerWidth < 768;
+    const baseDpr = window.devicePixelRatio || 1;
+    return isMobile ? Math.min(baseDpr, 1.0) : Math.min(baseDpr, 1.5);
+  }, []);
+
+  const glSettings = useMemo(() => ({ 
+    preserveDrawingBuffer: true,
+    alpha: false, 
+    antialias: true, 
+    powerPreference: "high-performance" as const,
+    stencil: false,
+    depth: true,
+    failIfMajorPerformanceCaveat: false,
+    precision: "mediump" as const // Use medium precision for mobile performance
+  }), []);
 
   return (
     <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
@@ -1309,8 +1330,7 @@ function CompanionStageComponent({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Smooth Canvas Container: smoothly mounts room without any loading spinners */}
+      
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1323,15 +1343,7 @@ function CompanionStageComponent({
             id="companion-canvas-container"
             frameloop={isTabVisible && isActive ? "always" : "never"}
             camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
-            gl={{ 
-              preserveDrawingBuffer: true,
-              alpha: false, 
-              antialias: true, 
-              powerPreference: "high-performance",
-              stencil: false,
-              depth: true,
-              failIfMajorPerformanceCaveat: false
-            }}
+            gl={glSettings}
             onCreated={({ gl, scene }) => {
               gl.domElement.id = 'companion-webgl-canvas';
               

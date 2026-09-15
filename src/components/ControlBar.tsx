@@ -40,7 +40,7 @@ export function ControlBar({
       <button
         type="button"
         onClick={onToggleView}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
+        className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
           isPortraitMode
             ? 'bg-[#130b13]/90 backdrop-blur-md text-white border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]'
             : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
@@ -65,7 +65,7 @@ export function ControlBar({
         <button
           type="button"
           onClick={handleTalkStopClick}
-          className={`relative z-10 w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
+          className={`relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
             isVoiceActive
               ? 'bg-[#1e101d]/90 backdrop-blur-md border-rose-500/60 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.35),inset_0_0_12px_rgba(244,63,94,0.2)]'
               : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'
@@ -85,7 +85,7 @@ export function ControlBar({
       <button
         type="button"
         onClick={onToggleMute}
-        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
+        className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full border flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 ${
           isMuted
             ? 'bg-[#130b13]/90 backdrop-blur-md text-white/50 border-white/20 shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_2px_6px_rgba(0,0,0,0.4)]'
             : 'bg-[#241724]/80 backdrop-blur-md border-white/20 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:bg-[#322132]/95 hover:border-white/40 hover:text-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.2),inset_0_0_20px_rgba(255,255,255,0.15)]'

@@ -1379,16 +1379,16 @@ export default function Chat() {
             )}
           </AnimatePresence>
 
-          {/* Floating Subtitle for Latest Message */}
+          {/* Floating Subtitle for Latest Message (Above Lyra's Head) */}
           <AnimatePresence>
             {!isChatDrawerOpen && messages.length > 0 && messages[messages.length - 1].role === 'model' && (
               <motion.div 
                 key={messages[messages.length - 1].id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute bottom-[145px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                className="absolute top-[100px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
               >
                 <p className="text-xs sm:text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-2 sm:line-clamp-3">
                   {formatCleanMessageContent(messages[messages.length - 1].content)}
@@ -1400,7 +1400,7 @@ export default function Chat() {
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
           <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-16 pb-3">
             {/* Control Bar */}
-            <div className="pointer-events-auto w-full pb-4 flex justify-center scale-90 sm:scale-100">
+            <div className="pointer-events-auto w-full pb-4 flex justify-center scale-100 sm:scale-110">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1421,7 +1421,7 @@ export default function Chat() {
               aria-label="Open chat drawer"
             >
               <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
-              <span className="text-[11px] font-medium text-[var(--accent-primary)] uppercase tracking-wider">Chat</span>
+              <span className="text-xs font-medium text-[var(--accent-primary)]">Chat</span>
             </button>
           </div>
 

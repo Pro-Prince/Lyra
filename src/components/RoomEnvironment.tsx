@@ -44,9 +44,11 @@ const PALETTE = {
 };
 
 function ContactShadow({ position, radius = 0.6, opacity = 0.35 }: { position: [number, number, number], radius?: number, opacity?: number }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const segments = isMobile ? 16 : 24;
   return (
     <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[radius, 24]} />
+      <circleGeometry args={[radius, segments]} />
       <meshBasicMaterial color="#000000" transparent opacity={opacity} depthWrite={false} />
     </mesh>
   );
@@ -317,6 +319,7 @@ function RoundGlowOrb({ position }: { position: [number, number, number] }) {
 // cream sofa against a plum wall in low light can lose its edges entirely.
 // -----------------------------------------------------------------------------
 function BottomLeftLoungeCorner() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   return (
     <group position={[-2.4, 0, 0.65]} rotation={[0, 0.32, 0]}>
       {/* NEW: small warm rim light grazing the sofa's edge from window-side */}
@@ -324,11 +327,11 @@ function BottomLeftLoungeCorner() {
 
       <group position={[0, 0.32, 0]}>
         <mesh  receiveShadow scale={[1.25, 0.72, 1.25]}>
-          <sphereGeometry args={[0.8, 28, 20]} />
+          <sphereGeometry args={[0.8, isMobile ? 20 : 28, isMobile ? 14 : 20]} />
           <meshStandardMaterial color={PALETTE.warmCream} roughness={0.9} />
         </mesh>
         <mesh  receiveShadow position={[-0.22, 0.3, -0.22]} scale={[1.05, 0.78, 1.05]}>
-          <sphereGeometry args={[0.62, 22, 18]} />
+          <sphereGeometry args={[0.62, isMobile ? 16 : 22, isMobile ? 12 : 18]} />
           <meshStandardMaterial color="#EFE2D6" roughness={0.9} />
         </mesh>
 
@@ -402,10 +405,12 @@ function BottomLeftLoungeCorner() {
 // 4. CENTER CIRCULAR RUG (UNDERNEATH LYRA)
 // -----------------------------------------------------------------------------
 function CenterPlushRug() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const segments = isMobile ? 32 : 48;
   return (
     <group position={[0, 0, 0.08]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]} receiveShadow>
-        <circleGeometry args={[1.75, 48]} />
+        <circleGeometry args={[1.75, segments]} />
         <meshStandardMaterial
           color={PALETTE.rugWarm}
           roughness={0.92}
@@ -413,11 +418,11 @@ function CenterPlushRug() {
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.007, 0]} receiveShadow>
-        <ringGeometry args={[1.52, 1.58, 48]} />
+        <ringGeometry args={[1.52, 1.58, segments]} />
         <meshStandardMaterial color="#CEBCB1" roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
-        <ringGeometry args={[1.73, 1.76, 48]} />
+        <ringGeometry args={[1.73, 1.76, segments]} />
         <meshStandardMaterial
           color={PALETTE.lyraPink}
           emissive={PALETTE.lyraPink}
@@ -834,6 +839,9 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 //
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const shadowRes = isMobile ? 512 : 1024;
+
   return (
     <group>
       <fogExp2 attach="fog" args={['#2A1826', 0.05]} />
@@ -850,8 +858,8 @@ export function RoomEnvironment() {
         intensity={1.8}
         position={[-6.0, 3.8, 1.5]}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={shadowRes}
+        shadow-mapSize-height={shadowRes}
         shadow-radius={5}
         shadow-bias={-0.0004}
       />
