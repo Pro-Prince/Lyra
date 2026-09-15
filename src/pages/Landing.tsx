@@ -135,7 +135,7 @@ function OutfitShowcase() {
       id="wardrobe"
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
+      viewport={{ once: true, amount: 0.1 }}
       variants={groupVariants}
       className="outfit-showcase mt-16 sm:mt-20 w-full"
     >
@@ -288,7 +288,7 @@ export default function Landing() {
             id="features"
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={groupVariants}
             className="w-full mt-20 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
           >
@@ -349,7 +349,7 @@ export default function Landing() {
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-40px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={groupVariants}
             aria-label="Frequently Asked Questions"
           >

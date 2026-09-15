@@ -33,16 +33,38 @@ function getRateLimitMessage() {
   return FALLBACK_MESSAGES[idx];
 }
 
-async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 3) {
-  let modelIndex = 0;
-  
-  while (modelIndex < MODELS_LIST.length) {
-    const currentModelName = MODELS_LIST[modelIndex];
-    let attempt = 0;
+function sanitizeHistory(messages: any[]) {
+  const sanitized: any[] = [];
+  let lastRole: string | null = null;
+
+  for (const msg of messages) {
+    if (!msg || (!msg.content && !msg.parts?.[0]?.text)) continue;
     
+    const role = (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user';
+    const text = String(msg.content || msg.parts?.[0]?.text || '').trim() || ' ';
+
+    if (role === lastRole) {
+      sanitized[sanitized.length - 1].parts[0].text += '\n\n' + text;
+    } else {
+      sanitized.push({ role, parts: [{ text }] });
+      lastRole = role;
+    }
+  }
+
+  if (sanitized.length > 0 && sanitized[0].role !== 'user') {
+    sanitized.unshift({ role: 'user', parts: [{ text: 'Hello' }] });
+  }
+
+  return sanitized;
+}
+
+async function generateContentWithRetry(aiClient: any, params: any, maxRetries = 3) {
+  let lastError: any = null;
+  
+  for (const currentModelName of MODELS_LIST) {
+    let attempt = 0;
     while (attempt < maxRetries) {
       try {
-        // Correct @google/genai 2.x usage: aiClient.models.generateContent
         const response = await aiClient.models.generateContent({
           model: currentModelName,
           contents: params.contents,
@@ -52,57 +74,45 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
             ...params.config?.generationConfig
           }
         });
-        
-        return response; // In 2.x response has .text, .candidates, etc.
+        return response;
       } catch (error: any) {
+        lastError = error;
         const errorString = (error?.message || error?.statusText || "").toString();
-        const is503 = error?.status === 503 || 
-                      error?.status === "UNAVAILABLE" || 
-                      errorString.includes("503") ||
-                      errorString.includes("high demand") ||
-                      errorString.includes("temporarily overloaded") ||
-                      errorString.includes("UNAVAILABLE");
-                      
-        const is429 = error?.status === 429 ||
-                      error?.status === "RESOURCE_EXHAUSTED" ||
-                      errorString.includes("429") ||
-                      errorString.includes("Too Many Requests") ||
-                      errorString.includes("Quota exceeded") ||
-                      errorString.includes("quota");
+        const is503 = error?.status === 503 || errorString.includes("503") || errorString.includes("overloaded") || errorString.includes("UNAVAILABLE");
+        const is429 = error?.status === 429 || errorString.includes("429") || errorString.includes("quota") || errorString.includes("RESOURCE_EXHAUSTED");
 
-        console.warn(`[Gemini API Retry] Model ${currentModelName} Attempt ${attempt + 1}/${maxRetries}:`, {
+        console.error(`[Gemini API] Error on model ${currentModelName} (Attempt ${attempt + 1}/${maxRetries}):`, {
           status: error?.status,
-          message: error?.message,
-          is429,
-          is503
+          message: error?.message
         });
-                       
+
         if (is503 || is429) {
           attempt++;
-          if (is429 && attempt >= 2) {
-            console.warn(`[Gemini API] Rate limit / quota hit (429) on model ${currentModelName}.`);
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
           }
-          
-          let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-          if (attempt >= maxRetries) {
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          break;
         }
+        break;
       }
     }
-    modelIndex++;
   }
   
-  throw new Error(getRateLimitMessage());
+  const finalErrorMsg = lastError?.message || "All models failed";
+  if (lastError?.status === 429 || lastError?.status === 503) {
+    throw new Error(getRateLimitMessage());
+  }
+  throw new Error(`Gemini API Error: ${finalErrorMsg}`);
 }
 
 function getAI() {
   if (!ai) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new Error("GEMINI_API_KEY environment variable is required");
+    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!key) {
+      console.error("[Gemini API] Missing API Key. Please ensure GEMINI_API_KEY is set in Settings -> API Keys.");
+      throw new Error("GEMINI_API_KEY environment variable is required. Please add it in the Settings menu.");
+    }
     ai = new GoogleGenAI({ 
       apiKey: key,
       httpOptions: {
@@ -240,19 +250,12 @@ async function startServer() {
       const { history, systemPrompt } = req.body;
       const aiClient = getAI();
 
-      const validHistory = Array.isArray(history) ? history.map((m: any) => ({
-        role: m.role === 'assistant' || m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: String(m.content || m.parts?.[0]?.text || '').trim() || ' ' }]
-      })) : [];
-
-      const currentMessage = validHistory.length > 0 
-        ? validHistory.pop() 
-        : { role: 'user', parts: [{ text: 'Hello' }] };
+      const sanitized = sanitizeHistory(history);
 
       const response = await generateContentWithRetry(aiClient, {
-        contents: [...validHistory, currentMessage],
+        contents: sanitized,
         config: {
-          systemInstruction: systemPrompt || `You are Lyra. You must act EXACTLY like this persona:\n"${LYRA_EXACT_PERSONA}"`,
+          systemInstruction: { parts: [{ text: systemPrompt || `You are Lyra. You must act EXACTLY like this persona:\n"${LYRA_EXACT_PERSONA}"` }] },
         }
       });
 
@@ -281,8 +284,7 @@ async function startServer() {
     try {
       const { messages, companionProfile, isCallMode, memories, recentMessages, profile, systemPrompt } = req.body;
 
-      const currentMessageObj = messages[messages.length - 1];
-      const userText = currentMessageObj?.content || "";
+      const userText = messages?.[messages.length - 1]?.content || "";
 
       // 1. Crisis / Self-Harm Keyword Check
       const crisisKeywords = ["suicide", "kill myself", "want to die", "end my life", "harm myself", "end it all"];
@@ -370,26 +372,16 @@ Hard constraints:
 
       console.log("[Lyra Server /api/chat] Active 3-Layer System Instruction:\n", systemInstruction);
 
-      // Convert messages to Gemini format with empty/null safety
-      const validMessages = Array.isArray(messages) ? messages.filter((m: any) => m && m.content) : [];
-      const formattedHistory = validMessages.map((m: any) => ({
-        role: m.role === 'assistant' || m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: String(m.content).trim() || ' ' }]
-      }));
-
-      const currentMessage = formattedHistory.length > 0 
-        ? formattedHistory.pop() 
-        : { role: 'user', parts: [{ text: userText || 'Hello' }] };
+      const sanitized = sanitizeHistory(messages);
 
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
       let streamResponse = null;
-      let modelIndex = 0;
+      let lastError: any = null;
 
-      while (modelIndex < MODELS_LIST.length && !streamResponse) {
-        const currentModel = MODELS_LIST[modelIndex];
+      for (const currentModel of MODELS_LIST) {
         let attempt = 0;
         const maxRetries = 3;
 
@@ -397,51 +389,40 @@ Hard constraints:
           try {
             streamResponse = await aiClient.models.generateContentStream({
               model: currentModel,
-              contents: [...formattedHistory, currentMessage],
-              config: {
-                systemInstruction,
+              contents: sanitized,
+              config: { 
+                systemInstruction: { parts: [{ text: systemInstruction }] }
               }
             });
             break;
           } catch (error: any) {
+            lastError = error;
             const errorString = (error?.message || error?.statusText || "").toString();
-            const is503 = error?.status === 503 || 
-                          error?.status === "UNAVAILABLE" || 
-                          errorString.includes("503") || 
-                          errorString.includes("high demand") || 
-                          errorString.includes("temporarily overloaded") || 
-                          errorString.includes("UNAVAILABLE");
-            const is429 = error?.status === 429 || 
-                          error?.status === "RESOURCE_EXHAUSTED" || 
-                          errorString.includes("429") || 
-                          errorString.includes("Too Many Requests") || 
-                          errorString.includes("Quota exceeded") || 
-                          errorString.includes("quota");
+            const is503 = error?.status === 503 || errorString.includes("503") || errorString.includes("overloaded") || errorString.includes("UNAVAILABLE");
+            const is429 = error?.status === 429 || errorString.includes("429") || errorString.includes("quota") || errorString.includes("RESOURCE_EXHAUSTED");
             
-            console.error(`[Gemini API Stream Error] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
+            console.error(`[Gemini Stream] Error on model ${currentModel} (Attempt ${attempt + 1}/${maxRetries}):`, {
               status: error?.status,
-              message: error?.message,
-              is429,
-              is503
+              message: error?.message
             });
 
             if (is503 || is429) {
               attempt++;
-              if (is429 && attempt >= 2) {
-                console.warn(`[Gemini API Stream] Rate limit / quota hit (429) on model ${currentModel}.`);
+              if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
               }
-              let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-              await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-              break;
             }
+            break;
           }
         }
-        modelIndex++;
+        if (streamResponse) break;
       }
 
       if (!streamResponse) {
-        res.write(`data: ${JSON.stringify({ text: getRateLimitMessage() })}\n\n`);
+        const msg = (lastError?.status === 429 || lastError?.status === 503) ? getRateLimitMessage() : `API Error: ${lastError?.message || "Unknown error"}`;
+        res.write(`data: ${JSON.stringify({ text: msg })}\n\n`);
         return res.end();
       }
 
@@ -452,13 +433,10 @@ Hard constraints:
       }
       res.end();
     } catch (error: any) {
-      console.error("[Gemini API Stream Fatal Error in /api/chat]", {
-        status: error?.status,
-        code: error?.code,
-        message: error?.message,
-        stack: error?.stack
-      });
-      const friendlyMsg = getRateLimitMessage();
+      console.error("[Gemini Stream Fatal Error]", error);
+      const errorMsg = error?.message || "Unknown fatal error";
+      const friendlyMsg = (error?.status === 429 || error?.status === 503) ? getRateLimitMessage() : `Fatal API Error: ${errorMsg}`;
+      
       if (res.headersSent) {
          res.write(`data: ${JSON.stringify({ text: friendlyMsg })}\n\n`);
          res.end();

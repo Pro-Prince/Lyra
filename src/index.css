@@ -495,12 +495,6 @@ h3, .heading-3 {
   color: var(--text-danger);
 }
 
-/* Skip layout/paint work for offscreen long sections */
-.faq-section {
-  content-visibility: auto;
-  contain-intrinsic-size: 600px;
-}
-
 .footer-links-group {
   display: flex;
   flex-direction: column;
@@ -837,6 +831,7 @@ h3, .heading-3 {
 }
 /* Legacy FAQ classes replaced by Tailwind in Landing.tsx */
 
+/* FAQ section anchor spacing */
 #features, #faq, #wardrobe {
   scroll-margin-top: 80px; /* 56px header + margin */
 }
