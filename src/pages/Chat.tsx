@@ -1026,7 +1026,8 @@ export default function Chat() {
                  handleRateLimitFallback(modelMsgId);
                  return;
                }
-               if (data?.text) {
+               if (data?.text || data?.content) {
+                  const chunkText = data.text || data.content || '';
                   if (isFirstChunk) {
                       isFirstChunk = false;
                       rateLimitCountRef.current = 0;
@@ -1041,7 +1042,7 @@ export default function Chat() {
                       setIsStreaming(true);
                   }
                   
-                  accumulatedText += data.text;
+                  accumulatedText += chunkText;
                   let displayContent = accumulatedText;
                   
                   let emotion: Emotion = 'warm';
@@ -1088,6 +1089,31 @@ export default function Chat() {
                }
             }
          }
+      }
+
+      // Check if sseBuffer contains a non-SSE JSON response
+      if (!accumulatedText && sseBuffer.trim()) {
+        try {
+          const directJson = JSON.parse(sseBuffer.trim());
+          const directText = directJson.content || directJson.text || '';
+          if (directText) {
+            accumulatedText = directText.replace(/\[(warm|playful|thoughtful|excited|calm|happy|curious|soft|affectionate|shy|walk_forward|walk_backward|strafe_left|strafe_right|turn_left|turn_right|turn_around|dance)\]/gi, '').trim();
+            const modelMsg = {
+              id: modelMsgId,
+              role: 'model',
+              content: accumulatedText,
+              timestamp: Date.now()
+            };
+            messagesRef.current = [...messagesRef.current, modelMsg];
+            setMessages([...messagesRef.current]);
+            subtitleId = triggerSubtitle('model', accumulatedText, subtitleId);
+            setAppState(AppState.SPEAKING);
+          } else if (directJson.error) {
+            console.warn('[Direct JSON Error]:', directJson.error);
+            handleRateLimitFallback(modelMsgId);
+            return;
+          }
+        } catch (_) {}
       }
       
       const finalDisplayContent = messagesRef.current.find(m => m.id === modelMsgId)?.content || accumulatedText;
