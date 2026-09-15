@@ -650,10 +650,10 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
                 if (mat.isMToonMaterial) {
                   mat.envMapIntensity = 0;
                   if (mat.shadeColor) {
-                    mat.shadeColor.setRGB(1, 1, 1);
+                    mat.shadeColor.setStyle('#D69BA6');
                   }
                   if (mat.shadeColorFactor) {
-                    mat.shadeColorFactor.setRGB(1, 1, 1);
+                    mat.shadeColorFactor.setStyle('#D69BA6');
                   }
                 }
               });

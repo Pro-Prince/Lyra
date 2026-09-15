@@ -839,7 +839,39 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 //
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
-  return <group />;
+  return (
+    <group>
+      {/* Soft warm ambient base matching sunset room atmosphere */}
+      <ambientLight color="#FFF0E6" intensity={1.3} />
+
+      {/* Gentle hemisphere light: warm sky tint from above, plum floor reflection from below */}
+      <hemisphereLight color="#FFE3D1" groundColor="#4D3543" intensity={0.8} />
+
+      {/* Sunset Golden Key Light from the left window */}
+      <directionalLight
+        color="#FFAE80"
+        intensity={1.2}
+        position={[-3.5, 3.8, 2.0]}
+        castShadow={false}
+      />
+
+      {/* Cozy Warm Lamp Fill Light from the right cabinet lamp */}
+      <directionalLight
+        color="#FFC896"
+        intensity={0.9}
+        position={[3.0, 2.2, 1.2]}
+        castShadow={false}
+      />
+
+      {/* Soft Rosy Rim Light from behind/above */}
+      <directionalLight
+        color="#FFCDE3"
+        intensity={0.5}
+        position={[0, 4.0, -2.0]}
+        castShadow={false}
+      />
+    </group>
+  );
 }
 
 export default RoomEnvironment;
