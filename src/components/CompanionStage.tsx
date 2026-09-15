@@ -1302,15 +1302,18 @@ function CompanionStageComponent({
 
       {/* Responsive Room Environment Background Image */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden bg-[#241623]">
-        <picture className="w-full h-full block">
-          <source media="(min-width: 768px)" srcSet="/Room Desktop Version.png" />
-          <img
-            src="/Room Mobile Version.png"
-            alt="Room Environment"
-            className="w-full h-full object-cover md:object-cover object-center"
-            style={{ objectPosition: 'center center' }}
-          />
-        </picture>
+        {/* Desktop Version Image (used for screen width >= 768px) */}
+        <img
+          src="/Room Desktop Version.png"
+          alt="Room Environment Desktop"
+          className="hidden md:block w-full h-full object-cover object-center"
+        />
+        {/* Mobile Version Image (used for screen width < 768px) */}
+        <img
+          src="/Room Mobile Version.png"
+          alt="Room Environment Mobile"
+          className="block md:hidden w-full h-full object-cover object-center"
+        />
       </div>
       
       <AnimatePresence>
