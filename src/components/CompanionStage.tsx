@@ -458,9 +458,10 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     } else {
       // 'room-wide' / 'centered': camera positioned higher than target to look down at her from above, with lookY higher to shift avatar lower on screen
       const isMobileAspect = (camera as THREE.PerspectiveCamera).aspect < 1.0;
-      const camY = isMobileAspect ? 1.18 : 1.14;
-      const lookY = isMobileAspect ? 0.92 : 0.88;
-      targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
+      const camY = isMobileAspect ? 1.20 : 1.14;
+      const lookY = isMobileAspect ? 1.02 : 0.88;
+      const effectiveDist = isMobileAspect ? distance * 0.90 : distance;
+      targetPos.current.set(companionPosition.x, camY, companionPosition.z + effectiveDist);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
 

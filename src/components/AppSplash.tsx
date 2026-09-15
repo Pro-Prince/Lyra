@@ -4,13 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 export function SplashScreen() {
   return (
     <div className="splash-screen">
-      <div className="splash-glow" />
-      <img src="/images/Logo.png" alt="" className="splash-logo" />
-      <div className="splash-dots">
-        <span />
-        <span />
-        <span />
-      </div>
+      <div className="w-7 h-7 sm:w-8 sm:h-8 border-[3px] border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin" />
     </div>
   );
 }

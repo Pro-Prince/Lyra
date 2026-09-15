@@ -357,8 +357,7 @@ export function WardrobeCard({
         {/* Loading placeholder */}
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)] z-10">
-            <div className="w-6 h-6 border-2 border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin mb-2" />
-            <span className="text-[10px] font-body text-[var(--text-muted)]">Loading 3D…</span>
+            <div className="w-6 h-6 border-[3px] border-[var(--accent-primary)]/30 border-t-[var(--accent-primary)] rounded-full animate-spin" />
           </div>
         )}
 

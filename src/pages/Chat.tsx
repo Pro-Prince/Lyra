@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -326,6 +326,24 @@ export default function Chat() {
   const isCallModeRef = useRef(isCallMode);
   const appStateRef = useRef(appState);
   const messagesRef = useRef(messages);
+  const isCompanionLoadedRef = useRef(false);
+  const pendingWelcomeSpeechRef = useRef<string | null>(null);
+
+  const handleModelLoaded = useCallback(() => {
+    isCompanionLoadedRef.current = true;
+    if (pendingWelcomeSpeechRef.current) {
+      const textToSpeak = pendingWelcomeSpeechRef.current;
+      pendingWelcomeSpeechRef.current = null;
+      // Allow 600ms for room fade-in to complete so character & room are 100% visible before speech starts
+      setTimeout(() => {
+        try {
+          speakTextChunk(textToSpeak, false);
+        } catch (e) {
+          console.warn("Auto-greeting speech synthesis skipped:", e);
+        }
+      }, 600);
+    }
+  }, []);
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
@@ -412,14 +430,12 @@ export default function Chat() {
         triggerSubtitle('model', welcomeText);
         setCurrentEmotion('affectionate');
 
-        setTimeout(() => {
-          try {
-            const cleanUtterance = welcomeText.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
-            speakTextChunk(cleanUtterance, false);
-          } catch (e) {
-            console.warn("Auto-greeting speech synthesis skipped:", e);
-          }
-        }, 500);
+        const cleanUtterance = welcomeText.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}]/gu, '').trim();
+        pendingWelcomeSpeechRef.current = cleanUtterance;
+
+        if (isCompanionLoadedRef.current) {
+          handleModelLoaded();
+        }
       } else {
         setMessages(sorted);
         // If there is a recent conversation message, show as live initial subtitle
@@ -711,6 +727,9 @@ export default function Chat() {
     const vol = 1.0;
     
     queuedChunksRef.current++;
+    if (!enqueue) {
+      isStreamFinishedRef.current = true;
+    }
 
     speakText({
       text: cleanText,
@@ -730,26 +749,27 @@ export default function Chat() {
       },
       onEnd: () => {
         queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
-        if (isStreamFinishedRef.current && queuedChunksRef.current === 0) {
+        if ((isStreamFinishedRef.current || !enqueue) && queuedChunksRef.current === 0) {
           if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
           captionTimerRef.current = setTimeout(() => setCurrentCaption(""), 2500);
           
-          if (appStateRef.current !== AppState.IDLE) {
-            setAppState(AppState.IDLE);
-          }
+          setAppState(AppState.IDLE);
         }
       },
       onError: () => {
         queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
-        if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
-          setAppState(AppState.IDLE);
-        }
+        setAppState(AppState.IDLE);
       }
     });
   };
 
   useEffect(() => {
-      }, []);
+    const handleSpeechEnd = () => {
+      setAppState(AppState.IDLE);
+    };
+    window.addEventListener('lyraSpeechEnd', handleSpeechEnd);
+    return () => window.removeEventListener('lyraSpeechEnd', handleSpeechEnd);
+  }, []);
 
   const closeDrawers = () => {
     setIsSettingsOpen(false);
@@ -1239,15 +1259,34 @@ export default function Chat() {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // 1. Fill room background underlay (ensures rich atmospheric depth and no transparent gaps)
-      const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-      bgGradient.addColorStop(0, '#1c131a');
-      bgGradient.addColorStop(0.5, '#140D16');
-      bgGradient.addColorStop(1, '#0c070e');
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, exportWidth, exportHeight);
+      // 1. Draw room background image underlay
+      const roomImg = document.querySelector<HTMLImageElement>('img[alt*="Room"]') || 
+        document.querySelector<HTMLImageElement>('img[src*="Room-"]');
 
-      // 2. Draw the whole 3D canvas (entire room environment, walls, floor, lighting, and companion model)
+      if (roomImg && roomImg.complete && roomImg.naturalWidth > 0) {
+        const imgW = roomImg.naturalWidth || roomImg.width;
+        const imgH = roomImg.naturalHeight || roomImg.height;
+        const imgAspect = imgW / imgH;
+        const destAspect = exportWidth / exportHeight;
+        let sx = 0, sy = 0, sw = imgW, sh = imgH;
+        if (imgAspect > destAspect) {
+          sw = imgH * destAspect;
+          sx = (imgW - sw) / 2;
+        } else {
+          sh = imgW / destAspect;
+          sy = (imgH - sh) / 2;
+        }
+        ctx.drawImage(roomImg, sx, sy, sw, sh, 0, 0, exportWidth, exportHeight);
+      } else {
+        const bgGradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
+        bgGradient.addColorStop(0, '#1c131a');
+        bgGradient.addColorStop(0.5, '#140D16');
+        bgGradient.addColorStop(1, '#0c070e');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, exportWidth, exportHeight);
+      }
+
+      // 2. Draw the 3D canvas (companion model) on top of room background
       try {
         ctx.drawImage(canvas, 0, 0, srcWidth, srcHeight, 0, 0, exportWidth, exportHeight);
       } catch (drawErr: any) {
@@ -1394,6 +1433,7 @@ export default function Chat() {
                 isListening={isListening}
                 transparentBg={false}
                 isActive={isChatActive}
+                onModelLoaded={handleModelLoaded}
               />
               <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">
                 <div className="pointer-events-auto absolute top-[15%] h-[20%] w-[50%] cursor-pointer" onClick={() => triggerGesture('nod', '')} />
@@ -1673,6 +1713,7 @@ export default function Chat() {
                   isListening={isListening}
                   transparentBg={false}
                   isActive={isChatActive}
+                  onModelLoaded={handleModelLoaded}
                 />
                 {/* TouchInteractionLayer */}
                 <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center">

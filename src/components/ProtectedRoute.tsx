@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (loading) {
-    return null;
+    return <SplashScreen />;
   }
 
   if (!isAuthed && !isGuestMode) {
