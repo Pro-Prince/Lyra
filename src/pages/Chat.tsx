@@ -1388,7 +1388,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute bottom-[115px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                className="absolute bottom-[145px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
               >
                 <p className="text-xs sm:text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-2 sm:line-clamp-3">
                   {formatCleanMessageContent(messages[messages.length - 1].content)}
@@ -1398,9 +1398,9 @@ export default function Chat() {
           </AnimatePresence>
 
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
-          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-12">
+          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-16 pb-3">
             {/* Control Bar */}
-            <div className="pointer-events-auto w-full pb-3 flex justify-center">
+            <div className="pointer-events-auto w-full pb-4 flex justify-center scale-90 sm:scale-100">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1417,11 +1417,11 @@ export default function Chat() {
             <button 
               type="button"
               onClick={() => setIsChatDrawerOpen(true)}
-              className="chat-drawer-handle pointer-events-auto cursor-pointer"
+              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
               aria-label="Open chat drawer"
             >
-              <ChevronUp className="w-4 h-4 text-[#FF8FC0]" />
-              <span>Chat</span>
+              <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
+              <span className="text-[11px] font-medium text-[var(--accent-primary)] uppercase tracking-wider">Chat</span>
             </button>
           </div>
 
