@@ -642,10 +642,21 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         vrmInstance.scene.add(lookTarget.current);
         vrmInstance.scene.traverse((obj) => {
           if (obj.isMesh) {
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-            if (obj.material?.isMToonMaterial) {
-              obj.material.envMapIntensity = 0;
+            obj.castShadow = false;
+            obj.receiveShadow = false;
+            if (obj.material) {
+              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+              mats.forEach((mat: any) => {
+                if (mat.isMToonMaterial) {
+                  mat.envMapIntensity = 0;
+                  if (mat.shadeColor) {
+                    mat.shadeColor.setRGB(1, 1, 1);
+                  }
+                  if (mat.shadeColorFactor) {
+                    mat.shadeColorFactor.setRGB(1, 1, 1);
+                  }
+                }
+              });
             }
           }
         });
