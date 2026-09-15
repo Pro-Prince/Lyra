@@ -25,7 +25,7 @@ export function WardrobeGrid({
   const gridClasses = size === 'large'
     ? 'grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'
     : isSideBySide
-      ? 'grid grid-cols-3 gap-2 sm:gap-4'
+      ? 'grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4'
       : 'grid grid-cols-1 sm:grid-cols-2 gap-4';
 
   return (

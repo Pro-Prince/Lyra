@@ -303,7 +303,7 @@ export function WardrobeCard({
         isSelected 
           ? "bg-[var(--accent-primary)]/[0.05] border-[var(--accent-primary)]/40" 
           : "bg-[var(--bg-surface)] border-[var(--text-primary)]/10"
-      } ${compact ? 'p-2 sm:p-3 md:p-3.5 rounded-xl sm:rounded-2xl' : 'p-4 rounded-2xl'} border ${className}`}
+      } ${compact ? 'p-4 md:p-3.5 rounded-2xl' : 'p-4 rounded-2xl'} border ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -358,8 +358,8 @@ export function WardrobeCard({
       </div>
 
       {/* Label and Info */}
-      <div className={`${compact ? 'mt-2.5 sm:mt-4' : 'mt-5'} flex flex-col items-center text-center w-full`}>
-        <span className={`outfit-label font-heading ${compact ? 'text-xs sm:text-base md:text-lg mb-1.5 sm:mb-2.5' : 'text-lg sm:text-xl mb-3'} truncate w-full transition-colors ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)] font-semibold group-hover:text-[var(--accent-primary)]'}`}>
+      <div className={`${compact ? 'mt-4 md:mt-4' : 'mt-5'} flex flex-col items-center text-center w-full`}>
+        <span className={`outfit-label font-heading ${compact ? 'text-base md:text-lg mb-2 md:mb-2.5' : 'text-lg sm:text-xl mb-3'} truncate w-full transition-colors ${isSelected ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-primary)] font-semibold group-hover:text-[var(--accent-primary)]'}`}>
           {label}
         </span>
         
@@ -369,7 +369,7 @@ export function WardrobeCard({
             e.stopPropagation();
             onSelect?.();
           }}
-          className={`btn ${isSelected ? 'btn-secondary' : 'btn-primary'} ${compact ? 'btn-sm !h-7 sm:!h-9 !py-0 !px-1.5 sm:!px-3 text-[11px] sm:text-xs' : 'btn-sm'} w-full group/btn`}
+          className={`btn ${isSelected ? 'btn-secondary' : 'btn-primary'} ${compact ? 'btn-sm !h-10 md:!h-9 !py-0 !px-4 md:!px-3 text-sm md:text-xs' : 'btn-sm'} w-full group/btn`}
         >
           <span className="relative z-10 flex items-center justify-center gap-1 sm:gap-2">
             {isSelected ? (
