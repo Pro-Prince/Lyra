@@ -251,6 +251,7 @@ export default function Chat() {
   const [currentCaption, setCurrentCaption] = useState<string>("");
   const captionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const inputSourceRef = useRef<'text' | 'voice' | 'welcome'>('welcome');
+  const micTranscriptRef = useRef<string>("");
 
   const triggerCaption = (text: string) => {
     // When chatting via typed text, do not display floating captions over her head
@@ -523,13 +524,11 @@ export default function Chat() {
         }
         
         if (final) {
-          if (isCallModeRef.current) {
-             executeSend(final, 'voice');
-          } else {
-             setInputText(prev => prev + final + ' ');
-          }
+          micTranscriptRef.current = (micTranscriptRef.current + ' ' + final).trim();
+          setInputText(micTranscriptRef.current);
         } else if (interim) {
-          if (!isCallModeRef.current) setInputText(interim);
+          const currentCombined = (micTranscriptRef.current + ' ' + interim).trim();
+          setInputText(currentCombined);
         }
       };
       recognition.onerror = (event: any) => {
@@ -549,7 +548,12 @@ export default function Chat() {
          if (manualMicStopRef.current) {
             return;
          }
-         if ((isCallModeRef.current || micMode === 'hands-free') && appStateRef.current !== AppState.SPEAKING && appStateRef.current !== AppState.PROCESSING) {
+         const transcriptToSend = micTranscriptRef.current.trim();
+         if (transcriptToSend && appStateRef.current !== AppState.PROCESSING && appStateRef.current !== AppState.SPEAKING) {
+            micTranscriptRef.current = "";
+            setInputText("");
+            executeSend(transcriptToSend, 'voice');
+         } else if ((isCallModeRef.current || micMode === 'hands-free') && appStateRef.current !== AppState.SPEAKING && appStateRef.current !== AppState.PROCESSING) {
             try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
          }
       };
@@ -648,7 +652,16 @@ export default function Chat() {
         try { recognitionRef.current.stop(); } catch(e) {}
       }
       setAppState(AppState.IDLE);
+      
+      const transcriptToSend = (micTranscriptRef.current || inputText).trim();
+      micTranscriptRef.current = "";
+      setInputText("");
+
+      if (transcriptToSend) {
+        executeSend(transcriptToSend, 'voice');
+      }
     } else {
+      micTranscriptRef.current = "";
       inputSourceRef.current = 'voice';
       manualMicStopRef.current = false;
       cancelSpeech();
