@@ -1107,6 +1107,7 @@ h3, .heading-3 {
 
 /* 3. Safe Area Insets (Respecting notches & home indicators on fixed components) */
 @media (max-width: 900px) {
+  .control-bar,
   .presence-bottombar {
     padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
   }
@@ -1296,26 +1297,19 @@ h3, .heading-3 {
 
 .chat-drawer-handle {
   width: 100%;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   background: var(--bg-surface);
   border-top: 1px solid rgba(255, 182, 213, 0.16);
-  border-radius: 0;
+  border-radius: 20px 20px 0 0;
   z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
   color: var(--text-primary);
   transition: all 0.2s ease;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
-}
-
-@media (min-width: 640px) {
-  .chat-drawer-handle {
-    width: auto;
-    min-width: 440px;
-    border-radius: 20px 20px 0 0;
-    margin: 0 auto;
-  }
 }
 
 .chat-drawer-handle:hover {
@@ -1343,9 +1337,10 @@ h3, .heading-3 {
   position: relative; /* so the control bar can anchor to its bottom, not the page's */
 }
 .control-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: absolute;
+  bottom: 12px; /* Position closer to the bottom edge of the screen to utilize unused space */
+  left: 0;
+  right: 0;
   flex: 0 0 auto;
 }
 
