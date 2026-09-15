@@ -250,8 +250,14 @@ export default function Chat() {
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('warm');
   const [currentCaption, setCurrentCaption] = useState<string>("");
   const captionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputSourceRef = useRef<'text' | 'voice' | 'welcome'>('welcome');
 
   const triggerCaption = (text: string) => {
+    // When chatting via typed text, do not display floating captions over her head
+    if (inputSourceRef.current === 'text') {
+      return;
+    }
+
     if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
     setCurrentCaption(text);
     
@@ -518,7 +524,7 @@ export default function Chat() {
         
         if (final) {
           if (isCallModeRef.current) {
-             executeSend(final);
+             executeSend(final, 'voice');
           } else {
              setInputText(prev => prev + final + ' ');
           }
@@ -601,17 +607,17 @@ export default function Chat() {
   };
 
   const toggleMute = () => {
+    if (appStateRef.current === AppState.SPEAKING || isLyraSpeaking) {
+      cancelSpeech();
+      setCurrentCaption("");
+      if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
+      setAppState(AppState.IDLE);
+    }
     setIsMuted(prev => {
       const next = !prev;
       isMutedRef.current = next;
       if (next) {
         cancelSpeech();
-        if (appStateRef.current === AppState.SPEAKING) {
-          setAppState(AppState.IDLE);
-          if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
-            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
-          }
-        }
         showInfo("Muted • Lyra's voice output disabled");
       } else {
         showInfo("Unmuted • Lyra's voice output active");
@@ -643,6 +649,7 @@ export default function Chat() {
       }
       setAppState(AppState.IDLE);
     } else {
+      inputSourceRef.current = 'voice';
       manualMicStopRef.current = false;
       cancelSpeech();
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -867,9 +874,10 @@ export default function Chat() {
     setIsStreaming(false);
   };
 
-  const executeSend = async (textToSend: string) => {
+  const executeSend = async (textToSend: string, source: 'text' | 'voice' = 'text') => {
     if (!textToSend.trim() || isSubmittingRef.current || appStateRef.current === AppState.PROCESSING) return;
     isSubmittingRef.current = true;
+    inputSourceRef.current = source;
 
     if (isListening) {
       recognitionRef.current?.stop();
@@ -1414,7 +1422,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 1.05 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="absolute top-[160px] left-6 right-6 mx-auto max-w-[320px] bg-[#160f17]/85 backdrop-blur-xl px-5 py-3 rounded-2xl text-center z-30 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none"
+                className="absolute top-[80px] sm:top-[120px] left-6 right-6 mx-auto max-w-[320px] bg-[#160f17]/85 backdrop-blur-xl px-5 py-3 rounded-2xl text-center z-30 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none"
               >
                 <p className="text-[13px] sm:text-sm text-[var(--text-primary)] font-medium leading-relaxed drop-shadow-sm">
                   {currentCaption}
