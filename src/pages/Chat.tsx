@@ -1478,7 +1478,7 @@ export default function Chat() {
                   {activeTab === 'chat' ? (
                     <>
                       {/* Messages Feed (Flexible, Scrollable) */}
-                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 pb-2 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
                         <div className="flex justify-center my-0.5 select-none">
                           <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
                             Today
