@@ -147,20 +147,25 @@ export function WardrobeCard({
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  const [isInView, setIsInView] = useState(true);
 
-  // Use IntersectionObserver to lazy-load the heavy 3D scene only when needed
+  // Use IntersectionObserver to pause rendering when scrolled far offscreen
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
 
     const observer = new IntersectionObserver((entries) => {
-      setIsInView(entries[0].isIntersecting);
-    }, { threshold: 0.05, rootMargin: '50px' });
+      if (entries[0].isIntersecting) {
+        setIsInView(true);
+      }
+    }, { threshold: 0, rootMargin: '200px' });
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [retryKey]);
 
   const dragHandlers = useDragRotate((deltaX: number) => {
     onDragDeltaRef.current?.(deltaX);
@@ -174,12 +179,13 @@ export function WardrobeCard({
   };
 
   useEffect(() => {
-    // Prevent loading the heavy VRM and WebGL context until the card is actually visible
+    // Prevent loading heavy 3D scene if offscreen
     if (!isInView) return;
 
     let cancelled = false;
     let animId: number | null = null;
     let delayTimer: any = null;
+    let safetyTimeoutTimer: any = null;
     let resizeObserver: ResizeObserver | null = null;
     const container = containerRef.current;
     if (!container) return;
@@ -221,6 +227,15 @@ export function WardrobeCard({
       try {
         setLoading(true);
         setError(null);
+
+        // Safety fallback timer to prevent infinite spinner if load hangs
+        safetyTimeoutTimer = setTimeout(() => {
+          if (!cancelled && loading) {
+            console.warn(`[WardrobeCard] Load timeout reached for ${modelId}`);
+            setError('Loading timed out');
+            setLoading(false);
+          }
+        }, 12000);
 
         if (loadDelay > 0) {
           await new Promise((r) => {
@@ -267,9 +282,11 @@ export function WardrobeCard({
           resizeObserver.observe(containerRef.current);
         }
 
+        if (safetyTimeoutTimer) clearTimeout(safetyTimeoutTimer);
         setLoading(false);
       } catch (err: any) {
         console.error(`Failed to load wardrobe model ${modelId}:`, err?.message || String(err));
+        if (safetyTimeoutTimer) clearTimeout(safetyTimeoutTimer);
         if (!cancelled) {
           setError(err?.message || 'Failed to load model');
           setLoading(false);
@@ -282,6 +299,10 @@ export function WardrobeCard({
       if (delayTimer) {
         clearTimeout(delayTimer);
         delayTimer = null;
+      }
+      if (safetyTimeoutTimer) {
+        clearTimeout(safetyTimeoutTimer);
+        safetyTimeoutTimer = null;
       }
       if (animId !== null) {
         cancelAnimationFrame(animId);
@@ -312,7 +333,7 @@ export function WardrobeCard({
       cameraRef.current = null;
       onDragDeltaRef.current = null;
     };
-  }, [modelId, retryKey, loadDelay]);
+  }, [isInView, modelId, retryKey, loadDelay]);
 
   const { hasDragged, ...pointerHandlers } = dragHandlers;
 

@@ -437,6 +437,11 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
   }, [camera, gl, vrmScene]);
 
   const fallbackVec = useRef(new THREE.Vector3(0, 0, 0));
+  const isInitialSnapRef = useRef(true);
+
+  useEffect(() => {
+    isInitialSnapRef.current = true;
+  }, [vrmScene, mode]);
 
   useFrame(() => {
     const companionPosition = vrmScene ? vrmScene.position : fallbackVec.current;
@@ -462,8 +467,14 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     // Clamp camera Y so it never drops below floor level (floor is y=0)
     targetPos.current.y = Math.max(0.5, targetPos.current.y);
 
-    camera.position.lerp(targetPos.current, 0.08);
-    camera.lookAt(lookTarget.current);
+    if (isInitialSnapRef.current) {
+      camera.position.copy(targetPos.current);
+      camera.lookAt(lookTarget.current);
+      isInitialSnapRef.current = false;
+    } else {
+      camera.position.lerp(targetPos.current, 0.08);
+      camera.lookAt(lookTarget.current);
+    }
   });
   return null;
 }
@@ -1146,18 +1157,25 @@ class StageErrorBoundary extends React.Component<
   }
 }
 
-function RoomFadeIn({ children }: { children: React.ReactNode }) {
+function RoomFadeIn({ isLoaded, children }: { isLoaded: boolean; children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 100); // let the first frame render first
-    return () => clearTimeout(timer);
-  }, []);
+    if (isLoaded) {
+      // Small frame delay (120ms) so WebGL finishes compiling initial textures and camera snaps
+      const timer = setTimeout(() => setVisible(true), 120);
+      return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
+    }
+  }, [isLoaded]);
 
   return (
-    <div className="room-fade-wrapper">
+    <div className="room-fade-wrapper relative w-full h-full">
       {children}
-      <div className={`room-fade-overlay ${visible ? 'faded' : ''}`} />
+      <div 
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-700 ease-in-out bg-[#241623] z-20 ${visible ? 'opacity-0' : 'opacity-100'}`} 
+      />
     </div>
   );
 }
@@ -1354,12 +1372,12 @@ function CompanionStageComponent({
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 w-full h-full"
       >
-      <RoomFadeIn>
+      <RoomFadeIn isLoaded={isLoaded}>
         <StageErrorBoundary onError={(err) => handleError(err?.message)}>
           <Canvas shadows 
             id="companion-canvas-container"
             frameloop={isTabVisible && isActive ? "always" : "never"}
-            camera={{ position: [0, 0.72, 3.35], fov: 35 }} 
+            camera={{ position: [0, 1.14, 3.8], fov: 35 }} 
             gl={glSettings}
             onCreated={({ gl, scene }) => {
               gl.domElement.id = 'companion-webgl-canvas';

@@ -41,7 +41,7 @@ export function WardrobeGrid({
             selectedText={selectedText}
             unselectedText={unselectedText}
             compact={compact ?? isSideBySide}
-            loadDelay={isSelected ? 0 : (index + 1) * 120}
+            loadDelay={isSelected ? 0 : index * 30}
             onSelect={() => {
               if (!isSelected) {
                 onSelect(outfit.id);
