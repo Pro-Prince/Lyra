@@ -1388,7 +1388,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4 }}
-                className="absolute top-[135px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                className="absolute top-[150px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
               >
                 <p className="text-xs sm:text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-2 sm:line-clamp-3">
                   {formatCleanMessageContent(messages[messages.length - 1].content)}
@@ -1398,9 +1398,9 @@ export default function Chat() {
           </AnimatePresence>
 
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
-          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-16 pb-1">
+          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end bg-gradient-to-t from-[#160f17]/95 via-[#160f17]/60 to-transparent pt-16 pb-0">
             {/* Control Bar */}
-            <div className="pointer-events-auto w-full pb-2 flex justify-center scale-100 sm:scale-110">
+            <div className="pointer-events-auto w-full pb-1 flex justify-center scale-100 sm:scale-110">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1417,7 +1417,7 @@ export default function Chat() {
             <button 
               type="button"
               onClick={() => setIsChatDrawerOpen(true)}
-              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pb-1"
+              className="chat-drawer-handle pointer-events-auto cursor-pointer flex flex-col items-center gap-0 active:scale-95 transition-transform pb-0.5"
               aria-label="Open chat drawer"
             >
               <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
@@ -1478,7 +1478,8 @@ export default function Chat() {
                   {activeTab === 'chat' ? (
                     <>
                       {/* Messages Feed (Flexible, Scrollable) */}
-                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col justify-end gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                        <div className="flex-1" /> {/* Spacer to push content to bottom */}
                         <div className="flex justify-center my-0.5 select-none">
                           <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
                             Today

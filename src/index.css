@@ -40,8 +40,10 @@ html, body {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Enable hardware-accelerated momentum scrolling on specific scrollable containers only */

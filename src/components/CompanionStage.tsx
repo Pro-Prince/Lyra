@@ -393,11 +393,11 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     portraitFraming.current = { midY: portraitMidY, distance: portraitDist };
 
     // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are completely visible)
-    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.25 : 1.48; // Zoom in even more on mobile for impact
+    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.15 : 1.48; // Zoom in even more on mobile for impact
     let fullBodyDist = (totalHeight * fullBodyPaddingFactor) / (2 * Math.tan(fov / 2));
     if (perspCam.aspect < 1.0) {
       // In narrow/mobile screens, scale distance dynamically to prevent clipping feet
-      fullBodyDist = fullBodyDist / Math.max(0.68, perspCam.aspect);
+      fullBodyDist = fullBodyDist / Math.max(0.72, perspCam.aspect);
     }
     const fullBodyMidY = (headTop + feetBottom) * 0.5;
     fullBodyFraming.current = { midY: fullBodyMidY, distance: fullBodyDist };
@@ -452,8 +452,8 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
       // 'room-wide' / 'centered': gentle camera height (0.80) looking slightly higher (1.02) to keep full body and feet clear of bottom UI
-      const camY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.15 : 0.72;
-      const lookY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.35 : 1.05;
+      const camY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.25 : 0.72;
+      const lookY = (camera as THREE.PerspectiveCamera).aspect < 1.0 ? 1.45 : 1.05;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
