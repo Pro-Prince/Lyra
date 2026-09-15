@@ -10,7 +10,7 @@ export default function Contact() {
   return (
     <LegalPageWrapper>
       <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-between">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center my-auto">
+        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-start">
           <div className="w-full bg-[var(--bg-surface)] backdrop-blur-[24px] border border-[var(--accent-primary)]/12 rounded-2xl p-6 sm:p-8 shadow-2xl">
             {/* Header Section */}
             <div className="flex items-center gap-3.5 mb-6 border-b border-[var(--accent-primary)]/10 pb-6">

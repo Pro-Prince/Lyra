@@ -281,7 +281,7 @@ export default function Onboarding() {
       animate="animate"
       exit="exit"
       variants={pageCrossfadeVariants}
-      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-center overflow-x-hidden select-none"
+      className="relative min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] font-body flex flex-col justify-start overflow-x-hidden select-none"
     >
       {/* Top Segmented Progress Bar Section (Aligned with the edges of the onboarding card section) */}
       <div className="absolute top-0 left-0 right-0 w-full max-w-xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center z-50">
@@ -367,7 +367,7 @@ export default function Onboarding() {
       </AnimatePresence>
 
       {/* Main Container: Centered elegant card for onboarding steps */}
-      <main className={`relative z-10 w-full ${step === 6 ? 'max-w-3xl lg:max-w-4xl' : 'max-w-xl'} mx-auto px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-14 pb-20 sm:pb-8 flex-1 flex flex-col justify-center transition-all duration-300`}>
+      <main className={`relative z-10 w-full ${step === 6 ? 'max-w-3xl lg:max-w-4xl' : 'max-w-xl'} mx-auto px-4 sm:px-6 pt-16 sm:pt-20 lg:pt-14 pb-20 sm:pb-8 flex-1 flex flex-col justify-start transition-all duration-300`}>
         <div className="w-full">
           <AnimatePresence mode="wait">
             {/* Step 1: Greeting */}
