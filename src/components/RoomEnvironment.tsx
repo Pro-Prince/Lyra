@@ -845,16 +845,16 @@ export function RoomEnvironment() {
   return (
     <group>
       {/* Warm hemisphere fill light matching room's sunset sky & plum floor tones */}
-      <hemisphereLight color="#FFE2D1" groundColor="#4A323B" intensity={0.9} />
+      <hemisphereLight color="#FFD9C2" groundColor="#2A1828" intensity={0.45} />
 
-      {/* Soft warm ambient light to eliminate harsh stark-white glare */}
-      <ambientLight color="#FFDEEB" intensity={0.75} />
+      {/* Soft warm ambient light maintaining rich shadows */}
+      <ambientLight color="#F5B8D0" intensity={0.30} />
 
       {/* KEY LIGHT - Golden Sunset light streaming in from the left window */}
       <directionalLight
-        color="#FFAA75"
-        intensity={1.6}
-        position={[-3.5, 3.8, 2.0]}
+        color="#FFB380"
+        intensity={1.2}
+        position={[-2.8, 3.2, 2.2]}
         castShadow
         shadow-mapSize-width={shadowRes}
         shadow-mapSize-height={shadowRes}
@@ -862,24 +862,24 @@ export function RoomEnvironment() {
         shadow-bias={-0.0004}
       />
 
-      {/* FILL LIGHT - Cozy amber glow from the right-side table lamp & shelf LEDs */}
+      {/* FILL LIGHT - Soft dusty plum fill on right side for defined shadow contrast */}
       <directionalLight
-        color="#FFBE82"
-        intensity={1.0}
-        position={[3.0, 2.2, 1.2]}
+        color="#D298C0"
+        intensity={0.40}
+        position={[2.5, 1.8, 1.5]}
       />
 
-      {/* RIM LIGHT - Soft rosy rim light separating silhouette cleanly */}
+      {/* RIM LIGHT - Bright rosy rim backlight separating her silhouette cleanly from background */}
       <directionalLight
-        color="#FFC2DC"
-        intensity={0.7}
-        position={[0, 3.5, -2.0]}
+        color="#FFD6E8"
+        intensity={0.75}
+        position={[0, 3.2, -2.2]}
       />
 
-      {/* Natural Shadow Receiver Plane on Floor (No artificial disc/circle) */}
+      {/* Natural Shadow Receiver Plane on Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} receiveShadow>
         <planeGeometry args={[20, 20]} />
-        <shadowMaterial transparent opacity={0.22} />
+        <shadowMaterial transparent opacity={0.35} />
       </mesh>
     </group>
   );

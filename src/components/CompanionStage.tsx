@@ -654,8 +654,16 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
           if (obj.isMesh) {
             obj.castShadow = true;
             obj.receiveShadow = true;
-            if (obj.material?.isMToonMaterial) {
-              obj.material.envMapIntensity = 0;
+            if (obj.material) {
+              const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+              materials.forEach((mat: any) => {
+                if (mat.isMToonMaterial) {
+                  mat.envMapIntensity = 0.15;
+                  if (typeof mat.shadeFactor !== 'undefined') {
+                    mat.shadeFactor = 0.75;
+                  }
+                }
+              });
             }
           }
         });
@@ -1402,7 +1410,7 @@ function CompanionStageComponent({
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.outputColorSpace = THREE.SRGBColorSpace;
               gl.toneMapping = THREE.ACESFilmicToneMapping;
-              gl.toneMappingExposure = 1.05;
+              gl.toneMappingExposure = 0.88;
             }}
             dpr={dpr}
           >
