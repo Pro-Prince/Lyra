@@ -184,8 +184,33 @@ export class PerformanceController {
     mixer.addEventListener('finished', onFinish as any);
   }
 
+  public applyEmotionState(emotionTag: string) {
+    if (!this.vrm || !this.vrm.expressionManager) return;
+    this.currentEmotion = emotionTag;
+
+    const expressionMap: Record<string, { happy: number; relaxed: number; surprised: number }> = {
+      happy: { happy: 0.8, relaxed: 0.1, surprised: 0.1 },
+      thoughtful: { happy: 0.05, relaxed: 0.2, surprised: 0.05 },
+      playful: { happy: 0.85, relaxed: 0.1, surprised: 0.2 },
+      calm: { happy: 0.2, relaxed: 0.8, surprised: 0 },
+      warm: { happy: 0.4, relaxed: 0.5, surprised: 0 },
+      excited: { happy: 0.95, relaxed: 0, surprised: 0.4 },
+      affectionate: { happy: 0.8, relaxed: 0.3, surprised: 0 },
+      shy: { happy: 0.25, relaxed: 0.1, surprised: 0.1 },
+    };
+
+    const target = expressionMap[emotionTag] || expressionMap.warm;
+    this.vrm.expressionManager.setValue('happy', target.happy);
+    this.vrm.expressionManager.setValue('relaxed', target.relaxed);
+    this.vrm.expressionManager.setValue('surprised', target.surprised);
+  }
+
   public scheduleGestureBeats(text: string, emotionTag: string, audioDuration: number) {
     this.clearScheduledBeats();
+    console.log(`[PerformanceController] Scheduling gesture beats. Emotion: ${emotionTag}, Duration: ${audioDuration}s, Text: "${text.substring(0, 40)}..."`);
+    
+    this.applyEmotionState(emotionTag);
+
     if (!text || !audioDuration || audioDuration <= 0) {
       this.playGesture(emotionTag);
       return;
@@ -197,12 +222,15 @@ export class PerformanceController {
       return;
     }
 
-    const timePerSentence = audioDuration / sentences.length;
+    const timePerSentence = (audioDuration * 1000) / sentences.length;
 
     sentences.forEach((_, i) => {
       const timeoutId = window.setTimeout(() => {
-        this.playGesture(emotionTag);
-      }, i * timePerSentence * 1000);
+        if (this.isSpeaking) {
+          console.log(`[PerformanceController] Executing sentence beat ${i + 1}/${sentences.length} for emotion: ${emotionTag}`);
+          this.playGesture(emotionTag);
+        }
+      }, i * timePerSentence);
       this.gestureTimeouts.push(timeoutId);
     });
   }
@@ -214,11 +242,13 @@ export class PerformanceController {
 
   public startSpeechPerformance(audioElement: HTMLAudioElement, text: string, emotionTag: string, duration: number) {
     this.isSpeaking = true;
+    console.log('[PerformanceController] Speech performance started. Audio duration:', duration, 'Emotion:', emotionTag);
     this.setAudioElement(audioElement);
     this.scheduleGestureBeats(text, emotionTag, duration);
   }
 
   public stopSpeechPerformance() {
+    console.log('[PerformanceController] Stopping speech performance & clearing timeouts.');
     this.isSpeaking = false;
     this.clearScheduledBeats();
     if (this.currentGestureAction) {
@@ -230,6 +260,9 @@ export class PerformanceController {
     }
     if (this.vrm && this.vrm.expressionManager) {
       this.vrm.expressionManager.setValue('aa', 0);
+      this.vrm.expressionManager.setValue('happy', 0);
+      this.vrm.expressionManager.setValue('relaxed', 0);
+      this.vrm.expressionManager.setValue('surprised', 0);
     }
   }
 

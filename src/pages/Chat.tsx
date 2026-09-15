@@ -1349,6 +1349,7 @@ export default function Chat() {
                 isWardrobeOpen={isWardrobeOpen}
                 isPortraitMode={isPortraitMode}
                 isProcessing={isLoading}
+                isListening={isListening}
                 transparentBg={false}
                 isActive={isChatActive}
               />
@@ -1665,6 +1666,7 @@ export default function Chat() {
                   isWardrobeOpen={isWardrobeOpen || isSettingsOpen}
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
+                  isListening={isListening}
                   transparentBg={false}
                   isActive={isChatActive}
                 />

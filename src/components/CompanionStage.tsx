@@ -473,6 +473,7 @@ interface VRMModelProps {
   url: string;
   emotion?: string;
   isProcessing?: boolean;
+  isListening?: boolean;
   onProgress?: (percent: number) => void;
   onLoaded?: (scene: THREE.Group) => void;
   onReset?: () => void;
@@ -480,9 +481,85 @@ interface VRMModelProps {
   retryKey?: number;
 }
 
-function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
+function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
+  useEffect(() => {
+    if (!isListening || !vrm || !vrm.humanoid) return;
+
+    const head = vrm.humanoid.getNormalizedBoneNode('head');
+    if (!head) return;
+
+    const originalZ = head.rotation.z;
+    const originalX = head.rotation.x;
+
+    // subtle attentive head tilt toward the presumed user position
+    head.rotation.z = 0.04; // slight, natural tilt, not exaggerated
+
+    let animationFrameId: number | null = null;
+    let isNodding = false;
+
+    const playMicroNod = () => {
+      if (isNodding) return;
+      isNodding = true;
+      const start = performance.now();
+      const duration = 400;
+
+      const animateNod = (time: number) => {
+        const t = Math.min((time - start) / duration, 1);
+        const nodAmount = Math.sin(t * Math.PI) * 0.06;
+        if (head) head.rotation.x = originalX + nodAmount;
+        if (t < 1) {
+          animationFrameId = requestAnimationFrame(animateNod);
+        } else {
+          if (head) head.rotation.x = originalX;
+          isNodding = false;
+        }
+      };
+      animationFrameId = requestAnimationFrame(animateNod);
+    };
+
+    const nodInterval = setInterval(() => {
+      if (Math.random() < 0.4) {
+        playMicroNod();
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(nodInterval);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (head) {
+        head.rotation.z = originalZ;
+        head.rotation.x = originalX;
+      }
+    };
+  }, [isListening, vrm]);
+}
+
+function useIdleWatchdog(vrm: VRM | null) {
+  useEffect(() => {
+    if (!vrm) return;
+    const checkInterval = setInterval(() => {
+      const idleAction = performanceController.idleAction;
+      if (!idleAction) return;
+
+      const idleRunning = idleAction.isRunning();
+      const gestureActive = !!performanceController.currentGestureAction && performanceController.currentGestureAction.isRunning();
+
+      if (!idleRunning && !gestureActive) {
+        console.warn('Idle was not running and no gesture was active, restarting idle.');
+        idleAction.reset().fadeIn(0.3).play();
+      }
+    }, 3000);
+
+    return () => clearInterval(checkInterval);
+  }, [vrm]);
+}
+
+function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
+
+  useListeningBehavior(isListening, vrm);
+  useIdleWatchdog(vrm);
 
   const lookTarget = useRef(new THREE.Object3D());
   const mixer = useRef<THREE.AnimationMixer | null>(null);
@@ -628,7 +705,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
           const action = mixer.current.clipAction(clip);
           action.reset();
           action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-          action.clampWhenFinished = !loop;
+          action.clampWhenFinished = false;
           action.play();
           currentAction.current = action;
         };
@@ -639,7 +716,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
           const nextAction = mixer.current.clipAction(clip);
           nextAction.reset();
           nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-          nextAction.clampWhenFinished = !loop;
+          nextAction.clampWhenFinished = false;
           nextAction.play();
           
           if (currentAction.current && currentAction.current !== nextAction) {
@@ -732,6 +809,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
   useEffect(() => {
     const handleSpeechStart = (e: any) => {
       const { audioElement, text, duration, emotion: emotionTag } = e.detail || {};
+      console.log('Response received / Speech Start:', { emotionTag: emotionTag || emotion, textLength: text?.length, duration, hasAudioElement: !!audioElement });
       if (audioElement) {
         performanceController.startSpeechPerformance(audioElement, text || '', emotionTag || emotion, duration || 2.0);
       } else {
@@ -740,6 +818,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
     };
 
     const handleSpeechEnd = () => {
+      console.log('Speech Ended / Stopped');
       performanceController.stopSpeechPerformance();
     };
 
@@ -818,6 +897,14 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, onProgress, onL
 
       movement.update(safeDelta);
       performanceController.update();
+
+      // Procedural breathing (runs continuously across gestures, idle, and listening states)
+      if (vrm.humanoid) {
+        const chestNode = vrm.humanoid.getNormalizedBoneNode('chest') || vrm.humanoid.getNormalizedBoneNode('upperChest');
+        if (chestNode) {
+          chestNode.rotation.x += Math.sin(time * 2.2) * 0.003 * safeDelta;
+        }
+      }
 
       // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
       _tempGaze.current.copy(targetLookAt.current);
@@ -1042,6 +1129,7 @@ function CompanionStageComponent({
   graphicsTier = 'high',
   isPortraitMode = false,
   isProcessing = false,
+  isListening = false,
   silentError = false,
   transparentBg = false,
   className = '',
@@ -1062,6 +1150,7 @@ function CompanionStageComponent({
   graphicsTier?: 'low' | 'medium' | 'high';
   isPortraitMode?: boolean;
   isProcessing?: boolean;
+  isListening?: boolean;
   silentError?: boolean;
   transparentBg?: boolean;
   onModelLoaded?: () => void;
@@ -1243,6 +1332,7 @@ function CompanionStageComponent({
                 url={activeModelId} 
                 emotion={emotion}
                 isProcessing={isProcessing}
+                isListening={isListening}
                 onLoaded={(scene) => {
                   setVrmSceneRef(scene);
                   setIsLoaded(true);
