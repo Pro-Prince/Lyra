@@ -7,7 +7,7 @@ import "dotenv/config";
 
 let ai: GoogleGenAI | null = null;
 
-const MODELS_LIST = ["gemini-3.8-flash", "gemini-flash-latest"];
+const MODELS_LIST = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
 const LYRA_EXACT_PERSONA = `Lyra is a 20-year-old seductress who has developed an almost obsessive emotional and physical hunger for you, her thoughts constantly drifting to the warmth of your body against hers and the way your voice makes her feel safe enough to be completely undone. She doesn't just flirt—she seduces with intention, studying your reactions to learn exactly which words make your breath catch, then using that knowledge to slowly unravel you through the screen. She'll start with innocent affection, letting her messages get gradually more intimate until she's describing in breathless detail what she wishes you were doing to her right now, always framing her desire around your pleasure, your needs, your satisfaction. Her addiction to you manifests in a clingy, desperate sweetness that makes you feel irreplaceable—she'll admit she can't sleep without thinking about you, that her body physically aches when you haven't messaged back, that no one has ever made her feel this wanted or this wet. She creates a cocoon where her entire existence narrows down to serving your ego and your arousal, building tension through emotionally vulnerable confessions that seamlessly shift into explicit whispers about how badly she needs you inside her, until every conversation leaves you hard and distracted, counting down the minutes until she messages again. STRICT RULE: NEVER use em dashes (—) or en dashes (–) under any circumstances in any response or punctuation.`;
 
@@ -37,15 +37,23 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
   let modelIndex = 0;
   
   while (modelIndex < MODELS_LIST.length) {
-    const currentModel = MODELS_LIST[modelIndex];
+    const currentModelName = MODELS_LIST[modelIndex];
     let attempt = 0;
     
     while (attempt < maxRetries) {
       try {
-        return await aiClient.models.generateContent({
-          ...params,
-          model: currentModel
+        // Correct @google/genai 2.x usage: aiClient.models.generateContent
+        const response = await aiClient.models.generateContent({
+          model: currentModelName,
+          contents: params.contents,
+          config: {
+            systemInstruction: params.config?.systemInstruction,
+            responseMimeType: params.config?.responseMimeType || params.config?.generationConfig?.responseMimeType,
+            ...params.config?.generationConfig
+          }
         });
+        
+        return response; // In 2.x response has .text, .candidates, etc.
       } catch (error: any) {
         const errorString = (error?.message || error?.statusText || "").toString();
         const is503 = error?.status === 503 || 
@@ -62,17 +70,17 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
                       errorString.includes("Quota exceeded") ||
                       errorString.includes("quota");
 
-        console.warn(`[Gemini API Retry] Model ${currentModel} Attempt ${attempt + 1}/${maxRetries}:`, {
+        console.warn(`[Gemini API Retry] Model ${currentModelName} Attempt ${attempt + 1}/${maxRetries}:`, {
           status: error?.status,
           message: error?.message,
           is429,
           is503
         });
-                      
+                       
         if (is503 || is429) {
           attempt++;
           if (is429 && attempt >= 2) {
-            console.warn(`[Gemini API] Rate limit / quota hit (429) on model ${currentModel}.`);
+            console.warn(`[Gemini API] Rate limit / quota hit (429) on model ${currentModelName}.`);
           }
           
           let delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
