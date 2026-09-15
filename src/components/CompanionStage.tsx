@@ -1140,6 +1140,22 @@ class StageErrorBoundary extends React.Component<
   }
 }
 
+function RoomFadeIn({ children }: { children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 100); // let the first frame render first
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="room-fade-wrapper">
+      {children}
+      <div className={`room-fade-overlay ${visible ? 'faded' : ''}`} />
+    </div>
+  );
+}
+
 function CompanionStageComponent({
   modelId,
   isWardrobeOpen = false,
@@ -1301,6 +1317,7 @@ function CompanionStageComponent({
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 w-full h-full"
       >
+      <RoomFadeIn>
         <StageErrorBoundary onError={(err) => handleError(err?.message)}>
           <Canvas shadows 
             id="companion-canvas-container"
@@ -1369,6 +1386,7 @@ function CompanionStageComponent({
             </Suspense>
           </Canvas>
         </StageErrorBoundary>
+      </RoomFadeIn>
         
         {/* Soft Cozy Vignette Overlay */}
         <div className="pointer-events-none absolute inset-0 z-20" style={{ background: 'radial-gradient(ellipse at center, transparent 75%, rgba(42,24,38,0.2) 100%)' }} />

@@ -9,19 +9,24 @@ import * as THREE from 'three';
 // identity gives every light source something to actually reflect off.
 // -----------------------------------------------------------------------------
 const PALETTE = {
-  wallPlaster: '#5C3E52',      // was #462E3F
-  wallAccentPlum: '#4A2C42',   // was #382233
-  shadowPlum: '#3A2436',       // was #2A1826
-  trimMauve: '#65465A',        // was #52374A
+  // Foreground / near character — warmest, lightest
+  rugWarm: '#E8D5C8',
+
+  // Midground / furniture — neutral warm, current established tones
+  wallPlaster: '#55374A',      // slightly cooler/darker than before, mid-depth
+  trimMauve: '#5E4054',
+
+  // Background / far shelving, window wall — coolest, darkest
+  wallAccentPlum: '#3D2838',   // pull this darker and slightly more blue than before
+  darkWalnut: '#432722',
 
   warmCream: '#F4ECE4',
   softBeige: '#E6D7CC',
   curtainWhite: '#FAF3ED',
   porcelainWhite: '#FCF8F5',
 
-  darkWalnut: '#4A2C29',       // was #3B2321
-  walnutPlank: '#432A26',      // was #321D1C
-  walnutLight: '#5A3936',      // was #4A2E2C
+  walnutPlank: '#432A26',
+  walnutLight: '#5A3936',
 
   lyraPink: '#F299C2',
   softPinkTextile: '#ECA0C4',
@@ -31,12 +36,21 @@ const PALETTE = {
   warmSunsetKey: '#FFD9BD',
   warmIndirectLed: '#FFE8C8',
   lampGlow: '#FFDDB6',
-  coolMoonFill: '#8C9FC7',     // NEW: dedicated cool fill color for contrast against the warm key
+  coolMoonFill: '#8C9FC7',
 
   leafGreen: '#4D7856',
   leafGreenLight: '#689672',
   leafGreenDark: '#35533D',
 };
+
+function ContactShadow({ position, radius = 0.6, opacity = 0.35 }: { position: [number, number, number], radius?: number, opacity?: number }) {
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[radius, 24]} />
+      <meshBasicMaterial color="#000000" transparent opacity={opacity} depthWrite={false} />
+    </mesh>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // 2. FLOOR-TO-CEILING WINDOW & EVENING SKYLINE (LEFT WALL)
@@ -393,7 +407,7 @@ function CenterPlushRug() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]} receiveShadow>
         <circleGeometry args={[1.75, 48]} />
         <meshStandardMaterial
-          color="#DECFC6"
+          color={PALETTE.rugWarm}
           roughness={0.92}
           side={THREE.DoubleSide}
         />
@@ -822,6 +836,8 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 export function RoomEnvironment() {
   return (
     <group>
+      <fogExp2 attach="fog" args={['#2A1826', 0.05]} />
+      
       {/* HEMI: broad, gentle fill from all directions, prevents pure-black
           surfaces on anything facing away from the directional lights */}
       <hemisphereLight color="#8A6478" groundColor={PALETTE.darkWalnut} intensity={1.0} />
@@ -836,7 +852,8 @@ export function RoomEnvironment() {
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-        shadow-bias={-0.0001}
+        shadow-radius={5}
+        shadow-bias={-0.0004}
       />
 
       {/* FILL — cool, soft, opposite side, this contrast is what creates
@@ -899,6 +916,10 @@ export function RoomEnvironment() {
 
       <RoundWallArt position={[-1.1, 2.55, -3.9]} />
       <WindowsideConsole position={[-1.1, 0, -3.75]} />
+
+      {/* Contact Shadows for Grounding Furniture */}
+      <ContactShadow position={[-2.4, 0.01, 0.65]} radius={0.9} opacity={0.3} />
+      <ContactShadow position={[3.2, 0.01, -3.5]} radius={0.85} opacity={0.28} />
     </group>
   );
 }
