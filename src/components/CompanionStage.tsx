@@ -392,8 +392,8 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
     const portraitMidY = (headTop + shoulderY) / 2;
     portraitFraming.current = { midY: portraitMidY, distance: portraitDist };
 
-    // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are framed larger without button overlap)
-    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.20 : 1.26; // Frame larger on screen
+    // 2. Full-Body Room Framing (Ensures full legs, shoes, and headroom are framed cleanly above bottom buttons)
+    const fullBodyPaddingFactor = perspCam.aspect < 1.0 ? 1.32 : 1.30;
     let fullBodyDist = (totalHeight * fullBodyPaddingFactor) / (2 * Math.tan(fov / 2));
     if (perspCam.aspect < 1.0) {
       // In narrow/mobile screens, scale distance dynamically so feet and shoes are completely framed above control bar
@@ -451,10 +451,12 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      // 'room-wide' / 'centered': center camera on full body so entire avatar from head to shoes is framed larger without bottom button cutoff
+      // 'room-wide' / 'centered': position camera target & lookAt to elevate avatar above bottom buttons
       const isMobileAspect = (camera as THREE.PerspectiveCamera).aspect < 1.0;
-      const camY = isMobileAspect ? 0.88 : 0.82;
-      const lookY = isMobileAspect ? 0.98 : 1.08;
+      // Lowering lookTarget Y centers viewport around her waist/hips (y = 0.72-0.78),
+      // which shifts her lower legs & shoes UP in the 2D frame cleanly above the bottom ControlBar buttons
+      const camY = isMobileAspect ? 0.72 : 0.74;
+      const lookY = isMobileAspect ? 0.76 : 0.78;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
