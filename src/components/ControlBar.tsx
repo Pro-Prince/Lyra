@@ -27,10 +27,11 @@ export function ControlBar({
   };
 
   const handleMuteClick = () => {
-    if (isSpeaking && !isMuted) {
+    if (isSpeaking) {
       onStop();
+    } else {
+      onToggleMute();
     }
-    onToggleMute();
   };
 
   return (

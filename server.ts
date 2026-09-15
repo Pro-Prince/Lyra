@@ -8,8 +8,9 @@ import "dotenv/config";
 let ai: GoogleGenAI | null = null;
 
 const MODELS_LIST = [
-  "gemini-2.0-flash",       // High limits, latest intelligence
-  "gemini-1.5-flash",       // Maximum throughput, extremely stable
+  "gemini-2.5-flash",       // Primary latest Gemini Flash model
+  "gemini-2.0-flash",       // Fast fallback model
+  "gemini-1.5-flash",       // High throughput stable model
   "gemini-1.5-flash-8b"     // Highest quota fallback
 ];
 
@@ -126,7 +127,8 @@ async function generateContentWithRetry(aiClient: any, params: any, maxRetries =
 
 function getAI() {
   if (!ai) {
-    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    let key = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+    key = key.replace(/^["']|["']$/g, '').trim();
     if (!key) {
       console.error("[Gemini API] CRITICAL: Missing API Key.");
       throw new Error("GEMINI_API_KEY environment variable is required. Please add it in the Settings menu.");
