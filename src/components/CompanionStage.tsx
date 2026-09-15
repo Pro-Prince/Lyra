@@ -1304,13 +1304,13 @@ function CompanionStageComponent({
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden bg-[#241623]">
         {/* Desktop Version Image (used for screen width >= 768px) */}
         <img
-          src="/Room Desktop Version.png"
+          src="/Room-Desktop-Version.png"
           alt="Room Environment Desktop"
           className="hidden md:block w-full h-full object-cover object-center"
         />
         {/* Mobile Version Image (used for screen width < 768px) */}
         <img
-          src="/Room Mobile Version.png"
+          src="/Room-Mobile-Version.png"
           alt="Room Environment Mobile"
           className="block md:hidden w-full h-full object-cover object-center"
         />
