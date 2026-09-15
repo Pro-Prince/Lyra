@@ -17,6 +17,7 @@ import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import LoginPage from "./pages/Login";
 import SignUpPage from "./pages/SignUp";
+import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastProvider } from "./context/ToastContext";
 import { getCompanion, saveCompanion } from "./lib/storage";
@@ -119,6 +120,7 @@ function AppRoutes() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       )}
     </>
