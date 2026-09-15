@@ -451,12 +451,12 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      // 'room-wide' / 'centered': position camera target & lookAt to elevate avatar above bottom buttons
+      // 'room-wide' / 'centered': camera slightly above looking down gently
       const isMobileAspect = (camera as THREE.PerspectiveCamera).aspect < 1.0;
-      // Lowering lookTarget Y centers viewport around her waist/hips (y = 0.72-0.78),
-      // which shifts her lower legs & shoes UP in the 2D frame cleanly above the bottom ControlBar buttons
-      const camY = isMobileAspect ? 0.72 : 0.74;
-      const lookY = isMobileAspect ? 0.76 : 0.78;
+      // Slightly higher camera Y (camY) compared to lookY creates a subtle top-down angle,
+      // while lookY around 0.80 keeps her framed comfortably on screen without overlapping bottom buttons
+      const camY = isMobileAspect ? 0.98 : 0.96;
+      const lookY = isMobileAspect ? 0.82 : 0.80;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
