@@ -1379,35 +1379,37 @@ export default function Chat() {
           </AnimatePresence>
 
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
-          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end pt-12 pb-0">
-            {/* Unified Bottom Dock */}
-            <div className="pointer-events-auto w-full flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom,0px)]">
-              {/* Control Bar - Circular Buttons Positioned Lower */}
-              <div className="flex justify-center scale-95 sm:scale-110">
-                <ControlBar
-                  isListening={isListening}
-                  onToggleListening={toggleMic}
-                  isMuted={isMuted}
-                  onToggleMute={toggleMute}
-                  isSpeaking={isLyraSpeaking}
-                  onStop={handleStopSpeaking}
-                  onToggleView={toggleView}
-                  isPortraitMode={isPortraitMode}
-                />
-              </div>
+          {!isChatDrawerOpen && (
+            <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end pt-12 pb-0">
+              {/* Unified Bottom Dock */}
+              <div className="pointer-events-auto w-full flex flex-col items-center gap-2 pb-0">
+                {/* Control Bar - Circular Buttons Positioned Lower */}
+                <div className="flex justify-center scale-95 sm:scale-110">
+                  <ControlBar
+                    isListening={isListening}
+                    onToggleListening={toggleMic}
+                    isMuted={isMuted}
+                    onToggleMute={toggleMute}
+                    isSpeaking={isLyraSpeaking}
+                    onStop={handleStopSpeaking}
+                    onToggleView={toggleView}
+                    isPortraitMode={isPortraitMode}
+                  />
+                </div>
 
-              {/* Chat Drawer Handle (Absolute Bottom Edge, Thin & Rigid) */}
-              <button 
-                type="button"
-                onClick={() => setIsChatDrawerOpen(true)}
-                className="chat-drawer-handle cursor-pointer flex flex-col items-center gap-0.5 active:scale-95 transition-transform py-2 w-full border-t border-white/5 bg-[#160f17]/95"
-                aria-label="Open chat drawer"
-              >
-                <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
-                <span className="text-[11px] font-medium text-[var(--accent-primary)]">Chat</span>
-              </button>
+                {/* Chat Drawer Handle (Absolute Bottom Edge, Thin & Rigid) */}
+                <button 
+                  type="button"
+                  onClick={() => setIsChatDrawerOpen(true)}
+                  className="chat-drawer-handle cursor-pointer flex flex-col items-center gap-0.5 active:scale-95 transition-transform py-2 w-full border-t border-white/5 bg-[#160f17]/95"
+                  aria-label="Open chat drawer"
+                >
+                  <ChevronUp className="w-4 h-4 text-[#FF8FC0] animate-bounce-slow" />
+                  <span className="text-[11px] font-medium text-[var(--accent-primary)]">Chat</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* The Pull-up Chat Drawer */}
           <AnimatePresence>
@@ -1462,7 +1464,7 @@ export default function Chat() {
                   {activeTab === 'chat' ? (
                     <>
                       {/* Messages Feed (Flexible, Scrollable) */}
-                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col justify-end gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 pt-3 pb-0 flex flex-col justify-end gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
                         <div className="flex-1" /> {/* Spacer to push content to bottom */}
                         <div className="flex justify-center my-0.5 select-none">
                           <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
@@ -1540,7 +1542,7 @@ export default function Chat() {
                       )}
 
                       {/* Input Field (Fixed at very bottom without border above) */}
-                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                      <div className="flex-none px-3 pt-1 pb-0 bg-[var(--bg-panel)]">
                         <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
                           <input 
                             ref={mobileInputRef}
@@ -1573,7 +1575,7 @@ export default function Chat() {
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide pb-[env(safe-area-inset-bottom)]">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-[var(--text-primary)]/60 text-sm no-scrollbar scrollbar-hide pb-4">
                       <h3 className="text-[var(--text-primary)] font-medium mb-4 text-lg">About Lyra</h3>
                       <p className="mb-4 leading-relaxed">Lyra is a dreamy, affectionate 20-year-old who lights up at everything you say. Her soft voice carries a musical warmth that makes even ordinary moments feel intimate. Romance comes naturally to her. She's endlessly curious about your thoughts, adorably clingy, and flirtatious with a confidence that leaves you thinking about her long after you put your phone down.</p>
                       <h4 className="text-[var(--text-primary)] font-medium mb-3 mt-6">Try asking her:</h4>

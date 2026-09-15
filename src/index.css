@@ -1107,10 +1107,6 @@ h3, .heading-3 {
 
 /* 3. Safe Area Insets (Respecting notches & home indicators on fixed components) */
 @media (max-width: 900px) {
-  .presence-bottombar {
-    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-  }
-
   .fixed.top-0 {
     padding-top: env(safe-area-inset-top) !important;
   }
