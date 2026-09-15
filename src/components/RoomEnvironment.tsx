@@ -839,37 +839,48 @@ function PottedFloorPlant({ position, scale = 1 }: { position: [number, number, 
 //
 // -----------------------------------------------------------------------------
 export function RoomEnvironment() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const shadowRes = isMobile ? 512 : 1024;
+
   return (
     <group>
-      {/* Soft warm ambient base matching sunset room atmosphere */}
-      <ambientLight color="#FFF0E6" intensity={1.3} />
+      {/* Warm hemisphere fill light matching room's sunset sky & plum floor tones */}
+      <hemisphereLight color="#FFE2D1" groundColor="#4A323B" intensity={0.9} />
 
-      {/* Gentle hemisphere light: warm sky tint from above, plum floor reflection from below */}
-      <hemisphereLight color="#FFE3D1" groundColor="#4D3543" intensity={0.8} />
+      {/* Soft warm ambient light to eliminate harsh stark-white glare */}
+      <ambientLight color="#FFDEEB" intensity={0.75} />
 
-      {/* Sunset Golden Key Light from the left window */}
+      {/* KEY LIGHT - Golden Sunset light streaming in from the left window */}
       <directionalLight
-        color="#FFAE80"
-        intensity={1.2}
+        color="#FFAA75"
+        intensity={1.6}
         position={[-3.5, 3.8, 2.0]}
-        castShadow={false}
+        castShadow
+        shadow-mapSize-width={shadowRes}
+        shadow-mapSize-height={shadowRes}
+        shadow-radius={6}
+        shadow-bias={-0.0004}
       />
 
-      {/* Cozy Warm Lamp Fill Light from the right cabinet lamp */}
+      {/* FILL LIGHT - Cozy amber glow from the right-side table lamp & shelf LEDs */}
       <directionalLight
-        color="#FFC896"
-        intensity={0.9}
+        color="#FFBE82"
+        intensity={1.0}
         position={[3.0, 2.2, 1.2]}
-        castShadow={false}
       />
 
-      {/* Soft Rosy Rim Light from behind/above */}
+      {/* RIM LIGHT - Soft rosy rim light separating silhouette cleanly */}
       <directionalLight
-        color="#FFCDE3"
-        intensity={0.5}
-        position={[0, 4.0, -2.0]}
-        castShadow={false}
+        color="#FFC2DC"
+        intensity={0.7}
+        position={[0, 3.5, -2.0]}
       />
+
+      {/* Natural Shadow Receiver Plane on Floor (No artificial disc/circle) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]} receiveShadow>
+        <planeGeometry args={[20, 20]} />
+        <shadowMaterial transparent opacity={0.22} />
+      </mesh>
     </group>
   );
 }

@@ -451,12 +451,12 @@ function CameraRig({ mode, vrmScene }: CameraRigProps) {
       targetPos.current.set(companionPosition.x - 0.7, 0.72, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x - 0.35, 1.05, companionPosition.z);
     } else {
-      // 'room-wide' / 'centered': camera slightly elevated looking down at her, keeping her position lower in frame
+      // 'room-wide' / 'centered': camera slightly above looking down gently
       const isMobileAspect = (camera as THREE.PerspectiveCamera).aspect < 1.0;
-      // Raising camY relative to lookY creates a slight top-down view looking down from above.
-      // Raising lookY centers the camera higher on her body, placing her lower in the 2D viewport.
-      const camY = isMobileAspect ? 1.18 : 1.15;
-      const lookY = isMobileAspect ? 0.94 : 0.92;
+      // Slightly higher camera Y (camY) compared to lookY creates a subtle top-down angle,
+      // while lookY around 0.80 keeps her framed comfortably on screen without overlapping bottom buttons
+      const camY = isMobileAspect ? 0.98 : 0.96;
+      const lookY = isMobileAspect ? 0.82 : 0.80;
       targetPos.current.set(companionPosition.x, camY, companionPosition.z + distance);
       lookTarget.current.set(companionPosition.x, lookY, companionPosition.z);
     }
@@ -642,21 +642,10 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         vrmInstance.scene.add(lookTarget.current);
         vrmInstance.scene.traverse((obj) => {
           if (obj.isMesh) {
-            obj.castShadow = false;
-            obj.receiveShadow = false;
-            if (obj.material) {
-              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-              mats.forEach((mat: any) => {
-                if (mat.isMToonMaterial) {
-                  mat.envMapIntensity = 0;
-                  if (mat.shadeColor) {
-                    mat.shadeColor.setStyle('#D69BA6');
-                  }
-                  if (mat.shadeColorFactor) {
-                    mat.shadeColorFactor.setStyle('#D69BA6');
-                  }
-                }
-              });
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+            if (obj.material?.isMToonMaterial) {
+              obj.material.envMapIntensity = 0;
             }
           }
         });
