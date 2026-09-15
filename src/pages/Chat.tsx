@@ -1380,8 +1380,8 @@ export default function Chat() {
 
           {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
           <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end">
-            {/* Control Bar - Floating just above the dock bar */}
-            <div className="pointer-events-auto w-full pb-3 flex justify-center">
+            {/* Control Bar - Floating with proper clearance above the dock */}
+            <div className="pointer-events-auto w-full pb-6 flex justify-center">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1394,17 +1394,17 @@ export default function Chat() {
               />
             </div>
 
-            {/* Solid Bottom Dock Bar (Mimics Mobile Nav Bar height) */}
-            <div className="w-full bg-[#1c181d] border-t border-white/[0.03] pointer-events-auto shadow-[0_-8px_24px_rgba(0,0,0,0.15)]">
+            {/* Solid Bottom Dock Bar (Mimics Mobile Nav Bar) */}
+            <div className="w-full bg-[#1c181d] border-t border-white/[0.03] pointer-events-auto shadow-[0_-12px_32px_rgba(0,0,0,0.25)]">
               <button 
                 type="button"
                 onClick={() => setIsChatDrawerOpen(true)}
-                className="w-full h-[48px] sm:h-[52px] flex flex-col items-center justify-center gap-0 active:scale-95 transition-transform"
+                className="w-full h-[52px] sm:h-[56px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
                 aria-label="Open chat drawer"
               >
                 <ChevronUp className="w-3.5 h-3.5 text-[#FF8FC0] animate-bounce-slow" />
-                <span className="text-[11px] font-medium text-[var(--accent-primary)] -mt-0.5">Chat</span>
+                <span className="text-[11px] font-medium text-[var(--accent-primary)] tracking-wide">Chat</span>
               </button>
             </div>
           </div>
