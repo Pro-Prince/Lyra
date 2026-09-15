@@ -481,6 +481,25 @@ interface VRMModelProps {
   retryKey?: number;
 }
 
+function updateBreathing(vrm: VRM | null, time: number, safeDelta: number) {
+  if (!vrm || !vrm.humanoid) return;
+
+  const chestNode = vrm.humanoid.getNormalizedBoneNode('upperChest') ||
+                    vrm.humanoid.getNormalizedBoneNode('chest') ||
+                    vrm.humanoid.getNormalizedBoneNode('spine');
+
+  if (!chestNode) return;
+
+  // Procedural breathing using Math.sin to animate chest smoothly
+  const breathCycle = Math.sin(time * 2.2);
+  const targetPitch = breathCycle * 0.008; // gentle inhale/exhale chest rise
+  const targetSway = Math.cos(time * 1.1) * 0.0025; // subtle natural sway
+
+  // Smooth lerp to prevent any sudden rotation snaps
+  chestNode.rotation.x = THREE.MathUtils.lerp(chestNode.rotation.x, targetPitch, safeDelta * 3.5);
+  chestNode.rotation.z = THREE.MathUtils.lerp(chestNode.rotation.z, targetSway, safeDelta * 3.5);
+}
+
 function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
   useEffect(() => {
     if (!isListening || !vrm || !vrm.humanoid) return;
@@ -498,14 +517,16 @@ function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
     let isNodding = false;
 
     const playMicroNod = () => {
-      if (isNodding) return;
+      if (isNodding || !head) return;
       isNodding = true;
       const start = performance.now();
-      const duration = 400;
+      const duration = 500;
 
       const animateNod = (time: number) => {
         const t = Math.min((time - start) / duration, 1);
-        const nodAmount = Math.sin(t * Math.PI) * 0.06;
+        // Smooth 0 -> 1 -> 0 cosine bell curve with 0-velocity start/end
+        const easeCurve = (1 - Math.cos(t * Math.PI * 2)) * 0.5;
+        const nodAmount = easeCurve * 0.04;
         if (head) head.rotation.x = originalX + nodAmount;
         if (t < 1) {
           animationFrameId = requestAnimationFrame(animateNod);
@@ -668,13 +689,17 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
             activeGestureFinishedListener = null;
           }
           if (activeGestureAction && activeGestureAction !== action) {
-            activeGestureAction.fadeOut(0.3);
+            activeGestureAction.fadeOut(0.35);
+          }
+
+          if (idleAction) {
+            idleAction.fadeOut(0.35);
           }
 
           action.reset();
           action.setLoop(THREE.LoopOnce, 1);
           action.clampWhenFinished = false;
-          action.fadeIn(0.3);
+          action.fadeIn(0.35);
           action.play();
 
           activeGestureAction = action;
@@ -683,7 +708,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
           const onFinished = (e: any) => {
             if (e.action !== action) return;
             if (idleAction) {
-              idleAction.reset().fadeIn(0.4).play();
+              idleAction.enabled = true;
+              idleAction.fadeIn(0.4).play();
             }
             action.fadeOut(0.4);
             if (activeGestureAction === action) {
@@ -899,12 +925,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       performanceController.update();
 
       // Procedural breathing (runs continuously across gestures, idle, and listening states)
-      if (vrm.humanoid) {
-        const chestNode = vrm.humanoid.getNormalizedBoneNode('chest') || vrm.humanoid.getNormalizedBoneNode('upperChest');
-        if (chestNode) {
-          chestNode.rotation.x += Math.sin(time * 2.2) * 0.003 * safeDelta;
-        }
-      }
+      updateBreathing(vrm, time, safeDelta);
 
       // Gaze tracking damping (drives lookAt target for eyes, does not touch body bones)
       _tempGaze.current.copy(targetLookAt.current);

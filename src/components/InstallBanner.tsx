@@ -50,13 +50,19 @@ export function InstallBanner() {
       return;
     }
 
-    // Always show banner after a slight delay to allow smooth entry
+    // Only show the banner if we actually have a prompt to trigger or if it's iOS
+    if (!deferredPrompt && !isIOSDevice) {
+      setShowBanner(false);
+      return;
+    }
+
+    // Show banner after a slight delay to allow smooth entry
     const timer = setTimeout(() => {
       setShowBanner(true);
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [isStandalone, isDismissed, location.pathname]);
+  }, [isStandalone, isDismissed, location.pathname, deferredPrompt, isIOSDevice]);
 
   const triggerInstall = async () => {
     if (deferredPrompt) {
@@ -67,13 +73,11 @@ export function InstallBanner() {
         if (outcome === 'accepted') {
           dismissInstallBanner(true);
         }
-      } catch {
-        showInfo("Click the install icon (⊕) in your browser address bar to install Lyra.");
+      } catch (err) {
+        console.warn('PWA prompt failed:', err);
       }
     } else if (isIOSDevice) {
       showInfo("Tap the Share button at the bottom of Safari, then select 'Add to Home Screen'.");
-    } else {
-      showInfo("Click the install icon (⊕) in your browser address bar to install Lyra on your device.");
     }
   };
 
