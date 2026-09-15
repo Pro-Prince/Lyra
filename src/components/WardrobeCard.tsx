@@ -363,22 +363,13 @@ export function WardrobeCard({
 
         {/* Error Fallback with Try Again button */}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/95 p-3 text-center z-10">
-            <div className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-1.5">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <span className="text-[11px] font-medium text-rose-300 mb-0.5">Could not load preview</span>
-            <span className="text-[9px] text-[var(--text-muted)] mb-2 max-w-[120px] leading-tight">
-              Tap below to retry loading
-            </span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 p-3 text-center z-10">
             <button
               type="button"
               onClick={handleRetry}
-              className="px-2.5 py-1 rounded-lg bg-[var(--accent-primary)]/15 hover:bg-[var(--accent-primary)]/25 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] text-[11px] font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+              className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)]/15 hover:bg-[var(--accent-primary)]/25 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] text-[12px] font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3.5 h-3.5" />
               <span>Try Again</span>
             </button>
           </div>

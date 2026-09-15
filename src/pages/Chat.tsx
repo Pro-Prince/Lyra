@@ -997,22 +997,36 @@ export default function Chat() {
       isStreamFinishedRef.current = false;
       queuedChunksRef.current = 0;
 
+      let sseBuffer = "";
+
       while (true) {
          const { value, done } = await reader.read();
          if (done) break;
          
-         const chunkStr = decoder.decode(value, { stream: true });
-         const lines = chunkStr.split('\n');
+         sseBuffer += decoder.decode(value, { stream: true });
+         const lines = sseBuffer.split('\n');
+         sseBuffer = lines.pop() || "";
          
          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-               const data = JSON.parse(line.slice(6));
-               if (data.error) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ')) {
+               const rawPayload = trimmedLine.slice(6).trim();
+               if (!rawPayload || rawPayload === '[DONE]') continue;
+
+               let data: any = null;
+               try {
+                 data = JSON.parse(rawPayload);
+               } catch (jsonErr) {
+                 console.warn('[Chat Stream JSON parse skipped partial]:', rawPayload);
+                 continue;
+               }
+
+               if (data?.error) {
                  console.warn('[ChatAPI Stream Error / Rate limit]:', data.error);
                  handleRateLimitFallback(modelMsgId);
                  return;
                }
-               if (data.text) {
+               if (data?.text) {
                   if (isFirstChunk) {
                       isFirstChunk = false;
                       rateLimitCountRef.current = 0;
