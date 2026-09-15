@@ -73,15 +73,17 @@ export function setupCardScene(
   const camera = new THREE.PerspectiveCamera(28, width / height, 0.1, 20);
   cameraRef.current = camera;
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   // Renderer - created once
   const renderer = new THREE.WebGLRenderer({
-    antialias: true,
+    antialias: !isMobile, // Disable AA on mobile to save memory
     alpha: true,
     powerPreference: 'low-power',
-    preserveDrawingBuffer: true
+    preserveDrawingBuffer: false // Reduced memory footprint
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(width, height);
   renderer.domElement.style.width = '100%';
   renderer.domElement.style.height = '100%';
@@ -145,6 +147,20 @@ export function WardrobeCard({
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+
+  // Use IntersectionObserver to lazy-load the heavy 3D scene only when needed
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      setIsInView(entries[0].isIntersecting);
+    }, { threshold: 0.05, rootMargin: '50px' });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const dragHandlers = useDragRotate((deltaX: number) => {
     onDragDeltaRef.current?.(deltaX);
@@ -158,6 +174,9 @@ export function WardrobeCard({
   };
 
   useEffect(() => {
+    // Prevent loading the heavy VRM and WebGL context until the card is actually visible
+    if (!isInView) return;
+
     let cancelled = false;
     let animId: number | null = null;
     let delayTimer: any = null;
