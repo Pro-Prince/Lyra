@@ -344,6 +344,72 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const validIdle = idleTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validIdle.length > 0) gestureClips['procedural_idle'] = new THREE.AnimationClip('procedural_idle', 4.0, validIdle);
 
+  // 7. IDLE VARIATION: WEIGHT SHIFT (5.0s loop) - Relaxed hip and shoulder counter-balance
+  const weightShiftTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(spine, [
+      R.spine,
+      new THREE.Euler(0.01, 0.02, 0.025),
+      new THREE.Euler(0.015, 0.02, 0.025),
+      R.spine
+    ], [0, 1.5, 3.5, 5.0]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.02, -0.015, -0.02),
+      new THREE.Euler(-0.035, -0.015, -0.02),
+      R.chest
+    ], [0, 1.5, 3.5, 5.0]),
+    makeTrack(head, [
+      R.head,
+      new THREE.Euler(0.02, 0.02, -0.03),
+      new THREE.Euler(0.04, 0.02, -0.03),
+      R.head
+    ], [0, 1.5, 3.5, 5.0]),
+    makeTrack(upperArmR, [
+      R.rightUpperArm,
+      new THREE.Euler(0.12, -0.04, 1.28),
+      new THREE.Euler(0.15, -0.04, 1.28),
+      R.rightUpperArm
+    ], [0, 1.5, 3.5, 5.0]),
+    makeTrack(upperArmL, [
+      R.leftUpperArm,
+      new THREE.Euler(0.16, 0.04, -1.24),
+      new THREE.Euler(0.13, 0.04, -1.24),
+      R.leftUpperArm
+    ], [0, 1.5, 3.5, 5.0])
+  ];
+  const validWeightShift = weightShiftTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validWeightShift.length > 0) gestureClips['idle_weight_shift'] = new THREE.AnimationClip('idle_weight_shift', 5.0, validWeightShift);
+
+  // 8. IDLE VARIATION: CONTEMPLATIVE (4.5s loop) - Soft reflective posture with gentle head inclination
+  const contemplativeTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    makeTrack(head, [
+      R.head,
+      new THREE.Euler(0.06, -0.04, 0.04),
+      new THREE.Euler(0.04, -0.02, 0.03),
+      R.head
+    ], [0, 1.2, 3.2, 4.5]),
+    makeTrack(neck, [
+      R.neck,
+      new THREE.Euler(0.02, -0.02, 0.02),
+      new THREE.Euler(0.01, -0.01, 0.01),
+      R.neck
+    ], [0, 1.2, 3.2, 4.5]),
+    makeTrack(chest, [
+      R.chest,
+      new THREE.Euler(-0.03, 0.01, -0.01),
+      new THREE.Euler(-0.02, 0.01, -0.01),
+      R.chest
+    ], [0, 1.2, 3.2, 4.5]),
+    makeTrack(spine, [
+      R.spine,
+      new THREE.Euler(0.015, -0.01, 0.01),
+      new THREE.Euler(0.02, -0.01, 0.01),
+      R.spine
+    ], [0, 1.2, 3.2, 4.5])
+  ];
+  const validContemplative = contemplativeTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validContemplative.length > 0) gestureClips['idle_contemplative'] = new THREE.AnimationClip('idle_contemplative', 4.5, validContemplative);
+
   if (gestureClips['wave']) gestureClips['gesture_wave'] = gestureClips['wave'];
   if (gestureClips['nod']) gestureClips['gesture_soft_nod'] = gestureClips['nod'];
   if (gestureClips['laugh']) gestureClips['gesture_happy_01'] = gestureClips['laugh'];
@@ -353,7 +419,7 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   if (gestureClips['think']) gestureClips['gesture_look_up'] = gestureClips['think'];
   if (gestureClips['nod']) gestureClips['gesture_head_tilt'] = gestureClips['nod'];
   if (gestureClips['nod']) gestureClips['gesture_wink'] = gestureClips['nod'];
-  if (gestureClips['procedural_idle']) gestureClips['idle_shift'] = gestureClips['procedural_idle'];
+  if (gestureClips['procedural_idle']) gestureClips['idle_shift'] = gestureClips['idle_weight_shift'] || gestureClips['procedural_idle'];
 
   return gestureClips;
 }
@@ -494,23 +560,38 @@ interface VRMModelProps {
   retryKey?: number;
 }
 
-function updateBreathing(vrm: VRM | null, time: number, safeDelta: number) {
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function updateBreathing(vrm: VRM | null, breathPhase: { current: number }, delta: number, currentEmotion: string = 'warm') {
   if (!vrm || !vrm.humanoid) return;
 
-  const chestNode = vrm.humanoid.getNormalizedBoneNode('upperChest') ||
-                    vrm.humanoid.getNormalizedBoneNode('chest') ||
-                    vrm.humanoid.getNormalizedBoneNode('spine');
+  const breathingRateMap: Record<string, number> = {
+    playful: 1.4,
+    excited: 1.45,
+    happy: 1.25,
+    calm: 0.85,
+    thoughtful: 0.9,
+    affectionate: 1.3,
+    shy: 1.15,
+    warm: 1.0
+  };
+  const rate = breathingRateMap[currentEmotion] || 1.0;
 
-  if (!chestNode) return;
+  breathPhase.current += delta * rate * 2.2;
+  const chest = vrm.humanoid.getNormalizedBoneNode('upperChest') ||
+                vrm.humanoid.getNormalizedBoneNode('chest') ||
+                vrm.humanoid.getNormalizedBoneNode('spine');
 
-  // Procedural breathing using Math.sin to animate chest smoothly
-  const breathCycle = Math.sin(time * 2.2);
-  const targetPitch = breathCycle * 0.008; // gentle inhale/exhale chest rise
-  const targetSway = Math.cos(time * 1.1) * 0.0025; // subtle natural sway
-
-  // Smooth lerp to prevent any sudden rotation snaps
-  chestNode.rotation.x = THREE.MathUtils.lerp(chestNode.rotation.x, targetPitch, safeDelta * 3.5);
-  chestNode.rotation.z = THREE.MathUtils.lerp(chestNode.rotation.z, targetSway, safeDelta * 3.5);
+  if (chest) {
+    const breathSin = Math.sin(breathPhase.current);
+    // Subtle physical chest scale expansion
+    chest.scale.y = 1 + breathSin * 0.008;
+    // Organic thoracic tilt and sway
+    chest.rotation.x = THREE.MathUtils.lerp(chest.rotation.x, breathSin * 0.007, delta * 4.0);
+    chest.rotation.z = THREE.MathUtils.lerp(chest.rotation.z, Math.cos(breathPhase.current * 0.5) * 0.0025, delta * 3.0);
+  }
 }
 
 function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
@@ -523,8 +604,8 @@ function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
     const originalZ = head.rotation.z;
     const originalX = head.rotation.x;
 
-    // subtle attentive head tilt toward the presumed user position
-    head.rotation.z = 0.04; // slight, natural tilt, not exaggerated
+    // Subtle attentive head tilt toward the user with cubic easing
+    head.rotation.z = 0.04;
 
     let animationFrameId: number | null = null;
     let isNodding = false;
@@ -533,15 +614,14 @@ function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
       if (isNodding || !head) return;
       isNodding = true;
       const start = performance.now();
-      const duration = 500;
+      const duration = 480;
 
       const animateNod = (time: number) => {
-        const t = Math.min((time - start) / duration, 1);
-        // Smooth 0 -> 1 -> 0 cosine bell curve with 0-velocity start/end
-        const easeCurve = (1 - Math.cos(t * Math.PI * 2)) * 0.5;
-        const nodAmount = easeCurve * 0.04;
+        const rawT = Math.min((time - start) / duration, 1);
+        const t = easeInOutCubic(rawT);
+        const nodAmount = Math.sin(t * Math.PI) * 0.055;
         if (head) head.rotation.x = originalX + nodAmount;
-        if (t < 1) {
+        if (rawT < 1) {
           animationFrameId = requestAnimationFrame(animateNod);
         } else {
           if (head) head.rotation.x = originalX;
@@ -552,10 +632,10 @@ function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
     };
 
     const nodInterval = setInterval(() => {
-      if (Math.random() < 0.4) {
+      if (Math.random() < 0.45) {
         playMicroNod();
       }
-    }, 2500);
+    }, 2400 + Math.random() * 1200);
 
     return () => {
       clearInterval(nodInterval);
@@ -837,11 +917,20 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
   }, [url, retryKey]);
 
   const blinkState = useRef({
-    nextBlinkTime: 2 + Math.random() * 4,
+    nextBlinkTime: 2 + Math.random() * 3.5,
     isBlinking: false,
     blinkStartTime: 0,
-    blinkDuration: 0.12,
+    blinkDuration: 0.13,
+    doubleBlinkPending: false,
   });
+
+  const saccadeState = useRef({
+    nextSaccadeTime: 0.2 + Math.random() * 0.4,
+    offset: new THREE.Vector3(),
+    targetOffset: new THREE.Vector3(),
+  });
+
+  const breathPhaseRef = useRef(0);
 
   const currentViseme = useRef<string>('neutral');
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -948,34 +1037,60 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       movement.update(safeDelta);
       performanceController.update();
 
-      // Procedural breathing (runs continuously across gestures, idle, and listening states)
-      updateBreathing(vrm, time, safeDelta);
+      // Procedural breathing tied dynamically to emotional state & expansion
+      updateBreathing(vrm, breathPhaseRef, safeDelta, emotion);
 
-      // Gaze tracking damping - slightly throttled on mobile
+      // Eye Saccades (subtle micro gaze shifts every 200-600ms)
+      const saccade = saccadeState.current;
+      if (time > saccade.nextSaccadeTime) {
+        saccade.nextSaccadeTime = time + 0.25 + Math.random() * 0.55;
+        saccade.targetOffset.set(
+          (Math.random() - 0.5) * 0.035,
+          (Math.random() - 0.5) * 0.022,
+          0
+        );
+      }
+      saccade.offset.lerp(saccade.targetOffset, safeDelta * 12);
+
+      // Gaze tracking damping with saccade overlay
       const isMobile = window.innerWidth < 768;
       if (!isMobile || frameCountRef.current % 2 === 0) {
-        _tempGaze.current.copy(targetLookAt.current);
+        _tempGaze.current.copy(targetLookAt.current).add(saccade.offset);
         if (isProcessing) {
-           _tempGaze.current.set(0, 1.15, 2.8);
+           _tempGaze.current.set(0, 1.15, 2.8).add(saccade.offset);
         }
-        lookTarget.current.position.lerp(_tempGaze.current, 0.08);
+        lookTarget.current.position.lerp(_tempGaze.current, 0.09);
       }
 
-      // Blink oscillator (expression blendshape)
-      const state = blinkState.current;
-      if (time > state.nextBlinkTime && !state.isBlinking) {
-        state.isBlinking = true;
-        state.blinkStartTime = time;
+      // Natural Blinking with variable duration and double-blink chance
+      const bState = blinkState.current;
+      if (time > bState.nextBlinkTime && !bState.isBlinking) {
+        bState.isBlinking = true;
+        bState.blinkStartTime = time;
       }
 
-      if (state.isBlinking) {
-        const blinkProgress = (time - state.blinkStartTime) / state.blinkDuration;
+      if (bState.isBlinking) {
+        const blinkProgress = (time - bState.blinkStartTime) / bState.blinkDuration;
         let blinkValue = 0;
         if (blinkProgress >= 1) {
-          state.isBlinking = false;
-          state.nextBlinkTime = time + 2 + Math.random() * 4;
-        } else {
-          blinkValue = Math.sin(blinkProgress * Math.PI);
+          if (bState.doubleBlinkPending) {
+            bState.doubleBlinkPending = false;
+            bState.blinkStartTime = time + 0.05;
+            bState.blinkDuration = 0.11;
+          } else {
+            bState.isBlinking = false;
+            const hasDouble = Math.random() < 0.18;
+            if (hasDouble) {
+              bState.doubleBlinkPending = true;
+              bState.blinkStartTime = time + 0.06;
+              bState.blinkDuration = 0.11;
+              bState.isBlinking = true;
+            } else {
+              bState.nextBlinkTime = time + 2.2 + Math.random() * 3.8;
+            }
+          }
+        } else if (blinkProgress >= 0) {
+          blinkValue = Math.sin(Math.min(Math.max(blinkProgress, 0), 1) * Math.PI);
         }
         if (vrm.expressionManager) {
           vrm.expressionManager.setValue('blink', blinkValue);

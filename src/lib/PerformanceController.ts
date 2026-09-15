@@ -13,6 +13,10 @@ export const GESTURE_POOL: Record<string, string[]> = {
   shy: ['gesture_look_up', 'gesture_chin_touch', 'gesture_soft_nod', 'think'],
 };
 
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 export class PerformanceController {
   public vrm: VRM | null = null;
   public mixer: THREE.AnimationMixer | null = null;
@@ -31,10 +35,13 @@ export class PerformanceController {
   private cursorTarget: THREE.Object3D | null = null;
   private gazeInterval: any = null;
   private gazeTimeout: any = null;
+  private idleRotationInterval: any = null;
+  private currentIdleName: string = 'idle';
   private freqDataArray: Uint8Array | null = null;
 
   constructor() {
     this.setupGazeInterval();
+    this.setupIdleRotation();
   }
 
   public init(vrm: VRM | null, mixer: THREE.AnimationMixer | null, animationClips: Record<string, THREE.AnimationClip> = {}) {
@@ -45,6 +52,42 @@ export class PerformanceController {
     if (vrm && vrm.lookAt?.target) {
       this.cursorTarget = vrm.lookAt.target;
     }
+  }
+
+  private setupIdleRotation() {
+    if (typeof window === 'undefined') return;
+    if (this.idleRotationInterval) clearInterval(this.idleRotationInterval);
+
+    // Idle Variation Pool: Rotate between 2-3 clips every 16-24s
+    this.idleRotationInterval = setInterval(() => {
+      if (this.isSpeaking || this.currentGestureAction?.isRunning()) return;
+      if (!this.mixer) return;
+
+      const idleCandidates = ['idle', 'idle_weight_shift', 'idle_contemplative', 'procedural_idle'].filter(
+        name => !!this.animationClips[name]
+      );
+
+      if (idleCandidates.length <= 1) return;
+
+      const otherIdles = idleCandidates.filter(name => name !== this.currentIdleName);
+      const nextIdleName = otherIdles[Math.floor(Math.random() * otherIdles.length)] || idleCandidates[0];
+      const nextClip = this.animationClips[nextIdleName];
+
+      if (!nextClip) return;
+
+      const nextAction = this.mixer.clipAction(nextClip);
+      nextAction.reset();
+      nextAction.setLoop(THREE.LoopRepeat, Infinity);
+      nextAction.fadeIn(0.8);
+      nextAction.play();
+
+      if (this.idleAction && this.idleAction !== nextAction) {
+        this.idleAction.fadeOut(0.8);
+      }
+
+      this.idleAction = nextAction;
+      this.currentIdleName = nextIdleName;
+    }, 18000 + Math.random() * 6000);
   }
 
   public setAudioElement(audioElement: HTMLAudioElement | null) {
@@ -118,8 +161,10 @@ export class PerformanceController {
     if (!this.vrm || !this.vrm.humanoid) return;
     const head = this.vrm.humanoid.getNormalizedBoneNode('head');
     if (head) {
-      // tiny, natural head bob correlated with speech energy, not a fixed sine wave alone
-      head.rotation.x = Math.sin(performance.now() * 0.004) * 0.02 * (0.5 + amplitude);
+      // Eased natural head cadence correlated with spoken audio energy
+      const easedAmp = easeInOutCubic(Math.min(amplitude * 1.4, 1.0));
+      const bobCycle = Math.sin(performance.now() * 0.005);
+      head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, bobCycle * 0.028 * (0.35 + easedAmp), 0.15);
     }
   }
 
