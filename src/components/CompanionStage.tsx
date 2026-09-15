@@ -1287,7 +1287,7 @@ function CompanionStageComponent({
 
   const glSettings = useMemo(() => ({ 
     preserveDrawingBuffer: true,
-    alpha: false, 
+    alpha: true, 
     antialias: true, 
     powerPreference: "high-performance" as const,
     stencil: false,
@@ -1299,6 +1299,18 @@ function CompanionStageComponent({
   return (
     <div className={`w-full h-full relative overflow-hidden flex items-center justify-center select-none ${showOpaqueBg ? 'bg-[#ede2dc]' : 'bg-transparent'} ${className}`}>
       {showOpaqueBg && <div className="absolute inset-0 transition-colors duration-500 bg-[#ede2dc]" />}
+
+      {/* Responsive Room Environment Background Image */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <picture className="w-full h-full block">
+          <source media="(min-width: 768px)" srcSet="/Room Desktop Version.png" />
+          <img
+            src="/Room Mobile Version.png"
+            alt="Room Environment"
+            className="w-full h-full object-cover object-center"
+          />
+        </picture>
+      </div>
       
       <AnimatePresence>
         {hasFailed && !silentError && (
@@ -1360,19 +1372,17 @@ function CompanionStageComponent({
               gl.domElement.addEventListener('webglcontextlost', handleContextLost, false);
               gl.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
 
-              gl.setClearColor(new THREE.Color('#3A2335'), 1);
-              scene.background = new THREE.Color('#3A2335');
-              scene.fog = new THREE.Fog('#3A2335', 18, 50);
+              gl.setClearColor(0x000000, 0);
+              scene.background = null;
+              scene.fog = null;
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.outputColorSpace = THREE.SRGBColorSpace;
               gl.toneMapping = THREE.ACESFilmicToneMapping;
-              gl.toneMappingExposure = 1.0;
+              gl.toneMappingExposure = 1.05;
             }}
             dpr={dpr}
           >
-            <color attach="background" args={['#3A2335']} />
-            <fog attach="fog" args={['#3A2335', 18, 50]} />
             <CameraRig mode={effectiveWardrobeOpen ? 'panned-left' : (effectivePortraitMode ? 'portrait' : 'room-wide')} vrmScene={vrmSceneRef} />
             
             <RoomEnvironment />

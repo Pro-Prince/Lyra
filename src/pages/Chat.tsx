@@ -553,8 +553,6 @@ export default function Chat() {
             micTranscriptRef.current = "";
             setInputText("");
             executeSend(transcriptToSend, 'voice');
-         } else if ((isCallModeRef.current || micMode === 'hands-free') && appStateRef.current !== AppState.SPEAKING && appStateRef.current !== AppState.PROCESSING) {
-            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
          }
       };
       recognitionRef.current = recognition;
@@ -640,9 +638,6 @@ export default function Chat() {
     if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
     setAppState(AppState.IDLE);
     showInfo("Stopped Lyra speaking mid-sentence.");
-    if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
-       try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e) {}
-    }
   };
 
   const toggleMic = () => {
@@ -741,9 +736,6 @@ export default function Chat() {
           
           if (appStateRef.current !== AppState.IDLE) {
             setAppState(AppState.IDLE);
-            if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
-              try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
-            }
           }
         }
       },

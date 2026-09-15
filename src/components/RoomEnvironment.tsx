@@ -844,90 +844,46 @@ export function RoomEnvironment() {
 
   return (
     <group>
-      <fogExp2 attach="fog" args={['#2A1826', 0.05]} />
-      
-      {/* HEMI: broad, gentle fill from all directions, prevents pure-black
-          surfaces on anything facing away from the directional lights */}
-      <hemisphereLight color="#8A6478" groundColor={PALETTE.darkWalnut} intensity={1.0} />
+      {/* Gentle hemisphere fill light matching natural room lighting */}
+      <hemisphereLight color="#FFFFFF" groundColor="#3B2E37" intensity={1.2} />
 
-      <ambientLight color="#6B4D5F" intensity={1.1} />
+      {/* Ambient light for overall soft illumination */}
+      <ambientLight color="#FFF5FA" intensity={1.3} />
 
-      {/* KEY — warm, dominant, motivated by the sunset window */}
+      {/* KEY LIGHT - Soft warm key directional light */}
       <directionalLight
         color={PALETTE.warmSunsetKey}
         intensity={1.8}
-        position={[-6.0, 3.8, 1.5]}
+        position={[-3.5, 4.5, 2.5]}
         castShadow
         shadow-mapSize-width={shadowRes}
         shadow-mapSize-height={shadowRes}
-        shadow-radius={5}
+        shadow-radius={4}
         shadow-bias={-0.0004}
       />
 
-      {/* FILL — cool, soft, opposite side, this contrast is what creates
-          real depth instead of a uniformly pink-tinted flat room */}
+      {/* FILL LIGHT - Soft cool fill light from opposite side */}
       <directionalLight
         color={PALETTE.coolMoonFill}
-        intensity={0.55}
-        position={[3.5, 2.6, -1.5]}
+        intensity={0.65}
+        position={[3.5, 3.0, 1.2]}
       />
 
-      {/* RIM — soft pink accent from above/behind, separates silhouettes
-          from the dark background */}
+      {/* RIM LIGHT - Soft pink accent rim light to separate silhouette */}
       <directionalLight
         color="#FFE5F2"
-        intensity={0.7}
-        position={[0.2, 3.6, -2.8]}
+        intensity={0.8}
+        position={[0, 4.0, -2.5]}
       />
 
-      <pointLight color="#FFEBD6" intensity={0.4} position={[0, 4.0, -0.5]} distance={12} />
-
+      {/* Transparent Shadow Receiver Plane on Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial
-          color={PALETTE.walnutPlank}
-          roughness={0.4}
-          metalness={0.06}
-          side={THREE.DoubleSide}
-        />
+        <planeGeometry args={[30, 30]} />
+        <shadowMaterial transparent opacity={0.35} />
       </mesh>
 
-      <mesh position={[0, 5.0, -3.95]} receiveShadow>
-        <planeGeometry args={[50, 12]} />
-        <meshStandardMaterial color={PALETTE.wallPlaster} roughness={0.9} side={THREE.DoubleSide} />
-      </mesh>
-
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 5.0, 0]} receiveShadow>
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial color="#402B3A" roughness={0.95} side={THREE.DoubleSide} />
-      </mesh>
-
-      <mesh position={[0, 0.08, -3.92]} receiveShadow>
-        <boxGeometry args={[50, 0.16, 0.05]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
-      </mesh>
-
-      <mesh position={[0, 3.8, -3.92]} receiveShadow>
-        <boxGeometry args={[50, 0.06, 0.05]} />
-        <meshStandardMaterial color={PALETTE.darkWalnut} roughness={0.5} />
-      </mesh>
-
-      <PanoramicBalconyWindow />
-
-      <BottomLeftLoungeCorner />
-
-      <CenterPlushRug />
-
-      <BuiltInRecessedShelving />
-
-      <RightCabinetAndDecor />
-
-      <RoundWallArt position={[-1.1, 2.55, -3.9]} />
-      <WindowsideConsole position={[-1.1, 0, -3.75]} />
-
-      {/* Contact Shadows for Grounding Furniture */}
-      <ContactShadow position={[-2.4, 0.01, 0.65]} radius={0.9} opacity={0.3} />
-      <ContactShadow position={[3.2, 0.01, -3.5]} radius={0.85} opacity={0.28} />
+      {/* Contact Shadow for Grounding character feet */}
+      <ContactShadow position={[0, 0.005, 0]} radius={0.7} opacity={0.38} />
     </group>
   );
 }
