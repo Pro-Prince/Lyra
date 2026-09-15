@@ -1390,7 +1390,7 @@ export default function Chat() {
           </div>
 
           {/* Floating Mobile Controls - Restored to room view under Lyra */}
-          <div className={`absolute bottom-16 left-0 right-0 z-30 flex justify-center transition-all duration-300 ${isCapturingFlash || isChatDrawerOpen ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
+          <div className={`absolute bottom-5 sm:bottom-6 left-0 right-0 z-30 flex justify-center transition-all duration-300 ${isCapturingFlash || isChatDrawerOpen ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
             <div className="scale-100">
               <ControlBar
                 isListening={isListening}
@@ -1423,66 +1423,59 @@ export default function Chat() {
             )}
           </AnimatePresence>
 
-          {/* The Pull-up Chat Drawer */}
+          {/* The Full-Screen Mobile Chat Section */}
           <AnimatePresence>
             {isChatDrawerOpen && (
-              <>
-                {/* Backdrop to dismiss */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsChatDrawerOpen(false)}
-                  className="absolute inset-0 bg-black/40 z-[45]"
-                />
-                <motion.div 
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%' }}
-                  transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                  className="absolute bottom-0 left-0 right-0 h-[78dvh] bg-[var(--bg-panel)] rounded-t-[20px] z-50 flex flex-col shadow-[0_-8px_30px_rgba(0,0,0,0.4)] border-t border-[var(--text-primary)]/10"
-                >
-                  {/* Handle Bar (Dismiss) */}
-                  <div 
-                    className="w-full pt-3 pb-2 flex justify-center items-center cursor-pointer"
-                    onClick={() => setIsChatDrawerOpen(false)}
-                  >
-                    <div className="w-12 h-1.5 rounded-full bg-[var(--text-primary)]/20" />
-                  </div>
-
-                  {/* Tabs Bar */}
-                  <div className="flex px-5 pt-1 pb-0 border-b border-[var(--text-primary)]/10 gap-6 shrink-0 bg-[var(--bg-panel)]">
+              <motion.div 
+                initial={{ opacity: 0, y: '100%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: '100%' }}
+                transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                className="fixed inset-0 z-50 h-[100dvh] w-full bg-[var(--bg-panel)] flex flex-col shadow-2xl overflow-hidden"
+              >
+                {/* Header with Tabs and Top-Right Close Cross Button */}
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[var(--text-primary)]/10 shrink-0 bg-[var(--bg-panel)] pt-[calc(env(safe-area-inset-top)+10px)]">
+                  <div className="flex gap-6 items-center">
                     <button 
                       onClick={() => setActiveTab('chat')} 
-                      className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'chat' ? 'text-[#FF8FC0] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                      className={`pb-1 text-base font-semibold transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'chat' ? 'text-[#FF8FC0]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                     >
                       <span>Chat</span>
                       {activeTab === 'chat' && (
-                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
+                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute -bottom-3 left-0 right-0 h-[2.5px] rounded-full" />
                       )}
                     </button>
                     <button 
                       onClick={() => setActiveTab('about')} 
-                      className={`pb-2.5 text-sm font-medium transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'about' ? 'text-[#FF8FC0] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+                      className={`pb-1 text-base font-semibold transition-all relative cursor-pointer flex items-center gap-1.5 ${activeTab === 'about' ? 'text-[#FF8FC0]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                     >
                       <span>About</span>
                       {activeTab === 'about' && (
-                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full" />
+                        <motion.div layoutId="mobile-drawer-tab-indicator" style={{ backgroundColor: '#FF8FC0' }} className="absolute -bottom-3 left-0 right-0 h-[2.5px] rounded-full" />
                       )}
                     </button>
                   </div>
 
-                  {/* Tab Body */}
-                  {activeTab === 'chat' ? (
-                    <>
-                      {/* Messages Feed (Flexible, Scrollable) */}
-                      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col justify-end gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
-                        <div className="flex-1" /> {/* Spacer to push content to bottom */}
-                        <div className="flex justify-center my-0.5 select-none">
-                          <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
-                            Today
-                          </span>
-                        </div>
+                  {/* Cross Button on top right corner */}
+                  <button
+                    onClick={() => setIsChatDrawerOpen(false)}
+                    aria-label="Close chat"
+                    className="w-9 h-9 rounded-full bg-[var(--bg-elevated)] border border-[var(--text-primary)]/15 text-[var(--text-primary)] hover:text-[#FF8FC0] flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-xs"
+                  >
+                    <X className="w-5 h-5 stroke-[2.2]" />
+                  </button>
+                </div>
+
+                {/* Tab Body */}
+                {activeTab === 'chat' ? (
+                  <>
+                    {/* Messages Feed (Sticks hard to top just like desktop version) */}
+                    <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-3 flex flex-col gap-2.5 custom-scrollbar no-scrollbar scrollbar-hide">
+                      <div className="flex justify-center my-0.5 select-none">
+                        <span className="px-3 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 backdrop-blur-xs border border-[var(--text-primary)]/10 text-[10.5px] font-medium font-body text-[var(--text-muted)] shadow-xs">
+                          Today
+                        </span>
+                      </div>
                         {messages.map((msg) => (
                           msg.role === 'user' ? (
                             <div key={msg.id} className="self-end max-w-[85%] sm:max-w-[80%] flex flex-col items-end">
@@ -1600,7 +1593,6 @@ export default function Chat() {
                     </div>
                   )}
                 </motion.div>
-              </>
             )}
           </AnimatePresence>
         </div>
