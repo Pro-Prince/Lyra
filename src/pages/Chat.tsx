@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut } from "lucide-react";
+import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import DoubleCheckIcon from "../components/DoubleCheckIcon";
@@ -1323,6 +1323,15 @@ export default function Chat() {
                 >
                   <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
                 </button>
+
+                {/* Mobile Chat Menu Toggle (Top) */}
+                <button 
+                  onClick={() => setIsChatDrawerOpen(true)} 
+                  className="w-9 h-9 rounded-full bg-[#241724]/80 backdrop-blur-md border border-white/20 text-[#FF8FC0] hover:bg-[#322132]/95 hover:border-white/40 flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+                  aria-label="Open chat"
+                >
+                  <MessageSquare className="w-4.5 h-4.5 stroke-[2.2]" />
+                </button>
               </div>
 
               <button 
@@ -1377,37 +1386,6 @@ export default function Chat() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Coordinated Mobile Bottom Container (Control Bar + Chat Drawer Handle) */}
-          <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center justify-end">
-            {/* Control Bar - Floating with proper clearance above the dock */}
-            <div className="pointer-events-auto w-full pb-6 flex justify-center">
-              <ControlBar
-                isListening={isListening}
-                onToggleListening={toggleMic}
-                isMuted={isMuted}
-                onToggleMute={toggleMute}
-                isSpeaking={isLyraSpeaking}
-                onStop={handleStopSpeaking}
-                onToggleView={toggleView}
-                isPortraitMode={isPortraitMode}
-              />
-            </div>
-
-            {/* Solid Bottom Dock Bar (Mimics Mobile Nav Bar) */}
-            <div className="w-full bg-[#1c181d] border-t border-white/[0.03] pointer-events-auto shadow-[0_-12px_32px_rgba(0,0,0,0.25)]">
-              <button 
-                type="button"
-                onClick={() => setIsChatDrawerOpen(true)}
-                className="w-full h-[52px] sm:h-[56px] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-                aria-label="Open chat drawer"
-              >
-                <ChevronUp className="w-3.5 h-3.5 text-[#FF8FC0] animate-bounce-slow" />
-                <span className="text-[11px] font-medium text-[var(--accent-primary)] tracking-wide">Chat</span>
-              </button>
-            </div>
-          </div>
 
           {/* The Pull-up Chat Drawer */}
           <AnimatePresence>
@@ -1538,6 +1516,20 @@ export default function Chat() {
                           ))}
                         </div>
                       )}
+
+                      {/* Control Bar - Positioned inside drawer for mobile */}
+                      <div className="px-4 pb-2 flex justify-center scale-90 sm:scale-100">
+                        <ControlBar
+                          isListening={isListening}
+                          onToggleListening={toggleMic}
+                          isMuted={isMuted}
+                          onToggleMute={toggleMute}
+                          isSpeaking={isLyraSpeaking}
+                          onStop={handleStopSpeaking}
+                          onToggleView={toggleView}
+                          isPortraitMode={isPortraitMode}
+                        />
+                      </div>
 
                       {/* Input Field (Fixed at very bottom without border above) */}
                       <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
