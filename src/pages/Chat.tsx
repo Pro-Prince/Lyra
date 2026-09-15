@@ -248,6 +248,18 @@ export default function Chat() {
   const isIdle = appState === AppState.IDLE;
 
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('warm');
+  const [currentCaption, setCurrentCaption] = useState<string>("");
+  const captionTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerCaption = (text: string) => {
+    if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
+    setCurrentCaption(text);
+    
+    // Auto-hide caption after a generous timeout in case speech end isn't caught
+    captionTimerRef.current = setTimeout(() => {
+      setCurrentCaption("");
+    }, 8000);
+  };
 
   // Multi-modal Live Controls
   const [viewMode, setViewMode] = useState<'3d' | 'chat'>('3d');
@@ -614,6 +626,8 @@ export default function Chat() {
       abortControllerRef.current = null;
     }
     cancelSpeech();
+    setCurrentCaption("");
+    if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
     setAppState(AppState.IDLE);
     showInfo("Stopped Lyra speaking mid-sentence.");
     if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
@@ -690,6 +704,7 @@ export default function Chat() {
       volume: vol,
       enqueue,
       onStart: () => {
+        triggerCaption(cleanText);
         if (appStateRef.current !== AppState.SPEAKING) {
           setAppState(AppState.SPEAKING);
         }
@@ -700,10 +715,15 @@ export default function Chat() {
       },
       onEnd: () => {
         queuedChunksRef.current = Math.max(0, queuedChunksRef.current - 1);
-        if (isStreamFinishedRef.current && queuedChunksRef.current === 0 && appStateRef.current !== AppState.IDLE) {
-          setAppState(AppState.IDLE);
-          if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
-            try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
+        if (isStreamFinishedRef.current && queuedChunksRef.current === 0) {
+          if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
+          captionTimerRef.current = setTimeout(() => setCurrentCaption(""), 2500);
+          
+          if (appStateRef.current !== AppState.IDLE) {
+            setAppState(AppState.IDLE);
+            if ((isCallModeRef.current || micMode === 'hands-free') && !manualMicStopRef.current) {
+              try { recognitionRef.current?.start(); setAppState(AppState.LISTENING); } catch(e){}
+            }
           }
         }
       },
@@ -1370,8 +1390,8 @@ export default function Chat() {
           </div>
 
           {/* Floating Mobile Controls - Restored to room view under Lyra */}
-          <div className={`absolute bottom-8 left-0 right-0 z-30 flex justify-center transition-all duration-300 ${isCapturingFlash || isChatDrawerOpen ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
-            <div className="scale-95 sm:scale-100">
+          <div className={`absolute bottom-16 left-0 right-0 z-30 flex justify-center transition-all duration-300 ${isCapturingFlash || isChatDrawerOpen ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 pointer-events-auto'}`}>
+            <div className="scale-100">
               <ControlBar
                 isListening={isListening}
                 onToggleListening={toggleMic}
@@ -1386,18 +1406,18 @@ export default function Chat() {
           </div>
 
           {/* Floating Subtitle for Latest Message (Above Lyra's Head) */}
-          <AnimatePresence>
-            {!isChatDrawerOpen && messages.length > 0 && messages[messages.length - 1].role === 'model' && (
+          <AnimatePresence mode="wait">
+            {!isChatDrawerOpen && currentCaption && (
               <motion.div 
-                key={messages[messages.length - 1].id}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute top-[150px] left-4 right-4 bg-[#160f17]/90 backdrop-blur-xl px-4 py-2.5 rounded-2xl text-center z-30 border border-[var(--text-primary)]/10 shadow-lg pointer-events-none"
+                key={currentCaption}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 1.05 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="absolute top-[160px] left-6 right-6 mx-auto max-w-[320px] bg-[#160f17]/85 backdrop-blur-xl px-5 py-3 rounded-2xl text-center z-30 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none"
               >
-                <p className="text-xs sm:text-sm text-[var(--text-primary)]/95 font-body leading-relaxed drop-shadow-sm line-clamp-2 sm:line-clamp-3">
-                  {formatCleanMessageContent(messages[messages.length - 1].content)}
+                <p className="text-[13px] sm:text-sm text-[var(--text-primary)] font-medium leading-relaxed drop-shadow-sm">
+                  {currentCaption}
                 </p>
               </motion.div>
             )}
@@ -1534,7 +1554,7 @@ export default function Chat() {
                       )}
 
                       {/* Input Field (Fixed at very bottom without border above) */}
-                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[env(safe-area-inset-bottom)]">
+                      <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
                     <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner mb-0.5">
                       <input 
                             ref={mobileInputRef}
