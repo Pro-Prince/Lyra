@@ -315,13 +315,23 @@ export default function Chat() {
   // Focus management references
   const leftDrawerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const desktopInputRef = useRef<HTMLInputElement>(null);
-  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const desktopInputRef = useRef<HTMLTextAreaElement>(null);
+  const mobileInputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const companionProfileRef = useRef<any>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
   const manualMicStopRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const adjustHeight = (el: HTMLTextAreaElement | null) => {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(Math.max(el.scrollHeight, 24), 120)}px`;
+    };
+    adjustHeight(desktopInputRef.current);
+    adjustHeight(mobileInputRef.current);
+  }, [inputText]);
 
   // Refs for callbacks
   const isCallModeRef = useRef(isCallMode);
@@ -1653,10 +1663,10 @@ export default function Chat() {
 
                       {/* Input Field (Fixed at very bottom without border above) */}
                       <div className="flex-none p-3 pt-1 bg-[var(--bg-panel)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
-                    <div className="relative bg-[var(--bg-base)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner mb-0.5">
-                      <input 
+                    <div className="relative bg-[var(--bg-base)] rounded-3xl flex items-end p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner mb-0.5 min-h-[44px]">
+                      <textarea 
                             ref={mobileInputRef}
-                            type="text" 
+                            rows={1}
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             onFocus={() => setIsInputFocused(true)}
@@ -1667,7 +1677,7 @@ export default function Chat() {
                                 if (!isLoading && inputText.trim()) handleSend();
                               }
                             }}
-                            className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
+                            className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 w-full resize-none py-[9px] min-h-[36px] max-h-[120px] no-scrollbar scrollbar-hide" 
                             placeholder={isListening ? "Listening..." : "Type Anything..."}
                             disabled={isListening}
                           />
@@ -1677,7 +1687,7 @@ export default function Chat() {
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={(e) => { e.preventDefault(); handleSend(); }}
                             disabled={!inputText.trim() || isLoading}
-                            className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mb-[1px]"
                           >
                             <Send className="w-3.5 h-3.5 shrink-0" />
                           </button>
@@ -1933,10 +1943,10 @@ export default function Chat() {
                    )}
 
                    {/* Input Field */}
-                   <div className="relative bg-[var(--bg-panel)] rounded-full flex items-center p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner">
-                      <input 
+                   <div className="relative bg-[var(--bg-panel)] rounded-3xl flex items-end p-1 pl-3.5 border border-[var(--text-primary)]/10 shadow-inner min-h-[44px]">
+                      <textarea 
                          ref={desktopInputRef}
-                         type="text" 
+                         rows={1}
                          value={inputText}
                          onChange={(e) => setInputText(e.target.value)}
                          onFocus={() => setIsInputFocused(true)}
@@ -1947,7 +1957,7 @@ export default function Chat() {
                               if (!isLoading && inputText.trim()) handleSend();
                             }
                          }}
-                         className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 h-9 w-full" 
+                         className="flex-1 bg-transparent border-none text-[var(--text-primary)]/90 text-sm focus:outline-none placeholder:text-[var(--text-primary)]/35 px-2 w-full resize-none py-[9px] min-h-[36px] max-h-[120px] no-scrollbar scrollbar-hide" 
                          placeholder={isListening ? "Listening..." : "Type Anything..."}
                          disabled={isListening}
                       />
@@ -1963,7 +1973,7 @@ export default function Chat() {
                            handleSend();
                          }}
                          disabled={!inputText.trim() || isLoading}
-                         className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                         className="btn btn-primary !w-8.5 !h-8.5 !p-0 rounded-full flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mb-[1px]"
                       >
                          <Send className="w-3.5 h-3.5 shrink-0" />
                       </button>
