@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { X, Sparkles, AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 export type ToastType = 'info' | 'error' | 'warning' | 'success';
 
@@ -145,7 +145,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="pointer-events-auto w-full sm:w-auto min-w-[240px] sm:min-w-[300px] max-w-[340px] sm:max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-2xl border border-[var(--text-primary)]/12 rounded-xl sm:rounded-2xl px-3 py-2.5 sm:p-3.5 sm:px-4 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.5),0_4px_16px_rgba(0,0,0,0.25)] flex items-center justify-between gap-2.5 sm:gap-3 overflow-hidden relative group"
             >
               {/* Icon & Message Container */}
-              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                 <div className="flex-shrink-0">
                   {currentToast.icon ? (
                      currentToast.icon
@@ -159,7 +159,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     </div>
                   ) : currentToast.type === 'success' ? (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   ) : (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
@@ -168,7 +168,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   )}
                 </div>
 
-                <p className="text-[11.5px] sm:text-[13px] font-body font-medium leading-snug text-[var(--text-primary)] min-w-0">
+                <p className="text-[11.5px] sm:text-[13px] font-body font-medium leading-snug text-[var(--text-primary)] truncate">
                   {currentToast.message}
                 </p>
               </div>
@@ -182,7 +182,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       currentToast.action?.onClick();
                       dismissToast(currentToast.id);
                     }}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-[var(--accent-primary)] text-[#1a121c] font-body font-semibold text-[11px] sm:text-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-xs"
+                    className="btn btn-primary px-3 py-1.5 text-xs min-h-[32px] sm:min-h-[32px] !min-w-0 h-auto rounded-full whitespace-nowrap"
                   >
                     {currentToast.action.label}
                   </button>

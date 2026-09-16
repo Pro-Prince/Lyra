@@ -552,12 +552,12 @@ export default function Chat() {
       recognition.onerror = (event: any) => {
         if (event.error === 'not-allowed') {
           console.error('[SpeechRecognition] Microphone permission denied');
-          showError("Can't hear you right now, check your browser's microphone permission", { action: { label: "Retry", onClick: () => toggleMic() } });
+          showError("Microphone access denied", { action: { label: "Retry", onClick: () => toggleMic() } });
         } else if (event.error === 'no-speech' || event.error === 'aborted') {
           // Benign timeout or intentional cancellation - ignore silently
         } else {
           console.error('[SpeechRecognition] Voice input error:', event?.error || 'unknown');
-          showError("Having trouble hearing your voice right now, try speaking again", { action: { label: "Retry", onClick: () => toggleMic() } });
+          showError("Trouble hearing you", { action: { label: "Retry", onClick: () => toggleMic() } });
         }
         setAppState(AppState.IDLE);
       };
@@ -576,7 +576,7 @@ export default function Chat() {
       recognitionRef.current = recognition;
     } else {
       console.warn('[SpeechRecognition] Browser does not support Web Speech API recognition');
-      showError("Voice input isn't supported in this browser, you can still type below");
+      showError("Voice input not supported");
     }
   };
 
@@ -638,9 +638,9 @@ export default function Chat() {
       isMutedRef.current = next;
       if (next) {
         cancelSpeech();
-        showInfo("Muted • Lyra's voice output disabled");
+        showInfo("Muted");
       } else {
-        showInfo("Unmuted • Lyra's voice output active");
+        showInfo("Unmuted");
       }
       return next;
     });
@@ -655,7 +655,7 @@ export default function Chat() {
     setCurrentCaption("");
     if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
     setAppState(AppState.IDLE);
-    showInfo("Stopped Lyra speaking mid-sentence.");
+    showInfo("Stopped speaking");
   };
 
   const toggleMic = () => {
@@ -680,7 +680,7 @@ export default function Chat() {
       cancelSpeech();
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        showError("Voice speech input isn't supported in this browser, but you can type in the chat");
+        showError("Voice input not supported");
         return;
       }
 
@@ -694,9 +694,9 @@ export default function Chat() {
       } catch (e: any) {
         console.error('[SpeechRecognition] Failed to start microphone:', e);
         if (e?.name === 'NotAllowedError' || e?.message?.includes('denied')) {
-          showError("Microphone permission denied. Please allow mic access in your browser settings.");
+          showError("Microphone access denied");
         } else {
-          showError("Can't start microphone right now. Check browser permissions and try again.", {
+          showError("Can't start microphone", {
             action: { label: "Retry", onClick: () => toggleMic() }
           });
         }
@@ -912,7 +912,7 @@ export default function Chat() {
     if (source === 'voice' && isMutedRef.current) {
       setIsMuted(false);
       isMutedRef.current = false;
-      showInfo("Auto-unmuted • Lyra will respond with voice");
+      showInfo("Unmuted • Voice active");
     }
 
     if (isListening) {
@@ -1278,14 +1278,14 @@ export default function Chat() {
     const canvas = element as HTMLCanvasElement | null;
 
     if (!canvas || typeof canvas.toDataURL !== 'function') {
-      showError('No active 3D stage canvas found to capture');
+      showError('No active 3D stage found');
       return;
     }
 
     const srcWidth = canvas.width;
     const srcHeight = canvas.height;
     if (srcWidth === 0 || srcHeight === 0) {
-      showError('Stage is initializing. Please try again.');
+      showError('Stage initializing, please wait');
       return;
     }
 
@@ -1382,7 +1382,7 @@ export default function Chat() {
         }, 450);
       } catch (fallbackErr: any) {
         console.error('Failed direct WebGL fallback export capture:', fallbackErr);
-        showError(`Failed to save image: ${fallbackErr?.message || fallbackErr}`);
+        showError("Failed to save image");
         setTimeout(() => {
           setIsCapturingFlash(false);
         }, 450);
