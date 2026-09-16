@@ -78,334 +78,406 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   const lowerArmL = h.getNormalizedBoneNode('leftLowerArm');
   const handL = h.getNormalizedBoneNode('leftHand');
 
-  const makeTrack = (node: THREE.Object3D | null, eulers: THREE.Euler[], times: number[]) => {
-    if (!node) return null;
-    const values = eulers.flatMap(e => new THREE.Quaternion().setFromEuler(e).toArray());
+  // High-precision organic slerp track generator using quintic SmootherStep easing
+  // Ensures C^2 continuous velocity and acceleration, eliminating robotic keyframe snapping
+  const slerpTrack = (
+    node: THREE.Object3D | null,
+    waypoints: { time: number; euler: THREE.Euler }[],
+    totalDuration: number,
+    samplesPerSecond = 30
+  ): THREE.QuaternionKeyframeTrack | null => {
+    if (!node || waypoints.length === 0) return null;
+
+    const times: number[] = [];
+    const values: number[] = [];
+    const totalSamples = Math.max(2, Math.round(totalDuration * samplesPerSecond));
+
+    const quatWaypoints = waypoints.map(w => ({
+      time: w.time,
+      quat: new THREE.Quaternion().setFromEuler(w.euler)
+    }));
+
+    const tempQuat = new THREE.Quaternion();
+
+    for (let i = 0; i <= totalSamples; i++) {
+      const t = (i / totalSamples) * totalDuration;
+      times.push(parseFloat(t.toFixed(4)));
+
+      if (t <= quatWaypoints[0].time) {
+        const q = quatWaypoints[0].quat;
+        values.push(q.x, q.y, q.z, q.w);
+        continue;
+      }
+
+      if (t >= quatWaypoints[quatWaypoints.length - 1].time) {
+        const q = quatWaypoints[quatWaypoints.length - 1].quat;
+        values.push(q.x, q.y, q.z, q.w);
+        continue;
+      }
+
+      let idx = 0;
+      while (idx < quatWaypoints.length - 1 && quatWaypoints[idx + 1].time < t) {
+        idx++;
+      }
+
+      const w0 = quatWaypoints[idx];
+      const w1 = quatWaypoints[idx + 1];
+      const segDuration = w1.time - w0.time;
+      const linearProgress = segDuration > 0 ? (t - w0.time) / segDuration : 0;
+
+      // SmootherStep easing: 6u^5 - 15u^4 + 10u^3
+      const u = Math.max(0, Math.min(1, linearProgress));
+      const easedProgress = u * u * u * (u * (u * 6 - 15) + 10);
+
+      tempQuat.copy(w0.quat).slerp(w1.quat, easedProgress);
+      values.push(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
+    }
+
     return new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, values);
   };
 
   const R = HUMAN_REST_EULERS;
   const gestureClips: Record<string, THREE.AnimationClip> = {};
 
-  // 1. WAVE (2.2s) - Natural, warm human wave with soft elbow and wrist lag
+  // 1. WAVE (2.2s) - Natural, warm human wave with soft shoulder raise, elbow flex & wrist lag
   const waveTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(rightShoulder, [
-      R.rightShoulder,
-      new THREE.Euler(-0.04, 0, 0.08),
-      new THREE.Euler(-0.04, 0, 0.08),
-      R.rightShoulder
-    ], [0, 0.4, 1.8, 2.2]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.25, 0.10, -0.65), // smooth natural raise
-      new THREE.Euler(0.25, 0.10, -0.65),
-      R.rightUpperArm
-    ], [0, 0.4, 1.8, 2.2]),
-    makeTrack(lowerArmR, [
-      R.rightLowerArm,
-      new THREE.Euler(0.95, 0.25, -0.25),
-      new THREE.Euler(0.95, 0.10, -0.45),
-      new THREE.Euler(0.95, 0.35, -0.15),
-      new THREE.Euler(0.95, 0.10, -0.45),
-      new THREE.Euler(0.95, 0.35, -0.15),
-      new THREE.Euler(0.95, 0.25, -0.25),
-      R.rightLowerArm
-    ], [0, 0.4, 0.7, 1.0, 1.3, 1.6, 1.8, 2.2]),
-    makeTrack(handR, [
-      R.rightHand,
-      new THREE.Euler(0.10, -0.15, -0.10),
-      new THREE.Euler(0.12, 0.20, 0.15),
-      new THREE.Euler(0.08, -0.20, -0.15),
-      new THREE.Euler(0.12, 0.20, 0.15),
-      new THREE.Euler(0.08, -0.20, -0.15),
-      new THREE.Euler(0.10, 0.00, 0.00),
-      R.rightHand
-    ], [0, 0.4, 0.75, 1.05, 1.35, 1.65, 1.85, 2.2]),
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.04, -0.08, -0.06),
-      new THREE.Euler(0.04, -0.08, -0.06),
-      R.head
-    ], [0, 0.4, 1.8, 2.2]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.04, -0.02, -0.02),
-      new THREE.Euler(-0.04, -0.02, -0.02),
-      R.chest
-    ], [0, 0.4, 1.8, 2.2])
+    slerpTrack(rightShoulder, [
+      { time: 0.0, euler: R.rightShoulder },
+      { time: 0.45, euler: new THREE.Euler(-0.03, 0, 0.05) },
+      { time: 1.70, euler: new THREE.Euler(-0.03, 0, 0.05) },
+      { time: 2.2, euler: R.rightShoulder }
+    ], 2.2),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 0.45, euler: new THREE.Euler(0.40, -0.10, 0.54) }, // Natural arm raise: forward + abduct
+      { time: 1.70, euler: new THREE.Euler(0.38, -0.10, 0.55) },
+      { time: 2.2, euler: R.rightUpperArm }
+    ], 2.2),
+    slerpTrack(lowerArmR, [
+      { time: 0.0, euler: R.rightLowerArm },
+      { time: 0.45, euler: new THREE.Euler(1.30, 0.14, -0.10) }, // Natural elbow flexion ~75 deg
+      { time: 0.75, euler: new THREE.Euler(1.28, 0.24, -0.16) },
+      { time: 1.05, euler: new THREE.Euler(1.32, 0.04, -0.04) },
+      { time: 1.35, euler: new THREE.Euler(1.28, 0.24, -0.16) },
+      { time: 1.65, euler: new THREE.Euler(1.30, 0.14, -0.10) },
+      { time: 2.2, euler: R.rightLowerArm }
+    ], 2.2),
+    slerpTrack(handR, [
+      { time: 0.0, euler: R.rightHand },
+      { time: 0.45, euler: new THREE.Euler(0.10, 0.0, 0.0) },
+      { time: 0.75, euler: new THREE.Euler(0.12, 0.20, 0.16) },  // Wrist sway left
+      { time: 1.05, euler: new THREE.Euler(0.08, -0.20, -0.16) }, // Wrist sway right
+      { time: 1.35, euler: new THREE.Euler(0.12, 0.20, 0.16) },
+      { time: 1.65, euler: new THREE.Euler(0.10, 0.0, 0.0) },
+      { time: 2.2, euler: R.rightHand }
+    ], 2.2),
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.45, euler: new THREE.Euler(0.04, -0.06, -0.04) },
+      { time: 1.70, euler: new THREE.Euler(0.04, -0.06, -0.04) },
+      { time: 2.2, euler: R.head }
+    ], 2.2),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 0.45, euler: new THREE.Euler(-0.035, -0.015, -0.01) },
+      { time: 1.70, euler: new THREE.Euler(-0.035, -0.015, -0.01) },
+      { time: 2.2, euler: R.chest }
+    ], 2.2)
   ];
   const validWave = waveTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validWave.length > 0) gestureClips['wave'] = new THREE.AnimationClip('wave', 2.2, validWave);
 
-  // 2. NOD (1.1s) - Human acknowledgment with natural deceleration and follow-through
+  // 2. NOD (1.4s) - Human acknowledgment with natural deceleration and gentle rebound follow-through
   const nodTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.24, 0, 0),
-      new THREE.Euler(-0.04, 0, 0),
-      new THREE.Euler(0.12, 0, 0),
-      R.head
-    ], [0, 0.32, 0.58, 0.84, 1.1]),
-    makeTrack(neck, [
-      R.neck,
-      new THREE.Euler(0.09, 0, 0),
-      new THREE.Euler(-0.02, 0, 0),
-      new THREE.Euler(0.05, 0, 0),
-      R.neck
-    ], [0, 0.32, 0.58, 0.84, 1.1]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.035, 0, 0),
-      R.chest,
-      new THREE.Euler(-0.03, 0, 0),
-      R.chest
-    ], [0, 0.32, 0.58, 0.84, 1.1])
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.42, euler: new THREE.Euler(0.16, 0.005, -0.005) }, // Polite ~9 degree nod
+      { time: 0.72, euler: new THREE.Euler(-0.01, 0, 0) },         // Micro rebound
+      { time: 1.00, euler: new THREE.Euler(0.05, 0, 0) },          // Soft settling
+      { time: 1.4, euler: R.head }
+    ], 1.4),
+    slerpTrack(neck, [
+      { time: 0.0, euler: R.neck },
+      { time: 0.42, euler: new THREE.Euler(0.05, 0, 0) },
+      { time: 0.72, euler: new THREE.Euler(-0.005, 0, 0) },
+      { time: 1.00, euler: new THREE.Euler(0.02, 0, 0) },
+      { time: 1.4, euler: R.neck }
+    ], 1.4),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 0.42, euler: new THREE.Euler(-0.035, 0, 0) },
+      { time: 1.4, euler: R.chest }
+    ], 1.4)
   ];
   const validNod = nodTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 1.1, validNod);
+  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 1.4, validNod);
 
-  // 3. LAUGH (1.6s) - Rhythmic torso bounce, polite hand gesture, playful head tilt
+  // 3. LAUGH (1.8s) - Rhythmic torso chuckles, polite hand near collarbone, playful head tilt
   const laughTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(-0.14, 0.05, 0.04),
-      new THREE.Euler(0.03, -0.02, 0),
-      new THREE.Euler(-0.10, 0.04, 0.03),
-      new THREE.Euler(0.01, 0, 0),
-      R.head
-    ], [0, 0.35, 0.7, 1.05, 1.35, 1.6]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(0.04, 0, 0),
-      new THREE.Euler(-0.035, 0, 0),
-      new THREE.Euler(0.03, 0, 0),
-      new THREE.Euler(-0.03, 0, 0),
-      R.chest
-    ], [0, 0.35, 0.7, 1.05, 1.35, 1.6]),
-    makeTrack(spine, [
-      R.spine,
-      new THREE.Euler(-0.02, 0.01, 0.01),
-      new THREE.Euler(0.02, 0, 0),
-      new THREE.Euler(-0.015, 0.01, 0.01),
-      R.spine
-    ], [0, 0.35, 0.7, 1.05, 1.6]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.35, 0.05, 0.95),
-      new THREE.Euler(0.35, 0.05, 0.95),
-      R.rightUpperArm
-    ], [0, 0.35, 1.25, 1.6]),
-    makeTrack(lowerArmR, [
-      R.rightLowerArm,
-      new THREE.Euler(0.75, 0.15, 0.10),
-      new THREE.Euler(0.75, 0.15, 0.10),
-      R.rightLowerArm
-    ], [0, 0.35, 1.25, 1.6])
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.38, euler: new THREE.Euler(-0.09, 0.03, 0.04) },
+      { time: 0.70, euler: new THREE.Euler(-0.03, 0.01, 0.02) },
+      { time: 1.05, euler: new THREE.Euler(-0.07, 0.03, 0.03) },
+      { time: 1.40, euler: new THREE.Euler(0.01, 0.01, 0.01) },
+      { time: 1.8, euler: R.head }
+    ], 1.8),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 0.38, euler: new THREE.Euler(-0.055, 0, 0) },
+      { time: 0.70, euler: new THREE.Euler(-0.015, 0, 0) },
+      { time: 1.05, euler: new THREE.Euler(-0.045, 0, 0) },
+      { time: 1.40, euler: new THREE.Euler(-0.02, 0, 0) },
+      { time: 1.8, euler: R.chest }
+    ], 1.8),
+    slerpTrack(spine, [
+      { time: 0.0, euler: R.spine },
+      { time: 0.38, euler: new THREE.Euler(-0.015, 0.005, 0.005) },
+      { time: 0.70, euler: new THREE.Euler(0.015, 0, 0) },
+      { time: 1.05, euler: new THREE.Euler(-0.01, 0.005, 0.005) },
+      { time: 1.8, euler: R.spine }
+    ], 1.8),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 0.45, euler: new THREE.Euler(0.32, -0.05, 0.95) }, // Polite lift near chest
+      { time: 1.35, euler: new THREE.Euler(0.30, -0.05, 0.98) },
+      { time: 1.8, euler: R.rightUpperArm }
+    ], 1.8),
+    slerpTrack(lowerArmR, [
+      { time: 0.0, euler: R.rightLowerArm },
+      { time: 0.45, euler: new THREE.Euler(1.10, 0.22, -0.15) },
+      { time: 1.35, euler: new THREE.Euler(1.08, 0.22, -0.15) },
+      { time: 1.8, euler: R.rightLowerArm }
+    ], 1.8),
+    slerpTrack(handR, [
+      { time: 0.0, euler: R.rightHand },
+      { time: 0.45, euler: new THREE.Euler(0.14, 0.05, 0.04) },
+      { time: 1.35, euler: new THREE.Euler(0.14, 0.05, 0.04) },
+      { time: 1.8, euler: R.rightHand }
+    ], 1.8)
   ];
   const validLaugh = laughTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.6, validLaugh);
+  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.8, validLaugh);
 
-  // 4. THINK (2.0s) - Right hand softly at chin, curious head tilt
+  // 4. THINK (2.4s) - Right hand softly at chin, thoughtful upward-side head inclination
   const thinkTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.08, -0.18, 0.12),
-      new THREE.Euler(0.08, -0.18, 0.12),
-      R.head
-    ], [0, 0.45, 1.55, 2.0]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.38, 0.12, 0.65),
-      new THREE.Euler(0.38, 0.12, 0.65),
-      R.rightUpperArm
-    ], [0, 0.45, 1.55, 2.0]),
-    makeTrack(lowerArmR, [
-      R.rightLowerArm,
-      new THREE.Euler(1.10, 0.20, 0.15),
-      new THREE.Euler(1.10, 0.20, 0.15),
-      R.rightLowerArm
-    ], [0, 0.45, 1.55, 2.0]),
-    makeTrack(handR, [
-      R.rightHand,
-      new THREE.Euler(0.18, 0.10, 0.08),
-      new THREE.Euler(0.18, 0.10, 0.08),
-      R.rightHand
-    ], [0, 0.45, 1.55, 2.0]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.03, -0.04, 0.02),
-      new THREE.Euler(-0.03, -0.04, 0.02),
-      R.chest
-    ], [0, 0.45, 1.55, 2.0])
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.55, euler: new THREE.Euler(0.06, -0.13, 0.09) },
+      { time: 1.85, euler: new THREE.Euler(0.05, -0.12, 0.08) },
+      { time: 2.4, euler: R.head }
+    ], 2.4),
+    slerpTrack(neck, [
+      { time: 0.0, euler: R.neck },
+      { time: 0.55, euler: new THREE.Euler(0.03, -0.06, 0.04) },
+      { time: 1.85, euler: new THREE.Euler(0.03, -0.06, 0.04) },
+      { time: 2.4, euler: R.neck }
+    ], 2.4),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 0.55, euler: new THREE.Euler(0.42, -0.12, 0.78) }, // Arm points gently up towards chin
+      { time: 1.85, euler: new THREE.Euler(0.40, -0.12, 0.80) },
+      { time: 2.4, euler: R.rightUpperArm }
+    ], 2.4),
+    slerpTrack(lowerArmR, [
+      { time: 0.0, euler: R.rightLowerArm },
+      { time: 0.55, euler: new THREE.Euler(1.42, 0.35, -0.22) }, // Elbow flexed near chin
+      { time: 1.85, euler: new THREE.Euler(1.40, 0.35, -0.22) },
+      { time: 2.4, euler: R.rightLowerArm }
+    ], 2.4),
+    slerpTrack(handR, [
+      { time: 0.0, euler: R.rightHand },
+      { time: 0.55, euler: new THREE.Euler(0.16, 0.10, 0.06) }, // Relaxed fingers near cheek
+      { time: 1.85, euler: new THREE.Euler(0.16, 0.10, 0.06) },
+      { time: 2.4, euler: R.rightHand }
+    ], 2.4),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 0.55, euler: new THREE.Euler(-0.03, -0.03, 0.015) },
+      { time: 1.85, euler: new THREE.Euler(-0.03, -0.03, 0.015) },
+      { time: 2.4, euler: R.chest }
+    ], 2.4)
   ];
   const validThink = thinkTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 2.0, validThink);
+  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 2.4, validThink);
 
-  // 5. CHEER (2.0s) - Joyous raised curved arms, lifted chest, bright head position
+  // 5. CHEER (2.2s) - Joyous raised curved arms, lifted posture, bright head position
   const cheerTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(upperArmL, [
-      R.leftUpperArm,
-      new THREE.Euler(0.35, 0.10, -0.45),
-      new THREE.Euler(0.38, 0.10, -0.48),
-      new THREE.Euler(0.35, 0.10, -0.45),
-      R.leftUpperArm
-    ], [0, 0.45, 0.95, 1.45, 2.0]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.35, -0.10, 0.45),
-      new THREE.Euler(0.38, -0.10, 0.48),
-      new THREE.Euler(0.35, -0.10, 0.45),
-      R.rightUpperArm
-    ], [0, 0.45, 0.95, 1.45, 2.0]),
-    makeTrack(lowerArmL, [
-      R.leftLowerArm,
-      new THREE.Euler(0.70, 0.10, 0.25),
-      new THREE.Euler(0.75, 0.12, 0.28),
-      new THREE.Euler(0.70, 0.10, 0.25),
-      R.leftLowerArm
-    ], [0, 0.45, 0.95, 1.45, 2.0]),
-    makeTrack(lowerArmR, [
-      R.rightLowerArm,
-      new THREE.Euler(0.70, -0.10, -0.25),
-      new THREE.Euler(0.75, -0.12, -0.28),
-      new THREE.Euler(0.70, -0.10, -0.25),
-      R.rightLowerArm
-    ], [0, 0.45, 0.95, 1.45, 2.0]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.065, 0, 0),
-      new THREE.Euler(-0.08, 0, 0),
-      new THREE.Euler(-0.065, 0, 0),
-      R.chest
-    ], [0, 0.45, 0.95, 1.45, 2.0]),
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(-0.12, 0, 0),
-      new THREE.Euler(-0.15, 0, 0),
-      new THREE.Euler(-0.12, 0, 0),
-      R.head
-    ], [0, 0.45, 0.95, 1.45, 2.0])
+    slerpTrack(upperArmL, [
+      { time: 0.0, euler: R.leftUpperArm },
+      { time: 0.50, euler: new THREE.Euler(0.36, 0.08, -0.48) },
+      { time: 1.60, euler: new THREE.Euler(0.34, 0.08, -0.50) },
+      { time: 2.2, euler: R.leftUpperArm }
+    ], 2.2),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 0.50, euler: new THREE.Euler(0.36, -0.08, 0.48) },
+      { time: 1.60, euler: new THREE.Euler(0.34, -0.08, 0.50) },
+      { time: 2.2, euler: R.rightUpperArm }
+    ], 2.2),
+    slerpTrack(lowerArmL, [
+      { time: 0.0, euler: R.leftLowerArm },
+      { time: 0.50, euler: new THREE.Euler(0.85, 0.12, 0.20) },
+      { time: 1.60, euler: new THREE.Euler(0.82, 0.12, 0.20) },
+      { time: 2.2, euler: R.leftLowerArm }
+    ], 2.2),
+    slerpTrack(lowerArmR, [
+      { time: 0.0, euler: R.rightLowerArm },
+      { time: 0.50, euler: new THREE.Euler(0.85, -0.12, -0.20) },
+      { time: 1.60, euler: new THREE.Euler(0.82, -0.12, -0.20) },
+      { time: 2.2, euler: R.rightLowerArm }
+    ], 2.2),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 0.50, euler: new THREE.Euler(-0.06, 0, 0) },
+      { time: 1.60, euler: new THREE.Euler(-0.05, 0, 0) },
+      { time: 2.2, euler: R.chest }
+    ], 2.2),
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.50, euler: new THREE.Euler(-0.08, 0, 0) },
+      { time: 1.60, euler: new THREE.Euler(-0.07, 0, 0) },
+      { time: 2.2, euler: R.head }
+    ], 2.2)
   ];
   const validCheer = cheerTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 2.0, validCheer);
+  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 2.2, validCheer);
 
-  // 6. PROCEDURAL IDLE (4.0s loop) - Lifelike organic breathing & subtle weight shifts
+  // 6. HEAD TILT (1.8s) - Curious, warm affectionate tilt
+  const tiltTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 0.50, euler: new THREE.Euler(0.04, 0.03, -0.12) },
+      { time: 1.30, euler: new THREE.Euler(0.04, 0.03, -0.11) },
+      { time: 1.8, euler: R.head }
+    ], 1.8),
+    slerpTrack(neck, [
+      { time: 0.0, euler: R.neck },
+      { time: 0.50, euler: new THREE.Euler(0.02, 0.01, -0.05) },
+      { time: 1.30, euler: new THREE.Euler(0.02, 0.01, -0.05) },
+      { time: 1.8, euler: R.neck }
+    ], 1.8)
+  ];
+  const validTilt = tiltTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+  if (validTilt.length > 0) gestureClips['gesture_head_tilt'] = new THREE.AnimationClip('gesture_head_tilt', 1.8, validTilt);
+
+  // 7. PROCEDURAL IDLE (4.0s loop) - Lifelike organic breathing & subtle weight shifts
   const idleTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.045, 0.005, 0),
-      R.chest,
-      new THREE.Euler(-0.015, -0.005, 0),
-      R.chest
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(spine, [
-      R.spine,
-      new THREE.Euler(0.025, 0.008, 0.003),
-      R.spine,
-      new THREE.Euler(0.015, -0.008, -0.003),
-      R.spine
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.035, 0.012, 0.008),
-      R.head,
-      new THREE.Euler(0.010, -0.012, -0.008),
-      R.head
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(upperArmL, [
-      R.leftUpperArm,
-      new THREE.Euler(0.14, 0.07, -1.26),
-      R.leftUpperArm,
-      new THREE.Euler(0.10, 0.05, -1.30),
-      R.leftUpperArm
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.14, -0.07, 1.26),
-      R.rightUpperArm,
-      new THREE.Euler(0.10, -0.05, 1.30),
-      R.rightUpperArm
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(lowerArmL, [
-      R.leftLowerArm,
-      new THREE.Euler(0.36, -0.12, 0.04),
-      R.leftLowerArm,
-      new THREE.Euler(0.32, -0.12, 0.04),
-      R.leftLowerArm
-    ], [0, 1.0, 2.0, 3.0, 4.0]),
-    makeTrack(lowerArmR, [
-      R.rightLowerArm,
-      new THREE.Euler(0.36, 0.12, -0.04),
-      R.rightLowerArm,
-      new THREE.Euler(0.32, 0.12, -0.04),
-      R.rightLowerArm
-    ], [0, 1.0, 2.0, 3.0, 4.0])
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 1.0, euler: new THREE.Euler(-0.045, 0.005, 0) },
+      { time: 2.0, euler: R.chest },
+      { time: 3.0, euler: new THREE.Euler(-0.015, -0.005, 0) },
+      { time: 4.0, euler: R.chest }
+    ], 4.0),
+    slerpTrack(spine, [
+      { time: 0.0, euler: R.spine },
+      { time: 1.0, euler: new THREE.Euler(0.025, 0.008, 0.003) },
+      { time: 2.0, euler: R.spine },
+      { time: 3.0, euler: new THREE.Euler(0.015, -0.008, -0.003) },
+      { time: 4.0, euler: R.spine }
+    ], 4.0),
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 1.0, euler: new THREE.Euler(0.035, 0.012, 0.008) },
+      { time: 2.0, euler: R.head },
+      { time: 3.0, euler: new THREE.Euler(0.010, -0.012, -0.008) },
+      { time: 4.0, euler: R.head }
+    ], 4.0),
+    slerpTrack(upperArmL, [
+      { time: 0.0, euler: R.leftUpperArm },
+      { time: 1.0, euler: new THREE.Euler(0.14, 0.07, -1.26) },
+      { time: 2.0, euler: R.leftUpperArm },
+      { time: 3.0, euler: new THREE.Euler(0.10, 0.05, -1.30) },
+      { time: 4.0, euler: R.leftUpperArm }
+    ], 4.0),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 1.0, euler: new THREE.Euler(0.14, -0.07, 1.26) },
+      { time: 2.0, euler: R.rightUpperArm },
+      { time: 3.0, euler: new THREE.Euler(0.10, -0.05, 1.30) },
+      { time: 4.0, euler: R.rightUpperArm }
+    ], 4.0),
+    slerpTrack(lowerArmL, [
+      { time: 0.0, euler: R.leftLowerArm },
+      { time: 1.0, euler: new THREE.Euler(0.36, -0.12, 0.04) },
+      { time: 2.0, euler: R.leftLowerArm },
+      { time: 3.0, euler: new THREE.Euler(0.32, -0.12, 0.04) },
+      { time: 4.0, euler: R.leftLowerArm }
+    ], 4.0),
+    slerpTrack(lowerArmR, [
+      { time: 0.0, euler: R.rightLowerArm },
+      { time: 1.0, euler: new THREE.Euler(0.36, 0.12, -0.04) },
+      { time: 2.0, euler: R.rightLowerArm },
+      { time: 3.0, euler: new THREE.Euler(0.32, 0.12, -0.04) },
+      { time: 4.0, euler: R.rightLowerArm }
+    ], 4.0)
   ];
   const validIdle = idleTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validIdle.length > 0) gestureClips['procedural_idle'] = new THREE.AnimationClip('procedural_idle', 4.0, validIdle);
 
-  // 7. IDLE VARIATION: WEIGHT SHIFT (5.0s loop) - Relaxed hip and shoulder counter-balance
+  // 8. IDLE VARIATION: WEIGHT SHIFT (5.0s loop) - Relaxed hip and shoulder counter-balance
   const weightShiftTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(spine, [
-      R.spine,
-      new THREE.Euler(0.01, 0.02, 0.025),
-      new THREE.Euler(0.015, 0.02, 0.025),
-      R.spine
-    ], [0, 1.5, 3.5, 5.0]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.02, -0.015, -0.02),
-      new THREE.Euler(-0.035, -0.015, -0.02),
-      R.chest
-    ], [0, 1.5, 3.5, 5.0]),
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.02, 0.02, -0.03),
-      new THREE.Euler(0.04, 0.02, -0.03),
-      R.head
-    ], [0, 1.5, 3.5, 5.0]),
-    makeTrack(upperArmR, [
-      R.rightUpperArm,
-      new THREE.Euler(0.12, -0.04, 1.28),
-      new THREE.Euler(0.15, -0.04, 1.28),
-      R.rightUpperArm
-    ], [0, 1.5, 3.5, 5.0]),
-    makeTrack(upperArmL, [
-      R.leftUpperArm,
-      new THREE.Euler(0.16, 0.04, -1.24),
-      new THREE.Euler(0.13, 0.04, -1.24),
-      R.leftUpperArm
-    ], [0, 1.5, 3.5, 5.0])
+    slerpTrack(spine, [
+      { time: 0.0, euler: R.spine },
+      { time: 1.5, euler: new THREE.Euler(0.01, 0.02, 0.025) },
+      { time: 3.5, euler: new THREE.Euler(0.015, 0.02, 0.025) },
+      { time: 5.0, euler: R.spine }
+    ], 5.0),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 1.5, euler: new THREE.Euler(-0.02, -0.015, -0.02) },
+      { time: 3.5, euler: new THREE.Euler(-0.035, -0.015, -0.02) },
+      { time: 5.0, euler: R.chest }
+    ], 5.0),
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 1.5, euler: new THREE.Euler(0.02, 0.02, -0.03) },
+      { time: 3.5, euler: new THREE.Euler(0.04, 0.02, -0.03) },
+      { time: 5.0, euler: R.head }
+    ], 5.0),
+    slerpTrack(upperArmR, [
+      { time: 0.0, euler: R.rightUpperArm },
+      { time: 1.5, euler: new THREE.Euler(0.12, -0.04, 1.28) },
+      { time: 3.5, euler: new THREE.Euler(0.15, -0.04, 1.28) },
+      { time: 5.0, euler: R.rightUpperArm }
+    ], 5.0),
+    slerpTrack(upperArmL, [
+      { time: 0.0, euler: R.leftUpperArm },
+      { time: 1.5, euler: new THREE.Euler(0.16, 0.04, -1.24) },
+      { time: 3.5, euler: new THREE.Euler(0.13, 0.04, -1.24) },
+      { time: 5.0, euler: R.leftUpperArm }
+    ], 5.0)
   ];
   const validWeightShift = weightShiftTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validWeightShift.length > 0) gestureClips['idle_weight_shift'] = new THREE.AnimationClip('idle_weight_shift', 5.0, validWeightShift);
 
-  // 8. IDLE VARIATION: CONTEMPLATIVE (4.5s loop) - Soft reflective posture with gentle head inclination
+  // 9. IDLE VARIATION: CONTEMPLATIVE (4.5s loop) - Soft reflective posture with gentle head inclination
   const contemplativeTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    makeTrack(head, [
-      R.head,
-      new THREE.Euler(0.06, -0.04, 0.04),
-      new THREE.Euler(0.04, -0.02, 0.03),
-      R.head
-    ], [0, 1.2, 3.2, 4.5]),
-    makeTrack(neck, [
-      R.neck,
-      new THREE.Euler(0.02, -0.02, 0.02),
-      new THREE.Euler(0.01, -0.01, 0.01),
-      R.neck
-    ], [0, 1.2, 3.2, 4.5]),
-    makeTrack(chest, [
-      R.chest,
-      new THREE.Euler(-0.03, 0.01, -0.01),
-      new THREE.Euler(-0.02, 0.01, -0.01),
-      R.chest
-    ], [0, 1.2, 3.2, 4.5]),
-    makeTrack(spine, [
-      R.spine,
-      new THREE.Euler(0.015, -0.01, 0.01),
-      new THREE.Euler(0.02, -0.01, 0.01),
-      R.spine
-    ], [0, 1.2, 3.2, 4.5])
+    slerpTrack(head, [
+      { time: 0.0, euler: R.head },
+      { time: 1.2, euler: new THREE.Euler(0.06, -0.04, 0.04) },
+      { time: 3.2, euler: new THREE.Euler(0.04, -0.02, 0.03) },
+      { time: 4.5, euler: R.head }
+    ], 4.5),
+    slerpTrack(neck, [
+      { time: 0.0, euler: R.neck },
+      { time: 1.2, euler: new THREE.Euler(0.02, -0.02, 0.02) },
+      { time: 3.2, euler: new THREE.Euler(0.01, -0.01, 0.01) },
+      { time: 4.5, euler: R.neck }
+    ], 4.5),
+    slerpTrack(chest, [
+      { time: 0.0, euler: R.chest },
+      { time: 1.2, euler: new THREE.Euler(-0.03, 0.01, -0.01) },
+      { time: 3.2, euler: new THREE.Euler(-0.02, 0.01, -0.01) },
+      { time: 4.5, euler: R.chest }
+    ], 4.5),
+    slerpTrack(spine, [
+      { time: 0.0, euler: R.spine },
+      { time: 1.2, euler: new THREE.Euler(0.015, -0.01, 0.01) },
+      { time: 3.2, euler: new THREE.Euler(0.02, -0.01, 0.01) },
+      { time: 4.5, euler: R.spine }
+    ], 4.5)
   ];
   const validContemplative = contemplativeTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
   if (validContemplative.length > 0) gestureClips['idle_contemplative'] = new THREE.AnimationClip('idle_contemplative', 4.5, validContemplative);
@@ -417,7 +489,7 @@ function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
   if (gestureClips['think']) gestureClips['gesture_chin_touch'] = gestureClips['think'];
   if (gestureClips['cheer']) gestureClips['gesture_hands_up'] = gestureClips['cheer'];
   if (gestureClips['think']) gestureClips['gesture_look_up'] = gestureClips['think'];
-  if (gestureClips['nod']) gestureClips['gesture_head_tilt'] = gestureClips['nod'];
+  if (!gestureClips['gesture_head_tilt'] && gestureClips['nod']) gestureClips['gesture_head_tilt'] = gestureClips['nod'];
   if (gestureClips['nod']) gestureClips['gesture_wink'] = gestureClips['nod'];
   if (gestureClips['procedural_idle']) gestureClips['idle_shift'] = gestureClips['idle_weight_shift'] || gestureClips['procedural_idle'];
 
@@ -756,6 +828,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
   const clips = useRef<Record<string, THREE.AnimationClip>>({});
   const currentAction = useRef<THREE.AnimationAction | null>(null);
   const targetLookAt = useRef(new THREE.Vector3(0, 1.35, 3));
+  const restHipsPosition = useRef<THREE.Vector3 | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -826,6 +899,11 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         });
         if (vrmInstance.lookAt) {
           vrmInstance.lookAt.target = lookTarget.current;
+        }
+
+        const initialHips = vrmInstance.humanoid?.getNormalizedBoneNode('hips');
+        if (initialHips) {
+          restHipsPosition.current = initialHips.position.clone();
         }
 
         mixer.current = new THREE.AnimationMixer(vrmInstance.scene);
@@ -1079,14 +1157,9 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       domElement: gl.domElement,
       targetObject: vrm.scene,
       vrm,
-      onInteract: (_gesture, hitPoint) => {
-        if (hitPoint) {
-          targetLookAt.current.set(hitPoint.x * 1.1, Math.max(1.1, hitPoint.y), 2.5);
-          if (lookAtTimer) clearTimeout(lookAtTimer);
-          lookAtTimer = setTimeout(() => {
-            targetLookAt.current.set(0, 1.35, 3);
-          }, 1600);
-        }
+      onInteract: (_gesture) => {
+        // Maintain composed, direct eye contact on click rather than parallax jumping
+        targetLookAt.current.set(0, 1.35, 3);
       },
     });
 
@@ -1250,6 +1323,14 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       // Exactly ONE authority drives skeletal body pose: AnimationMixer
       if (mixer.current) {
         mixer.current.update(safeDelta);
+      }
+
+      // Anchor hips bone translation to grounded rest position so crossfades cannot displace avatar
+      if (vrm && restHipsPosition.current) {
+        const hipsNode = vrm.humanoid?.getNormalizedBoneNode('hips');
+        if (hipsNode) {
+          hipsNode.position.copy(restHipsPosition.current);
+        }
       }
 
       safeUpdateVRM(vrm, safeDelta);

@@ -114,8 +114,7 @@ export async function loadMixamoAnimation(url: string, vrm: VRM): Promise<THREE.
           )
         );
       } else if (track instanceof THREE.VectorKeyframeTrack) {
-        const value = track.values.map((v, i) => (vrm.meta?.metaVersion === '0' && i % 3 !== 1 ? -v : v) * hipsPositionScale);
-        tracks.push(new THREE.VectorKeyframeTrack(`${vrmNodeName}.${propertyName}`, track.times, value));
+        // Omit root motion position tracks to keep avatar anchored in place without jumping/drifting during crossfades
       }
     }
   });
