@@ -335,8 +335,8 @@ export class InteractionManager {
     let animId: number | null = null;
 
     if (expr) {
-      expr.setValue('relaxed', 0.6);
-      expr.setValue('happy', 0.3);
+      expr.setValue('relaxed', 0);
+      expr.setValue('happy', 0.15);
     }
 
     const animate = () => {
@@ -566,7 +566,8 @@ export class InteractionManager {
       headNode.rotation.x = Math.max(0, nodCurve * 0.12);
 
       if (expr) {
-        expr.setValue('relaxed', Math.sin(progress * Math.PI) * 0.5);
+        expr.setValue('relaxed', 0);
+        expr.setValue('happy', Math.sin(progress * Math.PI) * 0.15);
       }
 
       if (progress < 1) {
@@ -606,7 +607,7 @@ export class InteractionManager {
       const curve = Math.sin(progress * Math.PI);
 
       if (expr) {
-        expr.setValue('relaxed', curve * 0.6);
+        expr.setValue('relaxed', 0);
       }
 
       if (spineNode) {

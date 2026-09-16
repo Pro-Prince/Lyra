@@ -176,6 +176,12 @@ class VRMAudioSync {
 
   private attachAudioElement(audio: HTMLAudioElement) {
     try {
+      const handlePlay = () => {
+        this.speechStartTime = performance.now();
+      };
+      audio.addEventListener('play', handlePlay, { once: true });
+      audio.addEventListener('ended', () => this.stopSpeech(), { once: true });
+
       this.audioCtx = getAudioContext();
       if (!this.audioCtx) return;
 

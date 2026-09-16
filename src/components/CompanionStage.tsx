@@ -49,13 +49,13 @@ interface EmotionExpressionMap {
 }
 
 const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
-  warm: { happy: 0.15, relaxed: 0.25, surprised: 0.0, neutral: 0.75, sad: 0.0 },
-  playful: { happy: 0.65, relaxed: 0.1, surprised: 0.15, neutral: 0.0, sad: 0.0 },
-  thoughtful: { happy: 0.05, relaxed: 0.2, surprised: 0.05, neutral: 0.65, sad: 0.0 },
-  excited: { happy: 0.8, relaxed: 0.0, surprised: 0.35, neutral: 0.0, sad: 0.0 },
-  calm: { happy: 0.15, relaxed: 0.5, surprised: 0.0, neutral: 0.3, sad: 0.0 },
-  affectionate: { happy: 0.65, relaxed: 0.2, surprised: 0.0, neutral: 0.0, sad: 0.0 },
-  shy: { happy: 0.15, relaxed: 0.0, surprised: 0.1, neutral: 0.4, sad: 0.0 }
+  warm: { happy: 0.15, relaxed: 0.0, surprised: 0.0, neutral: 0.85, sad: 0.0 },
+  playful: { happy: 0.35, relaxed: 0.0, surprised: 0.1, neutral: 0.55, sad: 0.0 },
+  thoughtful: { happy: 0.05, relaxed: 0.0, surprised: 0.05, neutral: 0.9, sad: 0.0 },
+  excited: { happy: 0.5, relaxed: 0.0, surprised: 0.2, neutral: 0.3, sad: 0.0 },
+  calm: { happy: 0.1, relaxed: 0.0, surprised: 0.0, neutral: 0.9, sad: 0.0 },
+  affectionate: { happy: 0.3, relaxed: 0.0, surprised: 0.0, neutral: 0.7, sad: 0.0 },
+  shy: { happy: 0.1, relaxed: 0.0, surprised: 0.05, neutral: 0.85, sad: 0.0 }
 };
 
 import { HUMAN_REST_EULERS } from '../lib/poseUtils';
@@ -788,15 +788,21 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
           vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3.5));
         }
 
-        // Dual-Engine Lip Sync: real-time frequency analysis + phoneme beat synthesis
+        // Dual-Engine Lip Sync: real-time frequency analysis + phoneme beat synthesis + viseme events
         const visemeWeights = vrmAudioSync.update(safeDelta);
-        const speakingNow = !isMuted && (isSpeakingRef.current || vrmAudioSync.getIsSpeaking());
+        const eventViseme = currentViseme.current;
+        const speakingNow = !isMuted && (isSpeakingRef.current || vrmAudioSync.getIsSpeaking() || (eventViseme !== 'neutral' && eventViseme !== 'closed'));
 
         if (speakingNow) {
           for (let i = 0; i < VISEMES.length; i++) {
             const v = VISEMES[i];
             const currentWeight = vrm.expressionManager.getValue(v) || 0;
-            const targetWeight = visemeWeights[v] || 0;
+            let targetWeight = visemeWeights[v] || 0;
+
+            // If an explicit viseme event was dispatched (e.g. from speech playback) and audio weights are low, blend event viseme
+            if (eventViseme === v && targetWeight < 0.25) {
+              targetWeight = 0.65;
+            }
 
             if (Math.abs(currentWeight - targetWeight) > 0.005) {
               vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 24));

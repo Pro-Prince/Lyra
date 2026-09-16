@@ -12,18 +12,18 @@ export interface ScheduledGesture {
 
 // Semantic Gesture Families with multiple natural variants matched to Lyra's persona
 const GESTURE_FAMILIES: Record<string, string[]> = {
-  greeting: ['wave_warm', 'wave_subtle', 'nod_gentle', 'head_tilt_inquisitive'],
-  agreement: ['nod_gentle', 'nod_emphatic', 'nod_thoughtful', 'explain_one_hand'],
-  explanation: ['explain_both_hands', 'explain_one_hand', 'hands_rest_pulse', 'nod_thoughtful'],
-  affection: ['hand_to_heart', 'head_tilt_affection', 'lean_in_listen', 'giggle_shy'],
-  thinking: ['think_chin_rest', 'think_ponder', 'head_tilt_inquisitive', 'nod_thoughtful'],
-  laughter: ['laugh_bashful', 'laugh_delight', 'shrug_playful', 'giggle_shy'],
-  celebration: ['cheer_celebrate', 'laugh_delight', 'explain_both_hands', 'wave_warm'],
-  gratitude: ['hand_to_heart', 'courteous_bow', 'nod_gentle', 'head_tilt_affection'],
-  reassurance: ['reassure_calm', 'hand_to_heart', 'nod_thoughtful', 'head_tilt_affection'],
-  surprise: ['surprised_delight', 'head_tilt_inquisitive', 'hands_rest_pulse'],
-  shrug: ['shrug_playful', 'head_tilt_inquisitive', 'explain_one_hand'],
-  neutral: ['nod_gentle', 'head_tilt_inquisitive', 'explain_one_hand', 'hands_rest_pulse', 'shrug_playful']
+  greeting: ['nod_gentle', 'head_tilt_inquisitive', 'head_tilt_affection'],
+  agreement: ['nod_gentle', 'nod_emphatic', 'nod_thoughtful'],
+  explanation: ['nod_thoughtful', 'head_tilt_inquisitive', 'nod_gentle'],
+  affection: ['head_tilt_affection', 'lean_in_listen', 'giggle_shy'],
+  thinking: ['think_ponder', 'head_tilt_inquisitive', 'nod_thoughtful'],
+  laughter: ['laugh_bashful', 'laugh_delight', 'giggle_shy'],
+  celebration: ['laugh_delight', 'head_tilt_affection', 'nod_emphatic'],
+  gratitude: ['courteous_bow', 'nod_gentle', 'head_tilt_affection'],
+  reassurance: ['nod_thoughtful', 'head_tilt_affection', 'nod_gentle'],
+  surprise: ['surprised_delight', 'head_tilt_inquisitive'],
+  shrug: ['head_tilt_inquisitive', 'nod_thoughtful'],
+  neutral: ['nod_gentle', 'head_tilt_inquisitive', 'nod_thoughtful']
 };
 
 // Anti-Repetition Ring Memory (holds last 6 played gestures)

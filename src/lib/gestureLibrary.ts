@@ -94,8 +94,23 @@ export function buildGestureLibrary(vrm: VRM): Record<string, THREE.AnimationCli
   const R = HUMAN_REST_EULERS;
   const clips: Record<string, THREE.AnimationClip> = {};
 
+  // Names of all arm, shoulder, hand, and finger bones to exclude from gestures
+  const armHandBoneNames = new Set([
+    leftShoulder?.name, rightShoulder?.name,
+    upperArmL?.name, upperArmR?.name,
+    lowerArmL?.name, lowerArmR?.name,
+    handL?.name, handR?.name,
+  ].filter((n): n is string => Boolean(n)));
+
   const createClip = (name: string, duration: number, tracks: (THREE.QuaternionKeyframeTrack | null)[]) => {
-    const valid = tracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
+    const valid = tracks.filter((t): t is THREE.QuaternionKeyframeTrack => {
+      if (!t) return false;
+      const nodeName = t.name.split('.')[0];
+      if (armHandBoneNames.has(nodeName) || /hand|arm|shoulder|finger|thumb|index|middle|ring|little/i.test(nodeName)) {
+        return false;
+      }
+      return true;
+    });
     if (valid.length > 0) {
       clips[name] = new THREE.AnimationClip(name, duration, valid);
     }
