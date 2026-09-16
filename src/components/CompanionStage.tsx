@@ -59,441 +59,10 @@ const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
 };
 
 import { HUMAN_REST_EULERS } from '../lib/poseUtils';
+import { buildGestureLibrary } from '../lib/gestureLibrary';
 
 function createGestureClips(vrm: VRM): Record<string, THREE.AnimationClip> {
-  const h = vrm.humanoid;
-  if (!h) return {};
-
-  const head = h.getNormalizedBoneNode('head');
-  const neck = h.getNormalizedBoneNode('neck');
-  const spine = h.getNormalizedBoneNode('spine');
-  const chest = h.getNormalizedBoneNode('chest');
-  const upperChest = h.getNormalizedBoneNode('upperChest');
-  const leftShoulder = h.getNormalizedBoneNode('leftShoulder');
-  const rightShoulder = h.getNormalizedBoneNode('rightShoulder');
-  const upperArmR = h.getNormalizedBoneNode('rightUpperArm');
-  const lowerArmR = h.getNormalizedBoneNode('rightLowerArm');
-  const handR = h.getNormalizedBoneNode('rightHand');
-  const upperArmL = h.getNormalizedBoneNode('leftUpperArm');
-  const lowerArmL = h.getNormalizedBoneNode('leftLowerArm');
-  const handL = h.getNormalizedBoneNode('leftHand');
-
-  // High-precision organic slerp track generator using quintic SmootherStep easing
-  // Ensures C^2 continuous velocity and acceleration, eliminating robotic keyframe snapping
-  const slerpTrack = (
-    node: THREE.Object3D | null,
-    waypoints: { time: number; euler: THREE.Euler }[],
-    totalDuration: number,
-    samplesPerSecond = 30
-  ): THREE.QuaternionKeyframeTrack | null => {
-    if (!node || waypoints.length === 0) return null;
-
-    const times: number[] = [];
-    const values: number[] = [];
-    const totalSamples = Math.max(2, Math.round(totalDuration * samplesPerSecond));
-
-    const quatWaypoints = waypoints.map(w => ({
-      time: w.time,
-      quat: new THREE.Quaternion().setFromEuler(w.euler)
-    }));
-
-    const tempQuat = new THREE.Quaternion();
-
-    for (let i = 0; i <= totalSamples; i++) {
-      const t = (i / totalSamples) * totalDuration;
-      times.push(parseFloat(t.toFixed(4)));
-
-      if (t <= quatWaypoints[0].time) {
-        const q = quatWaypoints[0].quat;
-        values.push(q.x, q.y, q.z, q.w);
-        continue;
-      }
-
-      if (t >= quatWaypoints[quatWaypoints.length - 1].time) {
-        const q = quatWaypoints[quatWaypoints.length - 1].quat;
-        values.push(q.x, q.y, q.z, q.w);
-        continue;
-      }
-
-      let idx = 0;
-      while (idx < quatWaypoints.length - 1 && quatWaypoints[idx + 1].time < t) {
-        idx++;
-      }
-
-      const w0 = quatWaypoints[idx];
-      const w1 = quatWaypoints[idx + 1];
-      const segDuration = w1.time - w0.time;
-      const linearProgress = segDuration > 0 ? (t - w0.time) / segDuration : 0;
-
-      // SmootherStep easing: 6u^5 - 15u^4 + 10u^3
-      const u = Math.max(0, Math.min(1, linearProgress));
-      const easedProgress = u * u * u * (u * (u * 6 - 15) + 10);
-
-      tempQuat.copy(w0.quat).slerp(w1.quat, easedProgress);
-      values.push(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
-    }
-
-    return new THREE.QuaternionKeyframeTrack(`${node.name}.quaternion`, times, values);
-  };
-
-  const R = HUMAN_REST_EULERS;
-  const gestureClips: Record<string, THREE.AnimationClip> = {};
-
-  // 1. WAVE (2.2s) - Natural, warm human wave with soft shoulder raise, elbow flex & wrist lag
-  const waveTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(rightShoulder, [
-      { time: 0.0, euler: R.rightShoulder },
-      { time: 0.45, euler: new THREE.Euler(-0.03, 0, 0.05) },
-      { time: 1.70, euler: new THREE.Euler(-0.03, 0, 0.05) },
-      { time: 2.2, euler: R.rightShoulder }
-    ], 2.2),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 0.45, euler: new THREE.Euler(0.40, -0.10, 0.54) }, // Natural arm raise: forward + abduct
-      { time: 1.70, euler: new THREE.Euler(0.38, -0.10, 0.55) },
-      { time: 2.2, euler: R.rightUpperArm }
-    ], 2.2),
-    slerpTrack(lowerArmR, [
-      { time: 0.0, euler: R.rightLowerArm },
-      { time: 0.45, euler: new THREE.Euler(1.30, 0.14, -0.10) }, // Natural elbow flexion ~75 deg
-      { time: 0.75, euler: new THREE.Euler(1.28, 0.24, -0.16) },
-      { time: 1.05, euler: new THREE.Euler(1.32, 0.04, -0.04) },
-      { time: 1.35, euler: new THREE.Euler(1.28, 0.24, -0.16) },
-      { time: 1.65, euler: new THREE.Euler(1.30, 0.14, -0.10) },
-      { time: 2.2, euler: R.rightLowerArm }
-    ], 2.2),
-    slerpTrack(handR, [
-      { time: 0.0, euler: R.rightHand },
-      { time: 0.45, euler: new THREE.Euler(0.10, 0.0, 0.0) },
-      { time: 0.75, euler: new THREE.Euler(0.12, 0.20, 0.16) },  // Wrist sway left
-      { time: 1.05, euler: new THREE.Euler(0.08, -0.20, -0.16) }, // Wrist sway right
-      { time: 1.35, euler: new THREE.Euler(0.12, 0.20, 0.16) },
-      { time: 1.65, euler: new THREE.Euler(0.10, 0.0, 0.0) },
-      { time: 2.2, euler: R.rightHand }
-    ], 2.2),
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.45, euler: new THREE.Euler(0.04, -0.06, -0.04) },
-      { time: 1.70, euler: new THREE.Euler(0.04, -0.06, -0.04) },
-      { time: 2.2, euler: R.head }
-    ], 2.2),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 0.45, euler: new THREE.Euler(-0.035, -0.015, -0.01) },
-      { time: 1.70, euler: new THREE.Euler(-0.035, -0.015, -0.01) },
-      { time: 2.2, euler: R.chest }
-    ], 2.2)
-  ];
-  const validWave = waveTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validWave.length > 0) gestureClips['wave'] = new THREE.AnimationClip('wave', 2.2, validWave);
-
-  // 2. NOD (1.4s) - Human acknowledgment with natural deceleration and gentle rebound follow-through
-  const nodTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.42, euler: new THREE.Euler(0.16, 0.005, -0.005) }, // Polite ~9 degree nod
-      { time: 0.72, euler: new THREE.Euler(-0.01, 0, 0) },         // Micro rebound
-      { time: 1.00, euler: new THREE.Euler(0.05, 0, 0) },          // Soft settling
-      { time: 1.4, euler: R.head }
-    ], 1.4),
-    slerpTrack(neck, [
-      { time: 0.0, euler: R.neck },
-      { time: 0.42, euler: new THREE.Euler(0.05, 0, 0) },
-      { time: 0.72, euler: new THREE.Euler(-0.005, 0, 0) },
-      { time: 1.00, euler: new THREE.Euler(0.02, 0, 0) },
-      { time: 1.4, euler: R.neck }
-    ], 1.4),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 0.42, euler: new THREE.Euler(-0.035, 0, 0) },
-      { time: 1.4, euler: R.chest }
-    ], 1.4)
-  ];
-  const validNod = nodTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validNod.length > 0) gestureClips['nod'] = new THREE.AnimationClip('nod', 1.4, validNod);
-
-  // 3. LAUGH (1.8s) - Rhythmic torso chuckles, polite hand near collarbone, playful head tilt
-  const laughTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.38, euler: new THREE.Euler(-0.09, 0.03, 0.04) },
-      { time: 0.70, euler: new THREE.Euler(-0.03, 0.01, 0.02) },
-      { time: 1.05, euler: new THREE.Euler(-0.07, 0.03, 0.03) },
-      { time: 1.40, euler: new THREE.Euler(0.01, 0.01, 0.01) },
-      { time: 1.8, euler: R.head }
-    ], 1.8),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 0.38, euler: new THREE.Euler(-0.055, 0, 0) },
-      { time: 0.70, euler: new THREE.Euler(-0.015, 0, 0) },
-      { time: 1.05, euler: new THREE.Euler(-0.045, 0, 0) },
-      { time: 1.40, euler: new THREE.Euler(-0.02, 0, 0) },
-      { time: 1.8, euler: R.chest }
-    ], 1.8),
-    slerpTrack(spine, [
-      { time: 0.0, euler: R.spine },
-      { time: 0.38, euler: new THREE.Euler(-0.015, 0.005, 0.005) },
-      { time: 0.70, euler: new THREE.Euler(0.015, 0, 0) },
-      { time: 1.05, euler: new THREE.Euler(-0.01, 0.005, 0.005) },
-      { time: 1.8, euler: R.spine }
-    ], 1.8),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 0.45, euler: new THREE.Euler(0.32, -0.05, 0.95) }, // Polite lift near chest
-      { time: 1.35, euler: new THREE.Euler(0.30, -0.05, 0.98) },
-      { time: 1.8, euler: R.rightUpperArm }
-    ], 1.8),
-    slerpTrack(lowerArmR, [
-      { time: 0.0, euler: R.rightLowerArm },
-      { time: 0.45, euler: new THREE.Euler(1.10, 0.22, -0.15) },
-      { time: 1.35, euler: new THREE.Euler(1.08, 0.22, -0.15) },
-      { time: 1.8, euler: R.rightLowerArm }
-    ], 1.8),
-    slerpTrack(handR, [
-      { time: 0.0, euler: R.rightHand },
-      { time: 0.45, euler: new THREE.Euler(0.14, 0.05, 0.04) },
-      { time: 1.35, euler: new THREE.Euler(0.14, 0.05, 0.04) },
-      { time: 1.8, euler: R.rightHand }
-    ], 1.8)
-  ];
-  const validLaugh = laughTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validLaugh.length > 0) gestureClips['laugh'] = new THREE.AnimationClip('laugh', 1.8, validLaugh);
-
-  // 4. THINK (2.4s) - Right hand softly at chin, thoughtful upward-side head inclination
-  const thinkTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.55, euler: new THREE.Euler(0.06, -0.13, 0.09) },
-      { time: 1.85, euler: new THREE.Euler(0.05, -0.12, 0.08) },
-      { time: 2.4, euler: R.head }
-    ], 2.4),
-    slerpTrack(neck, [
-      { time: 0.0, euler: R.neck },
-      { time: 0.55, euler: new THREE.Euler(0.03, -0.06, 0.04) },
-      { time: 1.85, euler: new THREE.Euler(0.03, -0.06, 0.04) },
-      { time: 2.4, euler: R.neck }
-    ], 2.4),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 0.55, euler: new THREE.Euler(0.42, -0.12, 0.78) }, // Arm points gently up towards chin
-      { time: 1.85, euler: new THREE.Euler(0.40, -0.12, 0.80) },
-      { time: 2.4, euler: R.rightUpperArm }
-    ], 2.4),
-    slerpTrack(lowerArmR, [
-      { time: 0.0, euler: R.rightLowerArm },
-      { time: 0.55, euler: new THREE.Euler(1.42, 0.35, -0.22) }, // Elbow flexed near chin
-      { time: 1.85, euler: new THREE.Euler(1.40, 0.35, -0.22) },
-      { time: 2.4, euler: R.rightLowerArm }
-    ], 2.4),
-    slerpTrack(handR, [
-      { time: 0.0, euler: R.rightHand },
-      { time: 0.55, euler: new THREE.Euler(0.16, 0.10, 0.06) }, // Relaxed fingers near cheek
-      { time: 1.85, euler: new THREE.Euler(0.16, 0.10, 0.06) },
-      { time: 2.4, euler: R.rightHand }
-    ], 2.4),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 0.55, euler: new THREE.Euler(-0.03, -0.03, 0.015) },
-      { time: 1.85, euler: new THREE.Euler(-0.03, -0.03, 0.015) },
-      { time: 2.4, euler: R.chest }
-    ], 2.4)
-  ];
-  const validThink = thinkTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validThink.length > 0) gestureClips['think'] = new THREE.AnimationClip('think', 2.4, validThink);
-
-  // 5. CHEER (2.2s) - Joyous raised curved arms, lifted posture, bright head position
-  const cheerTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(upperArmL, [
-      { time: 0.0, euler: R.leftUpperArm },
-      { time: 0.50, euler: new THREE.Euler(0.36, 0.08, -0.48) },
-      { time: 1.60, euler: new THREE.Euler(0.34, 0.08, -0.50) },
-      { time: 2.2, euler: R.leftUpperArm }
-    ], 2.2),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 0.50, euler: new THREE.Euler(0.36, -0.08, 0.48) },
-      { time: 1.60, euler: new THREE.Euler(0.34, -0.08, 0.50) },
-      { time: 2.2, euler: R.rightUpperArm }
-    ], 2.2),
-    slerpTrack(lowerArmL, [
-      { time: 0.0, euler: R.leftLowerArm },
-      { time: 0.50, euler: new THREE.Euler(0.85, 0.12, 0.20) },
-      { time: 1.60, euler: new THREE.Euler(0.82, 0.12, 0.20) },
-      { time: 2.2, euler: R.leftLowerArm }
-    ], 2.2),
-    slerpTrack(lowerArmR, [
-      { time: 0.0, euler: R.rightLowerArm },
-      { time: 0.50, euler: new THREE.Euler(0.85, -0.12, -0.20) },
-      { time: 1.60, euler: new THREE.Euler(0.82, -0.12, -0.20) },
-      { time: 2.2, euler: R.rightLowerArm }
-    ], 2.2),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 0.50, euler: new THREE.Euler(-0.06, 0, 0) },
-      { time: 1.60, euler: new THREE.Euler(-0.05, 0, 0) },
-      { time: 2.2, euler: R.chest }
-    ], 2.2),
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.50, euler: new THREE.Euler(-0.08, 0, 0) },
-      { time: 1.60, euler: new THREE.Euler(-0.07, 0, 0) },
-      { time: 2.2, euler: R.head }
-    ], 2.2)
-  ];
-  const validCheer = cheerTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validCheer.length > 0) gestureClips['cheer'] = new THREE.AnimationClip('cheer', 2.2, validCheer);
-
-  // 6. HEAD TILT (1.8s) - Curious, warm affectionate tilt
-  const tiltTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 0.50, euler: new THREE.Euler(0.04, 0.03, -0.12) },
-      { time: 1.30, euler: new THREE.Euler(0.04, 0.03, -0.11) },
-      { time: 1.8, euler: R.head }
-    ], 1.8),
-    slerpTrack(neck, [
-      { time: 0.0, euler: R.neck },
-      { time: 0.50, euler: new THREE.Euler(0.02, 0.01, -0.05) },
-      { time: 1.30, euler: new THREE.Euler(0.02, 0.01, -0.05) },
-      { time: 1.8, euler: R.neck }
-    ], 1.8)
-  ];
-  const validTilt = tiltTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validTilt.length > 0) gestureClips['gesture_head_tilt'] = new THREE.AnimationClip('gesture_head_tilt', 1.8, validTilt);
-
-  // 7. PROCEDURAL IDLE (4.0s loop) - Lifelike organic breathing & subtle weight shifts
-  const idleTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 1.0, euler: new THREE.Euler(-0.045, 0.005, 0) },
-      { time: 2.0, euler: R.chest },
-      { time: 3.0, euler: new THREE.Euler(-0.015, -0.005, 0) },
-      { time: 4.0, euler: R.chest }
-    ], 4.0),
-    slerpTrack(spine, [
-      { time: 0.0, euler: R.spine },
-      { time: 1.0, euler: new THREE.Euler(0.025, 0.008, 0.003) },
-      { time: 2.0, euler: R.spine },
-      { time: 3.0, euler: new THREE.Euler(0.015, -0.008, -0.003) },
-      { time: 4.0, euler: R.spine }
-    ], 4.0),
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 1.0, euler: new THREE.Euler(0.035, 0.012, 0.008) },
-      { time: 2.0, euler: R.head },
-      { time: 3.0, euler: new THREE.Euler(0.010, -0.012, -0.008) },
-      { time: 4.0, euler: R.head }
-    ], 4.0),
-    slerpTrack(upperArmL, [
-      { time: 0.0, euler: R.leftUpperArm },
-      { time: 1.0, euler: new THREE.Euler(0.14, 0.07, -1.26) },
-      { time: 2.0, euler: R.leftUpperArm },
-      { time: 3.0, euler: new THREE.Euler(0.10, 0.05, -1.30) },
-      { time: 4.0, euler: R.leftUpperArm }
-    ], 4.0),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 1.0, euler: new THREE.Euler(0.14, -0.07, 1.26) },
-      { time: 2.0, euler: R.rightUpperArm },
-      { time: 3.0, euler: new THREE.Euler(0.10, -0.05, 1.30) },
-      { time: 4.0, euler: R.rightUpperArm }
-    ], 4.0),
-    slerpTrack(lowerArmL, [
-      { time: 0.0, euler: R.leftLowerArm },
-      { time: 1.0, euler: new THREE.Euler(0.36, -0.12, 0.04) },
-      { time: 2.0, euler: R.leftLowerArm },
-      { time: 3.0, euler: new THREE.Euler(0.32, -0.12, 0.04) },
-      { time: 4.0, euler: R.leftLowerArm }
-    ], 4.0),
-    slerpTrack(lowerArmR, [
-      { time: 0.0, euler: R.rightLowerArm },
-      { time: 1.0, euler: new THREE.Euler(0.36, 0.12, -0.04) },
-      { time: 2.0, euler: R.rightLowerArm },
-      { time: 3.0, euler: new THREE.Euler(0.32, 0.12, -0.04) },
-      { time: 4.0, euler: R.rightLowerArm }
-    ], 4.0)
-  ];
-  const validIdle = idleTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validIdle.length > 0) gestureClips['procedural_idle'] = new THREE.AnimationClip('procedural_idle', 4.0, validIdle);
-
-  // 8. IDLE VARIATION: WEIGHT SHIFT (5.0s loop) - Relaxed hip and shoulder counter-balance
-  const weightShiftTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(spine, [
-      { time: 0.0, euler: R.spine },
-      { time: 1.5, euler: new THREE.Euler(0.01, 0.02, 0.025) },
-      { time: 3.5, euler: new THREE.Euler(0.015, 0.02, 0.025) },
-      { time: 5.0, euler: R.spine }
-    ], 5.0),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 1.5, euler: new THREE.Euler(-0.02, -0.015, -0.02) },
-      { time: 3.5, euler: new THREE.Euler(-0.035, -0.015, -0.02) },
-      { time: 5.0, euler: R.chest }
-    ], 5.0),
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 1.5, euler: new THREE.Euler(0.02, 0.02, -0.03) },
-      { time: 3.5, euler: new THREE.Euler(0.04, 0.02, -0.03) },
-      { time: 5.0, euler: R.head }
-    ], 5.0),
-    slerpTrack(upperArmR, [
-      { time: 0.0, euler: R.rightUpperArm },
-      { time: 1.5, euler: new THREE.Euler(0.12, -0.04, 1.28) },
-      { time: 3.5, euler: new THREE.Euler(0.15, -0.04, 1.28) },
-      { time: 5.0, euler: R.rightUpperArm }
-    ], 5.0),
-    slerpTrack(upperArmL, [
-      { time: 0.0, euler: R.leftUpperArm },
-      { time: 1.5, euler: new THREE.Euler(0.16, 0.04, -1.24) },
-      { time: 3.5, euler: new THREE.Euler(0.13, 0.04, -1.24) },
-      { time: 5.0, euler: R.leftUpperArm }
-    ], 5.0)
-  ];
-  const validWeightShift = weightShiftTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validWeightShift.length > 0) gestureClips['idle_weight_shift'] = new THREE.AnimationClip('idle_weight_shift', 5.0, validWeightShift);
-
-  // 9. IDLE VARIATION: CONTEMPLATIVE (4.5s loop) - Soft reflective posture with gentle head inclination
-  const contemplativeTracks: (THREE.QuaternionKeyframeTrack | null)[] = [
-    slerpTrack(head, [
-      { time: 0.0, euler: R.head },
-      { time: 1.2, euler: new THREE.Euler(0.06, -0.04, 0.04) },
-      { time: 3.2, euler: new THREE.Euler(0.04, -0.02, 0.03) },
-      { time: 4.5, euler: R.head }
-    ], 4.5),
-    slerpTrack(neck, [
-      { time: 0.0, euler: R.neck },
-      { time: 1.2, euler: new THREE.Euler(0.02, -0.02, 0.02) },
-      { time: 3.2, euler: new THREE.Euler(0.01, -0.01, 0.01) },
-      { time: 4.5, euler: R.neck }
-    ], 4.5),
-    slerpTrack(chest, [
-      { time: 0.0, euler: R.chest },
-      { time: 1.2, euler: new THREE.Euler(-0.03, 0.01, -0.01) },
-      { time: 3.2, euler: new THREE.Euler(-0.02, 0.01, -0.01) },
-      { time: 4.5, euler: R.chest }
-    ], 4.5),
-    slerpTrack(spine, [
-      { time: 0.0, euler: R.spine },
-      { time: 1.2, euler: new THREE.Euler(0.015, -0.01, 0.01) },
-      { time: 3.2, euler: new THREE.Euler(0.02, -0.01, 0.01) },
-      { time: 4.5, euler: R.spine }
-    ], 4.5)
-  ];
-  const validContemplative = contemplativeTracks.filter((t): t is THREE.QuaternionKeyframeTrack => t !== null);
-  if (validContemplative.length > 0) gestureClips['idle_contemplative'] = new THREE.AnimationClip('idle_contemplative', 4.5, validContemplative);
-
-  if (gestureClips['wave']) gestureClips['gesture_wave'] = gestureClips['wave'];
-  if (gestureClips['nod']) gestureClips['gesture_soft_nod'] = gestureClips['nod'];
-  if (gestureClips['laugh']) gestureClips['gesture_happy_01'] = gestureClips['laugh'];
-  if (gestureClips['cheer']) gestureClips['gesture_happy_02'] = gestureClips['cheer'];
-  if (gestureClips['think']) gestureClips['gesture_chin_touch'] = gestureClips['think'];
-  if (gestureClips['cheer']) gestureClips['gesture_hands_up'] = gestureClips['cheer'];
-  if (gestureClips['think']) gestureClips['gesture_look_up'] = gestureClips['think'];
-  if (!gestureClips['gesture_head_tilt'] && gestureClips['nod']) gestureClips['gesture_head_tilt'] = gestureClips['nod'];
-  if (gestureClips['nod']) gestureClips['gesture_wink'] = gestureClips['nod'];
-  if (gestureClips['procedural_idle']) gestureClips['idle_shift'] = gestureClips['idle_weight_shift'] || gestureClips['procedural_idle'];
-
-  return gestureClips;
+  return buildGestureLibrary(vrm);
 }
 
 interface CameraRigProps {
@@ -625,6 +194,7 @@ interface VRMModelProps {
   emotion?: string;
   isProcessing?: boolean;
   isListening?: boolean;
+  isMuted?: boolean;
   onProgress?: (percent: number) => void;
   onLoaded?: (scene: THREE.Group) => void;
   onReset?: () => void;
@@ -668,54 +238,19 @@ function updateBreathing(vrm: VRM | null, breathPhase: { current: number }, delt
 
 function useListeningBehavior(isListening: boolean, vrm: VRM | null) {
   useEffect(() => {
-    if (!isListening || !vrm || !vrm.humanoid) return;
+    if (!isListening || !vrm) return;
 
-    const head = vrm.humanoid.getNormalizedBoneNode('head');
-    if (!head) return;
-
-    const originalZ = head.rotation.z;
-    const originalX = head.rotation.x;
-
-    // Subtle attentive head tilt toward the user with cubic easing
-    head.rotation.z = 0.04;
-
-    let animationFrameId: number | null = null;
-    let isNodding = false;
-
-    const playMicroNod = () => {
-      if (isNodding || !head) return;
-      isNodding = true;
-      const start = performance.now();
-      const duration = 480;
-
-      const animateNod = (time: number) => {
-        const rawT = Math.min((time - start) / duration, 1);
-        const t = easeInOutCubic(rawT);
-        const nodAmount = Math.sin(t * Math.PI) * 0.055;
-        if (head) head.rotation.x = originalX + nodAmount;
-        if (rawT < 1) {
-          animationFrameId = requestAnimationFrame(animateNod);
-        } else {
-          if (head) head.rotation.x = originalX;
-          isNodding = false;
-        }
-      };
-      animationFrameId = requestAnimationFrame(animateNod);
-    };
+    // Attentive posture cleanly executed through animation mixer
+    performanceController.playGesture('lean_in_listen');
 
     const nodInterval = setInterval(() => {
-      if (Math.random() < 0.45) {
-        playMicroNod();
+      if (Math.random() < 0.5) {
+        performanceController.playGesture('nod_gentle');
       }
-    }, 2400 + Math.random() * 1200);
+    }, 4000 + Math.random() * 1500);
 
     return () => {
       clearInterval(nodInterval);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      if (head) {
-        head.rotation.z = originalZ;
-        head.rotation.x = originalX;
-      }
     };
   }, [isListening, vrm]);
 }
@@ -816,7 +351,7 @@ function useHumanBlinking(vrm: VRM | null, isSpeakingRef: React.MutableRefObject
   }, [vrm, isSpeakingRef]);
 }
 
-function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
+function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = false, isMuted = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
 
@@ -911,8 +446,9 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         // Integrate generated tap gesture clips with loaded Mixamo clips
         const proceduralGestures = createGestureClips(vrmInstance);
         clips.current = {
+          ...(cached?.clips || {}),
           ...proceduralGestures,
-          ...(cached?.clips || {})
+          idle: proceduralGestures['procedural_idle'],
         };
 
         handleOutfitsReady = () => {
@@ -922,6 +458,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
             clips.current = {
               ...clips.current,
               ...freshCached.clips,
+              ...proceduralGestures,
+              idle: proceduralGestures['procedural_idle'],
             };
             if (!currentAction.current && clips.current['idle']) {
               playAction('idle', true);
@@ -1095,18 +633,20 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
 
   useEffect(() => {
     const handleSpeechStart = (e: any) => {
+      if (isMuted) return; // Disregard speech events if Lyra is muted
       isSpeakingRef.current = true;
-      const { audioElement, text, duration, emotion: emotionTag, wordBoundaries } = e.detail || {};
-      console.log('Response received / Speech Start:', { emotionTag: emotionTag || emotion, textLength: text?.length, duration, hasAudioElement: !!audioElement, wordCount: wordBoundaries?.length });
-      if (audioElement) {
-        performanceController.startSpeechPerformance(audioElement, text || '', emotionTag || emotion, duration || 2.0, wordBoundaries);
-      } else {
-        performanceController.scheduleGestureBeats(text || '', emotionTag || emotion, duration || 2.0, wordBoundaries);
-      }
+      const { audioElement, text, duration, emotion: emotionTag } = e.detail || {};
+      const speechText = text || '';
+      const speechDuration = duration || Math.max(1.5, speechText.length * 0.075);
+      performanceController.startSpeechPerformance(
+        audioElement || null,
+        speechText,
+        emotionTag || emotion,
+        speechDuration
+      );
     };
 
     const handleSpeechEnd = () => {
-      console.log('Speech Ended / Stopped');
       isSpeakingRef.current = false;
       performanceController.stopSpeechPerformance();
       if (vrm) {
@@ -1121,7 +661,22 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       window.removeEventListener('lyraSpeechStart', handleSpeechStart);
       window.removeEventListener('lyraSpeechEnd', handleSpeechEnd);
     };
-  }, [emotion, vrm]);
+  }, [emotion, vrm, isMuted]);
+
+  useEffect(() => {
+    if (isMuted) {
+      isSpeakingRef.current = false;
+      performanceController.stopSpeechPerformance();
+      if (vrm) {
+        resetToNeutralExpression(vrm);
+        if (vrm.expressionManager) {
+          for (let i = 0; i < VISEMES.length; i++) {
+            vrm.expressionManager.setValue(VISEMES[i], 0);
+          }
+        }
+      }
+    }
+  }, [isMuted, vrm]);
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
@@ -1213,106 +768,47 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         lookTarget.current.position.lerp(_tempGaze.current, 0.09);
       }
 
-      // Emotion & Lip Sync (expression blendshapes) - Throttled on mobile
-      if (vrm.expressionManager && (!isMobile || frameCountRef.current % 2 === 0)) {
+      // Secondary speech cadence & micro-nodding synced with audio (handled cleanly)
+
+      // Emotion & Lip Sync (expression blendshapes)
+      if (vrm.expressionManager) {
         const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
         const happyVal = vrm.expressionManager.getValue('happy') || 0;
         const relaxedVal = vrm.expressionManager.getValue('relaxed') || 0;
         const surprisedVal = vrm.expressionManager.getValue('surprised') || 0;
 
-        vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3));
-        vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3));
-        vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3));
+        vrm.expressionManager.setValue('happy', THREE.MathUtils.lerp(happyVal, targetExpr.happy, safeDelta * 3.5));
+        vrm.expressionManager.setValue('relaxed', THREE.MathUtils.lerp(relaxedVal, targetExpr.relaxed, safeDelta * 3.5));
+        vrm.expressionManager.setValue('surprised', THREE.MathUtils.lerp(surprisedVal, targetExpr.surprised, safeDelta * 3.5));
 
         const isBlush = emotion === 'affectionate' || emotion === 'shy';
         const currentBlush = vrm.expressionManager.getValue('blush') || 0;
         const targetBlush = isBlush ? 1.0 : 0.0;
         if (Math.abs(currentBlush - targetBlush) > 0.01) {
-            vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3));
+          vrm.expressionManager.setValue('blush', THREE.MathUtils.lerp(currentBlush, targetBlush, safeDelta * 3.5));
         }
 
-        // Real-time Web Audio API frequency analysis - Throttled
-        const analyser = analyserRef.current;
-        let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
-        let hasAudio = false;
+        // Dual-Engine Lip Sync: real-time frequency analysis + phoneme beat synthesis
+        const visemeWeights = vrmAudioSync.update(safeDelta);
+        const speakingNow = !isMuted && (isSpeakingRef.current || vrmAudioSync.getIsSpeaking());
 
-        if (analyser && isSpeakingRef.current && (!isMobile || frameCountRef.current % 3 === 0)) {
-          const bufferLength = analyser.frequencyBinCount;
-          if (!audioBufferRef.current || audioBufferRef.current.length !== bufferLength) {
-            audioBufferRef.current = new Uint8Array(bufferLength);
-          }
-          const dataArray = audioBufferRef.current;
-          analyser.getByteFrequencyData(dataArray);
-
-          // Calculate average amplitude across the entire spectrum
-          let totalAmp = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            totalAmp += dataArray[i];
-          }
-          const averageAmp = totalAmp / bufferLength;
-          // Normalize the amplitude based on expected maximum levels (usually peaks around 120-140)
-          const normalizedAmp = Math.min(1.0, averageAmp / 110);
-
-          if (normalizedAmp > 0.01) {
-            hasAudio = true;
-            let lowSum = 0;
-            let midSum = 0;
-            let highSum = 0;
-
-            const lowEnd = Math.floor(bufferLength * 0.15);
-            const midEnd = Math.floor(bufferLength * 0.45);
-
-            for (let i = 0; i < bufferLength; i++) {
-              if (i < lowEnd) {
-                lowSum += dataArray[i];
-              } else if (i < midEnd) {
-                midSum += dataArray[i];
-              } else {
-                highSum += dataArray[i];
-              }
-            }
-
-            const lowAvg = lowSum / lowEnd || 0;
-            const midAvg = midSum / (midEnd - lowEnd) || 0;
-            const highAvg = highSum / (bufferLength - midEnd) || 0;
-
-            const totalAvg = lowAvg + midAvg + highAvg || 1;
-
-            // Classify FFT spectrum content to map to human-like vowels
-            visemeWeights.aa = Math.max(0, (lowAvg * 1.5) / totalAvg);
-            visemeWeights.oh = Math.max(0, (midAvg * 1.2) / totalAvg);
-            visemeWeights.ee = Math.max(0, (highAvg * 1.6) / totalAvg);
-            visemeWeights.ih = Math.max(0, (midAvg * 0.8 + highAvg * 0.8) / totalAvg);
-            visemeWeights.ou = Math.max(0, (lowAvg * 0.8 + midAvg * 0.4) / totalAvg);
-
-            // Scale all weights relative to the measured audio volume envelope
-            const sumWeights = visemeWeights.aa + visemeWeights.ih + visemeWeights.ou + visemeWeights.ee + visemeWeights.oh || 1;
-            visemeWeights.aa = (visemeWeights.aa / sumWeights) * normalizedAmp;
-            visemeWeights.ih = (visemeWeights.ih / sumWeights) * normalizedAmp;
-            visemeWeights.ou = (visemeWeights.ou / sumWeights) * normalizedAmp;
-            visemeWeights.ee = (visemeWeights.ee / sumWeights) * normalizedAmp;
-            visemeWeights.oh = (visemeWeights.oh / sumWeights) * normalizedAmp;
-          }
-          
-          // Apply weights smoothly to VRM expression blendshapes
+        if (speakingNow) {
           for (let i = 0; i < VISEMES.length; i++) {
             const v = VISEMES[i];
             const currentWeight = vrm.expressionManager.getValue(v) || 0;
-            const targetWeight = hasAudio 
-              ? (visemeWeights[v] || 0) 
-              : (currentViseme.current === v ? 1.0 : 0.0);
+            const targetWeight = visemeWeights[v] || 0;
 
-            if (Math.abs(currentWeight - targetWeight) > 0.01) {
-              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
+            if (Math.abs(currentWeight - targetWeight) > 0.005) {
+              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 24));
             }
           }
-        } else if (!isSpeakingRef.current) {
-          // When not speaking, actively decay all mouth visemes back to closed 0
+        } else {
+          // Actively decay all mouth visemes back to 0 when not speaking or when muted
           for (let i = 0; i < VISEMES.length; i++) {
             const v = VISEMES[i];
             const currentWeight = vrm.expressionManager.getValue(v) || 0;
-            if (currentWeight > 0.01) {
-              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, 0, safeDelta * 15));
+            if (currentWeight > 0.005) {
+              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, 0, safeDelta * 25));
             } else if (currentWeight !== 0) {
               vrm.expressionManager.setValue(v, 0);
             }
@@ -1456,7 +952,8 @@ function CompanionStageComponent({
   mode,
   onModelLoaded,
   onError,
-  isActive = true
+  isActive = true,
+  isMuted = false
 }: {
   modelId?: string;
   className?: string;
@@ -1476,6 +973,7 @@ function CompanionStageComponent({
   onModelLoaded?: () => void;
   onError?: (err?: string) => void;
   isActive?: boolean;
+  isMuted?: boolean;
 }) {
   const activeModelId = modelId || outfitUrl || '/models/lyra.vrm';
   const effectivePortraitMode = isPortraitMode || mode === 'portrait';
@@ -1675,6 +1173,7 @@ function CompanionStageComponent({
                 emotion={emotion}
                 isProcessing={isProcessing}
                 isListening={isListening}
+                isMuted={isMuted}
                 onLoaded={(scene) => {
                   setVrmSceneRef(scene);
                   setIsLoaded(true);

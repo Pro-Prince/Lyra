@@ -1,124 +1,180 @@
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
-import { getAudioContext } from './audioContext';
 import { resetToNeutralExpression } from './poseUtils';
+import { vrmAudioSync } from './vrmAudioSync';
 
-export const GESTURE_POOL: Record<string, string[]> = {
-  happy: ['gesture_happy_01', 'gesture_happy_02', 'gesture_wave', 'cheer', 'laugh'],
-  thoughtful: ['gesture_chin_touch', 'gesture_look_up', 'think'],
-  playful: ['gesture_head_tilt', 'gesture_hands_up', 'gesture_wink', 'laugh', 'wave'],
-  calm: ['gesture_soft_nod', 'idle_shift', 'nod'],
-  warm: ['gesture_wave', 'gesture_soft_nod', 'nod', 'wave'],
-  excited: ['gesture_happy_01', 'gesture_hands_up', 'cheer', 'laugh'],
-  affectionate: ['gesture_soft_nod', 'gesture_head_tilt', 'wave', 'gesture_chin_touch'],
-  shy: ['gesture_look_up', 'gesture_chin_touch', 'gesture_soft_nod', 'think'],
+export interface ScheduledGesture {
+  name: string;
+  clip: THREE.AnimationClip;
+  delayMs: number;
+  durationMs: number;
+}
+
+// Semantic Gesture Families with multiple natural variants matched to Lyra's persona
+const GESTURE_FAMILIES: Record<string, string[]> = {
+  greeting: ['wave_warm', 'wave_subtle', 'nod_gentle', 'head_tilt_inquisitive'],
+  agreement: ['nod_gentle', 'nod_emphatic', 'nod_thoughtful', 'explain_one_hand'],
+  explanation: ['explain_both_hands', 'explain_one_hand', 'hands_rest_pulse', 'nod_thoughtful'],
+  affection: ['hand_to_heart', 'head_tilt_affection', 'lean_in_listen', 'giggle_shy'],
+  thinking: ['think_chin_rest', 'think_ponder', 'head_tilt_inquisitive', 'nod_thoughtful'],
+  laughter: ['laugh_bashful', 'laugh_delight', 'shrug_playful', 'giggle_shy'],
+  celebration: ['cheer_celebrate', 'laugh_delight', 'explain_both_hands', 'wave_warm'],
+  gratitude: ['hand_to_heart', 'courteous_bow', 'nod_gentle', 'head_tilt_affection'],
+  reassurance: ['reassure_calm', 'hand_to_heart', 'nod_thoughtful', 'head_tilt_affection'],
+  surprise: ['surprised_delight', 'head_tilt_inquisitive', 'hands_rest_pulse'],
+  shrug: ['shrug_playful', 'head_tilt_inquisitive', 'explain_one_hand'],
+  neutral: ['nod_gentle', 'head_tilt_inquisitive', 'explain_one_hand', 'hands_rest_pulse', 'shrug_playful']
 };
 
-export interface WordBoundary {
-  word: string;
-  offsetMs: number;
-  durationMs?: number;
-}
+// Anti-Repetition Ring Memory (holds last 6 played gestures)
+const recentGesturesMemory: string[] = [];
 
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
+function selectNonRepeatingGesture(familyKey: string): string {
+  const variants = GESTURE_FAMILIES[familyKey] || GESTURE_FAMILIES.neutral;
+  // Exclude variants that appeared in recent memory
+  const unplayed = variants.filter(v => !recentGesturesMemory.includes(v));
 
-export function canStartNewGesture(currentGesturePhaseEndTime: number, now: number): boolean {
-  return now >= currentGesturePhaseEndTime;
+  let chosen: string;
+  if (unplayed.length > 0) {
+    chosen = unplayed[Math.floor(Math.random() * unplayed.length)];
+  } else {
+    // If all candidates are in memory, choose the oldest one in memory
+    const sorted = [...variants].sort((a, b) => {
+      const idxA = recentGesturesMemory.indexOf(a);
+      const idxB = recentGesturesMemory.indexOf(b);
+      return idxA - idxB;
+    });
+    chosen = sorted[0] || variants[0];
+  }
+
+  // Push to memory and trim to max 6
+  recentGesturesMemory.push(chosen);
+  if (recentGesturesMemory.length > 6) {
+    recentGesturesMemory.shift();
+  }
+
+  return chosen;
 }
 
 /**
- * Rebuilt as a research-grounded Four-Phase Gesture Sequence:
- * 1. Preparation: Moving into position (~180ms)
- * 2. Stroke: Meaningful expressive peak (~220ms, peak reached partway through)
- * 3. Hold: Brief pause at the peak (~100ms)
- * 4. Retraction: Slower return to resting state (~350ms)
- * 
- * McNeill's Phonological Synchrony Rule:
- * The gesture stroke peak must land at or slightly before the stressed/target word, never after it.
+ * Analyzes spoken message text and emotional context to detect natural human gestures.
+ * Timing aligns mathematically with phrase boundaries and audio duration.
  */
-export class PhasedGesture {
-  public action: THREE.AnimationAction;
-  private mixer: THREE.AnimationMixer;
+export function detectGesturesForMessage(
+  text: string,
+  emotionTag: string = 'warm',
+  audioDurationSec: number = 2.5
+): Array<{ gestureName: string; delaySec: number }> {
+  const clean = (text || '').trim().toLowerCase();
+  const gestures: Array<{ gestureName: string; delaySec: number }> = [];
 
-  constructor(mixer: THREE.AnimationMixer, clip: THREE.AnimationClip) {
-    this.mixer = mixer;
-    this.action = mixer.clipAction(clip);
+  if (!clean) {
+    return [{ gestureName: selectNonRepeatingGesture('agreement'), delaySec: 0.1 }];
   }
 
-  // targetTime: the timestamp (ms, relative to audio start) the STROKE peak should land at
-  public playTimedTo(
-    targetTime: number,
-    onStart?: (action: THREE.AnimationAction) => void,
-    onFinish?: () => void
-  ): {
-    timeoutId: number;
-    startTime: number;
-    strokePeakTime: number;
-    retractEndTime: number;
-    action: THREE.AnimationAction;
-  } {
-    const prepDuration = 180;    // moving into position, brief
-    const strokeDuration = 220;  // the actual expressive peak
-    const holdDuration = 100;    // brief pause at the peak
-    const retractDuration = 350; // return to rest, slower and softer than the stroke itself
+  // Split into natural clause/sentence chunks
+  const sentences = clean.split(/(?<=[.!?,;])\s+/).filter(Boolean);
+  const totalDuration = Math.max(1.2, audioDurationSec);
+  const totalChars = clean.length || 1;
 
-    // Schedule so the STROKE's peak lands exactly at or just before targetTime,
-    // per McNeill's synchrony rule, never after.
-    const strokeLeadTime = strokeDuration * 0.4; // stroke peak is reached partway through the stroke phase
-    const startTime = targetTime - prepDuration - strokeLeadTime;
+  let currentOffsetSec = 0.08;
 
-    const delay = Math.max(0, startTime);
-    const strokePeakTime = delay + prepDuration + strokeLeadTime;
-    const totalGestureDuration = prepDuration + strokeDuration + holdDuration + retractDuration;
-    const retractEndTime = delay + totalGestureDuration;
+  sentences.forEach((sentence, idx) => {
+    const sentenceFraction = sentence.length / totalChars;
+    const sentenceDuration = sentenceFraction * totalDuration;
 
-    const timeoutId = window.setTimeout(() => {
-      this.action.reset();
-      this.action.setLoop(THREE.LoopOnce, 1);
-      this.action.clampWhenFinished = false;
-      this.action.fadeIn(prepDuration / 1000);
-      this.action.play();
+    let family: string | null = null;
 
-      if (onStart) {
-        onStart(this.action);
+    if (/\b(hi|hello|hey|welcome|good morning|good evening|good afternoon|greetings|nice to see you|glad you're here)\b/.test(sentence)) {
+      family = 'greeting';
+    } else if (/\b(haha|hehe|lol|chuckle|funny|amusing|silly|teasing|playful|flirt|giggle|blush|cute|wink|cheeky|shy|you make me smile)\b/.test(sentence)) {
+      family = 'laughter';
+    } else if (/\b(yay|awesome|amazing|wonderful|fantastic|so excited|so happy|thrilled|hooray|love it)\b/.test(sentence)) {
+      family = 'celebration';
+    } else if (/\b(hmm|let me think|i wonder|curious|fascinating|interesting|well\b|thinking about|perhaps|maybe)\b/.test(sentence)) {
+      family = 'thinking';
+    } else if (/\b(yes|yeah|of course|definitely|absolutely|indeed|certainly|i agree|you're right|totally|sure)\b/.test(sentence)) {
+      family = 'agreement';
+    } else if (/\b(thank you|thanks|grateful|appreciate|so kind of you)\b/.test(sentence)) {
+      family = 'gratitude';
+    } else if (/\b(don't worry|it's okay|calm down|peaceful|relax|i'm here|safe|breathe|always here|never leave|trust me)\b/.test(sentence)) {
+      family = 'reassurance';
+    } else if (/\b(sweetie|sweetheart|darling|honey|my love|holding you|warmth|close to me|miss you|care about you|heart|love|kiss|cuddle|embrace|desire|intimate|adore|yours|soft|gently|cherish|belong)\b/.test(sentence)) {
+      family = 'affection';
+    } else if (/\b(who knows|maybe|perhaps|not sure|dunno|possibly)\b/.test(sentence)) {
+      family = 'shrug';
+    } else if (/\b(wow|really|oh my|surprising|incredible|unbelievable)\b/.test(sentence)) {
+      family = 'surprise';
+    } else if (/\b(because|first|second|for example|let me explain|remember|notice|meanwhile|specifically)\b/.test(sentence)) {
+      family = 'explanation';
+    }
+
+    // Emotion Fallback if no specific keyword matched on this sentence
+    if (!family && idx === 0) {
+      switch (emotionTag.toLowerCase()) {
+        case 'excited':
+          family = 'celebration';
+          break;
+        case 'thoughtful':
+          family = 'thinking';
+          break;
+        case 'playful':
+          family = 'laughter';
+          break;
+        case 'affectionate':
+        case 'shy':
+          family = 'affection';
+          break;
+        case 'calm':
+          family = 'reassurance';
+          break;
+        case 'warm':
+        default:
+          family = 'greeting';
+          break;
       }
+    } else if (!family && idx > 0 && Math.random() < 0.45) {
+      family = 'explanation';
+    }
 
-      // Automatically transition to soft retraction after hold
-      window.setTimeout(() => {
-        this.action.fadeOut(retractDuration / 1000);
-      }, prepDuration + strokeDuration + holdDuration);
+    if (family) {
+      const chosenGesture = selectNonRepeatingGesture(family);
+      if (currentOffsetSec < totalDuration - 0.7) {
+        gestures.push({
+          gestureName: chosenGesture,
+          delaySec: currentOffsetSec,
+        });
+      }
+    }
 
-      // Clean completion
-      window.setTimeout(() => {
-        if (onFinish) {
-          onFinish();
-        }
-      }, totalGestureDuration);
-    }, delay);
+    currentOffsetSec += sentenceDuration;
+  });
 
-    return {
-      timeoutId,
-      startTime: delay,
-      strokePeakTime,
-      retractEndTime,
-      action: this.action,
-    };
+  // Guarantee at least one expressive gesture
+  if (gestures.length === 0) {
+    gestures.push({ gestureName: selectNonRepeatingGesture('neutral'), delaySec: 0.1 });
   }
+
+  // Filter out overlapping gestures (spacing minimum 2.1 seconds)
+  const nonOverlapping: Array<{ gestureName: string; delaySec: number }> = [];
+  let lastEnd = 0;
+  for (const g of gestures) {
+    if (g.delaySec >= lastEnd) {
+      nonOverlapping.push(g);
+      lastEnd = g.delaySec + 2.1;
+    }
+  }
+
+  return nonOverlapping;
 }
 
 export class PerformanceController {
   public vrm: VRM | null = null;
   public mixer: THREE.AnimationMixer | null = null;
   public audio: HTMLAudioElement | null = null;
-  public analyser: AnalyserNode | null = null;
   public currentGestureAction: THREE.AnimationAction | null = null;
   public idleAction: THREE.AnimationAction | null = null;
-  private activeGestureListener: ((e: any) => void) | null = null;
 
-  private audioCtx: AudioContext | null = null;
-  private mediaSourceMap: WeakMap<HTMLAudioElement, MediaElementAudioSourceNode> = new WeakMap();
   private animationClips: Record<string, THREE.AnimationClip> = {};
   private gestureTimeouts: number[] = [];
   private isSpeaking: boolean = false;
@@ -127,15 +183,28 @@ export class PerformanceController {
   private gazeInterval: any = null;
   private gazeTimeout: any = null;
   private idleRotationInterval: any = null;
-  private currentIdleName: string = 'idle';
-  private freqDataArray: Uint8Array | null = null;
+  private currentIdleName: string = 'idle_default';
+
+  // Available idle loops in rotation pool
+  private idlePool: string[] = [
+    'idle_default',
+    'idle_weight_shift_left',
+    'idle_weight_shift_right',
+    'idle_contemplative',
+    'idle_attentive',
+    'idle_relaxed_sigh'
+  ];
 
   constructor() {
     this.setupGazeInterval();
     this.setupIdleRotation();
   }
 
-  public init(vrm: VRM | null, mixer: THREE.AnimationMixer | null, animationClips: Record<string, THREE.AnimationClip> = {}) {
+  public init(
+    vrm: VRM | null,
+    mixer: THREE.AnimationMixer | null,
+    animationClips: Record<string, THREE.AnimationClip> = {}
+  ) {
     this.vrm = vrm;
     this.mixer = mixer;
     this.animationClips = animationClips;
@@ -145,371 +214,177 @@ export class PerformanceController {
     }
   }
 
+  /**
+   * Sets up periodic organic idle rotation.
+   * Gracefully crossfades between 6 standing postures every 9-15 seconds.
+   */
   private setupIdleRotation() {
     if (typeof window === 'undefined') return;
     if (this.idleRotationInterval) clearInterval(this.idleRotationInterval);
 
-    // Idle Variation Pool: Rotate between 2-3 clips every 16-24s
     this.idleRotationInterval = setInterval(() => {
       if (this.isSpeaking || this.currentGestureAction?.isRunning()) return;
       if (!this.mixer) return;
 
-      const idleCandidates = ['idle', 'idle_weight_shift', 'idle_contemplative', 'procedural_idle'].filter(
-        name => !!this.animationClips[name]
-      );
+      const available = this.idlePool.filter(name => !!this.animationClips[name]);
+      if (available.length <= 1) return;
 
-      if (idleCandidates.length <= 1) return;
-
-      const otherIdles = idleCandidates.filter(name => name !== this.currentIdleName);
-      const nextIdleName = otherIdles[Math.floor(Math.random() * otherIdles.length)] || idleCandidates[0];
-      const nextClip = this.animationClips[nextIdleName];
+      const candidates = available.filter(name => name !== this.currentIdleName);
+      const nextName = candidates[Math.floor(Math.random() * candidates.length)] || available[0];
+      const nextClip = this.animationClips[nextName];
 
       if (!nextClip) return;
 
       const nextAction = this.mixer.clipAction(nextClip);
       nextAction.reset();
       nextAction.setLoop(THREE.LoopRepeat, Infinity);
-      nextAction.fadeIn(0.8);
+      nextAction.clampWhenFinished = false;
+      nextAction.fadeIn(1.2);
       nextAction.play();
 
       if (this.idleAction && this.idleAction !== nextAction) {
-        this.idleAction.fadeOut(0.8);
+        this.idleAction.fadeOut(1.2);
       }
 
       this.idleAction = nextAction;
-      this.currentIdleName = nextIdleName;
-    }, 18000 + Math.random() * 6000);
+      this.currentIdleName = nextName;
+    }, 11000 + Math.random() * 5000);
   }
 
-  public setAudioElement(audioElement: HTMLAudioElement | null) {
-    if (!audioElement) {
-      this.audio = null;
-      return;
-    }
+  public resolveGestureClip(name: string): THREE.AnimationClip | null {
+    if (this.animationClips[name]) return this.animationClips[name];
 
-    this.audio = audioElement;
-    this.analyser = this.setupAnalyser(audioElement);
-  }
-
-  public setupAnalyser(audioElement: HTMLAudioElement): AnalyserNode | null {
-    try {
-      this.audioCtx = getAudioContext();
-      
-      if (!this.audioCtx) return null;
-
-      let source = this.mediaSourceMap.get(audioElement);
-      if (!source) {
-        source = this.audioCtx.createMediaElementSource(audioElement);
-        this.mediaSourceMap.set(audioElement, source);
+    // Check lowercase / partial matches
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(this.animationClips)) {
+      if (key.toLowerCase() === lower || key.includes(lower)) {
+        return this.animationClips[key];
       }
-
-      if (!this.analyser) {
-        this.analyser = this.audioCtx.createAnalyser();
-        this.analyser.fftSize = 256;
-        this.analyser.smoothingTimeConstant = 0.5;
-      }
-
-      try {
-        source.disconnect();
-      } catch (_) {}
-
-      source.connect(this.analyser);
-      this.analyser.connect(this.audioCtx.destination);
-
-      return this.analyser;
-    } catch (e) {
-      console.warn('[PerformanceController] Web Audio setup exception:', e);
-      return null;
     }
+
+    return (
+      this.animationClips['nod_gentle'] ||
+      this.animationClips['wave_warm'] ||
+      this.animationClips['idle_default'] ||
+      null
+    );
   }
 
-  public getCurrentAmplitude(): number {
-    if (!this.analyser) return 0;
-    try {
-      const binCount = this.analyser.frequencyBinCount;
-      if (!this.freqDataArray || this.freqDataArray.length !== binCount) {
-        this.freqDataArray = new Uint8Array(binCount);
-      }
-      this.analyser.getByteFrequencyData(this.freqDataArray);
-      let sum = 0;
-      for (let i = 0; i < binCount; i++) {
-        sum += this.freqDataArray[i];
-      }
-      const avg = sum / (binCount || 1);
-      return avg / 255; // normalized 0-1
-    } catch (_) {
-      return 0;
-    }
-  }
+  /**
+   * Plays a gesture with human organic timing, micro-speed randomization, and smooth C^2 crossfade.
+   */
+  public playGesture(gestureName: string, onComplete?: () => void): THREE.AnimationAction | null {
+    if (!this.mixer) return null;
 
-  public driveLipSync(amplitude: number) {
-    if (!this.vrm || !this.vrm.expressionManager) return;
-    const mouthOpenValue = Math.min(amplitude * 1.8, 1.0); // scale and clamp
-    this.vrm.expressionManager.setValue('aa', mouthOpenValue);
-  }
-
-  public driveSecondaryMotion(amplitude: number) {
-    if (!this.vrm || !this.vrm.humanoid) return;
-    const head = this.vrm.humanoid.getNormalizedBoneNode('head');
-    if (head) {
-      // Eased natural head cadence correlated with spoken audio energy
-      const easedAmp = easeInOutCubic(Math.min(amplitude * 1.4, 1.0));
-      const bobCycle = Math.sin(performance.now() * 0.005);
-      head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, bobCycle * 0.028 * (0.35 + easedAmp), 0.15);
-    }
-  }
-
-  public pickGestureClip(emotionTag: string): THREE.AnimationClip | null {
-    const pool = GESTURE_POOL[emotionTag] || GESTURE_POOL.calm;
-    const clipName = pool[Math.floor(Math.random() * pool.length)];
-
-    let clip = this.animationClips[clipName];
-    if (!clip) {
-      if (clipName.includes('nod')) clip = this.animationClips['nod'] || this.animationClips['gesture_soft_nod'];
-      else if (clipName.includes('wave')) clip = this.animationClips['wave'] || this.animationClips['gesture_wave'];
-      else if (clipName.includes('laugh')) clip = this.animationClips['laugh'] || this.animationClips['cheer'];
-      else if (clipName.includes('think') || clipName.includes('chin') || clipName.includes('look')) clip = this.animationClips['think'] || this.animationClips['gesture_chin_touch'];
-      else if (clipName.includes('cheer') || clipName.includes('hands')) clip = this.animationClips['cheer'] || this.animationClips['gesture_hands_up'];
-      else clip = this.animationClips['wave'] || this.animationClips['nod'] || this.animationClips['procedural_idle'];
-    }
-    return clip || null;
-  }
-
-  public playGesture(emotionTag: string) {
-    if (!this.mixer) return;
-    this.currentEmotion = emotionTag;
-
-    const clip = this.pickGestureClip(emotionTag);
-    if (!clip) return;
-
-    if (this.activeGestureListener && this.mixer) {
-      this.mixer.removeEventListener('finished', this.activeGestureListener as any);
-      this.activeGestureListener = null;
-    }
+    const clip = this.resolveGestureClip(gestureName);
+    if (!clip) return null;
 
     const action = this.mixer.clipAction(clip);
+    const clipDuration = clip.duration || 2.0;
+
+    // Organic speed variation (0.94x - 1.06x) so no two repetitions are mechanically identical
+    action.timeScale = THREE.MathUtils.randFloat(0.94, 1.06);
 
     action.reset();
     action.setLoop(THREE.LoopOnce, 1);
-    action.clampWhenFinished = false; // CRITICAL: do not hold the last frame
-    action.fadeIn(0.18); // crossfade in, four-phase preparation
+    action.clampWhenFinished = false;
+    action.fadeIn(0.28);
 
-    const currentAction = this.currentGestureAction;
-    if (currentAction && currentAction !== action) {
-      currentAction.fadeOut(0.25);
+    const prevAction = this.currentGestureAction;
+    if (prevAction && prevAction !== action && prevAction.isRunning()) {
+      prevAction.fadeOut(0.28);
     }
 
     action.play();
     this.currentGestureAction = action;
 
     const mixer = this.mixer;
-    const idleAction = this.idleAction || (this.animationClips['idle'] ? mixer.clipAction(this.animationClips['idle']) : (this.animationClips['procedural_idle'] ? mixer.clipAction(this.animationClips['procedural_idle']) : null));
+    const currentIdleClip = this.animationClips[this.currentIdleName] || this.animationClips['idle_default'] || this.animationClips['idle'];
+    const idleAction = currentIdleClip ? mixer.clipAction(currentIdleClip) : this.idleAction;
 
-    const onFinish = (e: THREE.Event & { action?: THREE.AnimationAction }) => {
-      if (e.action === action) {
+    // Fade idle out softly during active gesture
+    if (idleAction && idleAction !== action) {
+      idleAction.fadeOut(0.28);
+    }
+
+    // Crossfade back to idle loop before gesture finishes
+    const fadeOutDuration = 0.45;
+    const effectiveDuration = clipDuration / action.timeScale;
+    const fadeOutDelayMs = Math.max(120, (effectiveDuration - fadeOutDuration) * 1000);
+
+    const fadeOutTimer = window.setTimeout(() => {
+      if (this.currentGestureAction === action) {
+        action.fadeOut(fadeOutDuration);
         if (idleAction) {
-          idleAction.reset().fadeIn(0.35).play();
-        }
-        action.fadeOut(0.35);
-        mixer.removeEventListener('finished', onFinish as any);
-        if (this.activeGestureListener === onFinish as any) {
-          this.activeGestureListener = null;
-        }
-        if (this.currentGestureAction === action) {
-          this.currentGestureAction = null;
+          idleAction.reset().fadeIn(fadeOutDuration).play();
         }
       }
-    };
-    this.activeGestureListener = onFinish as any;
-    mixer.addEventListener('finished', onFinish as any);
+    }, fadeOutDelayMs);
+    this.gestureTimeouts.push(fadeOutTimer);
+
+    const finishTimer = window.setTimeout(() => {
+      if (this.currentGestureAction === action) {
+        this.currentGestureAction = null;
+      }
+      onComplete?.();
+    }, effectiveDuration * 1000);
+    this.gestureTimeouts.push(finishTimer);
+
+    return action;
   }
 
-  public applyEmotionState(emotionTag: string) {
-    if (!this.vrm || !this.vrm.expressionManager) return;
+  public scheduleGestureBeats(text: string, emotionTag: string, audioDuration: number) {
+    this.clearScheduledBeats();
     this.currentEmotion = emotionTag;
 
-    const expressionMap: Record<string, { happy: number; relaxed: number; surprised: number }> = {
-      happy: { happy: 0.8, relaxed: 0.1, surprised: 0.1 },
-      thoughtful: { happy: 0.05, relaxed: 0.2, surprised: 0.05 },
-      playful: { happy: 0.85, relaxed: 0.1, surprised: 0.2 },
-      calm: { happy: 0.2, relaxed: 0.8, surprised: 0 },
-      warm: { happy: 0.4, relaxed: 0.5, surprised: 0 },
-      excited: { happy: 0.95, relaxed: 0, surprised: 0.4 },
-      affectionate: { happy: 0.8, relaxed: 0.3, surprised: 0 },
-      shy: { happy: 0.25, relaxed: 0.1, surprised: 0.1 },
-    };
+    const plannedGestures = detectGesturesForMessage(text, emotionTag, audioDuration);
 
-    const target = expressionMap[emotionTag] || expressionMap.warm;
-    this.vrm.expressionManager.setValue('happy', target.happy);
-    this.vrm.expressionManager.setValue('relaxed', target.relaxed);
-    this.vrm.expressionManager.setValue('surprised', target.surprised);
-  }
+    plannedGestures.forEach(({ gestureName, delaySec }) => {
+      const delayMs = Math.max(30, Math.round(delaySec * 1000));
+      const timerId = window.setTimeout(() => {
+        if (!this.isSpeaking) return; // Discard if speech was stopped or muted
+        this.playGesture(gestureName);
+      }, delayMs);
 
-  /**
-   * Generates calculated word boundaries when TTS word-level data is unavailable,
-   * weighting word length and punctuation pauses to maintain synchrony.
-   */
-  public extractOrEstimateWordBoundaries(text: string, audioDurationMs: number): WordBoundary[] {
-    if (!text || text.trim().length === 0) return [];
-
-    const rawWords = text.trim().split(/\s+/);
-    if (rawWords.length === 0) return [];
-
-    let totalWeight = 0;
-    const wordWeights = rawWords.map((w) => {
-      let weight = Math.max(1, w.length);
-      if (/[.!?,;:]$/.test(w)) {
-        weight += 3; // pause weight
-      }
-      totalWeight += weight;
-      return weight;
+      this.gestureTimeouts.push(timerId);
     });
-
-    let currentMs = 120; // brief audio start lead-in
-    const availableMs = Math.max(100, audioDurationMs - 200);
-
-    return rawWords.map((word, i) => {
-      const fraction = wordWeights[i] / (totalWeight || 1);
-      const duration = fraction * availableMs;
-      const offsetMs = currentMs;
-      currentMs += duration;
-      return {
-        word,
-        offsetMs,
-        durationMs: duration,
-      };
-    });
-  }
-
-  /**
-   * Schedule gestures from real or estimated word-boundary data,
-   * landing the stroke peak at or slightly before emphasized/stressed words,
-   * while ensuring retraction completes fully before the next gesture begins.
-   */
-  public scheduleGesturesFromWordBoundaries(
-    wordBoundaries: WordBoundary[],
-    emotionTag: string,
-    audioDuration: number
-  ) {
-    this.clearScheduledBeats();
-    if (!this.mixer) return;
-
-    const audioDurationMs = audioDuration * 1000;
-    this.applyEmotionState(emotionTag);
-
-    // Identify likely emphasis points: longer words, words before punctuation, or stressed tokens
-    const emphasisWords = wordBoundaries.filter((w) => {
-      const isBeforePunctuation = /[.!?,]$/.test(w.word);
-      const isLongWord = w.word.replace(/[^\w]/g, '').length > 5;
-      return isBeforePunctuation || isLongWord;
-    });
-
-    const candidateWords = emphasisWords.length > 0
-      ? emphasisWords
-      : wordBoundaries.filter((_, idx) => idx % Math.max(1, Math.floor(wordBoundaries.length / 3)) === 0);
-
-    let currentGesturePhaseEndTime = 0;
-
-    for (const word of candidateWords) {
-      const clip = this.pickGestureClip(emotionTag);
-      if (!clip) continue;
-
-      const prepDuration = 180;
-      const strokeDuration = 220;
-      const strokeLeadTime = strokeDuration * 0.4;
-      let targetTime = word.offsetMs;
-      let calculatedStartTime = targetTime - prepDuration - strokeLeadTime;
-
-      // Retraction Non-Overlap Rule:
-      // If a new gesture's calculated start time would overlap with the previous gesture's
-      // retraction phase still finishing, delay the new one slightly rather than cutting retraction short.
-      if (!canStartNewGesture(currentGesturePhaseEndTime, calculatedStartTime)) {
-        calculatedStartTime = currentGesturePhaseEndTime + 60; // graceful transition margin
-        targetTime = calculatedStartTime + prepDuration + strokeLeadTime;
-      }
-
-      // Do not schedule gestures past the end of speech
-      if (calculatedStartTime > audioDurationMs - 450) {
-        break;
-      }
-
-      const phasedGesture = new PhasedGesture(this.mixer, clip);
-      const scheduled = phasedGesture.playTimedTo(
-        targetTime,
-        (action) => {
-          if (this.currentGestureAction && this.currentGestureAction !== action) {
-            this.currentGestureAction.fadeOut(0.2);
-          }
-          this.currentGestureAction = action;
-          if (this.idleAction) {
-            this.idleAction.fadeOut(0.25);
-          }
-        },
-        () => {
-          if (this.currentGestureAction === scheduled.action) {
-            this.currentGestureAction = null;
-          }
-          if (this.idleAction && !this.currentGestureAction) {
-            this.idleAction.reset().fadeIn(0.35).play();
-          }
-        }
-      );
-
-      currentGesturePhaseEndTime = scheduled.retractEndTime;
-      this.gestureTimeouts.push(scheduled.timeoutId);
-    }
-  }
-
-  public scheduleGestureBeats(
-    text: string,
-    emotionTag: string,
-    audioDuration: number,
-    wordBoundaries?: WordBoundary[]
-  ) {
-    this.clearScheduledBeats();
-    console.log(`[PerformanceController] Scheduling synchronized gestures. Emotion: ${emotionTag}, Duration: ${audioDuration}s`);
-
-    const boundaries = (wordBoundaries && wordBoundaries.length > 0)
-      ? wordBoundaries
-      : this.extractOrEstimateWordBoundaries(text, audioDuration * 1000);
-
-    if (boundaries.length === 0) {
-      this.playGesture(emotionTag);
-      return;
-    }
-
-    this.scheduleGesturesFromWordBoundaries(boundaries, emotionTag, audioDuration);
   }
 
   public clearScheduledBeats() {
-    this.gestureTimeouts.forEach((id) => clearTimeout(id));
+    this.gestureTimeouts.forEach(id => clearTimeout(id));
     this.gestureTimeouts = [];
   }
 
   public startSpeechPerformance(
-    audioElement: HTMLAudioElement,
+    audioElement: HTMLAudioElement | null,
     text: string,
     emotionTag: string,
-    duration: number,
-    wordBoundaries?: WordBoundary[]
+    duration: number
   ) {
     this.isSpeaking = true;
-    console.log('[PerformanceController] Speech performance started. Audio duration:', duration, 'Emotion:', emotionTag);
-    this.setAudioElement(audioElement);
-    this.scheduleGestureBeats(text, emotionTag, duration, wordBoundaries);
+    this.audio = audioElement;
+    this.currentEmotion = emotionTag;
+
+    vrmAudioSync.startSpeech(text, duration, audioElement);
+    this.scheduleGestureBeats(text, emotionTag, duration);
   }
 
   public stopSpeechPerformance() {
-    console.log('[PerformanceController] Stopping speech performance & clearing timeouts.');
     this.isSpeaking = false;
+    this.audio = null;
     this.clearScheduledBeats();
+
+    vrmAudioSync.stopSpeech();
+
     if (this.currentGestureAction) {
-      this.currentGestureAction.fadeOut(0.4);
+      this.currentGestureAction.fadeOut(0.35);
       this.currentGestureAction = null;
     }
-    if (this.idleAction) {
-      this.idleAction.reset().fadeIn(0.4).play();
+
+    if (this.idleAction && this.mixer) {
+      this.idleAction.reset().fadeIn(0.35).play();
     }
+
     if (this.vrm) {
       resetToNeutralExpression(this.vrm);
     }
@@ -519,46 +394,34 @@ export class PerformanceController {
     if (typeof window === 'undefined') return;
     if (this.gazeInterval) clearInterval(this.gazeInterval);
     if (this.gazeTimeout) clearTimeout(this.gazeTimeout);
+
     this.gazeInterval = setInterval(() => {
       if (!this.vrm || !this.vrm.lookAt) return;
 
-      if (Math.random() < 0.3) {
+      // Natural human micro-gaze shift: brief organic glance away (650ms)
+      if (Math.random() < 0.22) {
         const cursorTarget = this.cursorTarget || this.vrm.lookAt.target;
-        this.vrm.lookAt.target = null; // briefly stop tracking
+        this.vrm.lookAt.target = null;
         if (this.gazeTimeout) clearTimeout(this.gazeTimeout);
         this.gazeTimeout = setTimeout(() => {
           if (this.vrm && this.vrm.lookAt) {
             this.vrm.lookAt.target = cursorTarget;
           }
-        }, 800 + Math.random() * 600);
+        }, 600 + Math.random() * 400);
       }
-    }, 6000);
+    }, 7000);
   }
 
-  public update() {
-    if (!this.vrm) return;
-
-    let amplitude = 0;
-    if (this.audio && !this.audio.paused && !this.audio.ended) {
-      amplitude = this.getCurrentAmplitude();
-      this.driveLipSync(amplitude);
-      this.driveSecondaryMotion(amplitude);
-    } else if (this.isSpeaking) {
-      this.driveLipSync(0);
-      this.driveSecondaryMotion(0);
-    }
+  public update(_delta: number = 0.016) {
+    // Kinematics and poses are driven authoritatively by AnimationMixer.
+    // Kept clean of any direct joint overrides to guarantee zero mechanical jitter.
   }
 
   public dispose() {
     this.clearScheduledBeats();
-    if (this.gazeInterval) {
-      clearInterval(this.gazeInterval);
-      this.gazeInterval = null;
-    }
-    if (this.gazeTimeout) {
-      clearTimeout(this.gazeTimeout);
-      this.gazeTimeout = null;
-    }
+    if (this.idleRotationInterval) clearInterval(this.idleRotationInterval);
+    if (this.gazeInterval) clearInterval(this.gazeInterval);
+    if (this.gazeTimeout) clearTimeout(this.gazeTimeout);
   }
 }
 

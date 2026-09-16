@@ -3,14 +3,18 @@ import * as THREE from 'three';
 import { safeUpdateMatrixWorld, safeSetFromObject } from './companionRenderer';
 
 export const HUMAN_REST_EULERS = {
-  leftShoulder: new THREE.Euler(-0.02, 0, -0.04),
-  rightShoulder: new THREE.Euler(-0.02, 0, 0.04),
-  leftUpperArm: new THREE.Euler(0.12, 0.06, -1.28),
-  rightUpperArm: new THREE.Euler(0.12, -0.06, 1.28),
-  leftLowerArm: new THREE.Euler(0.34, -0.12, 0.04),
-  rightLowerArm: new THREE.Euler(0.34, 0.12, -0.04),
-  leftHand: new THREE.Euler(0.08, 0.06, 0.05),
-  rightHand: new THREE.Euler(0.08, -0.06, -0.05),
+  leftShoulder: new THREE.Euler(0.01, 0.01, -0.02),
+  rightShoulder: new THREE.Euler(0.01, -0.01, 0.02),
+  // Upper arms hang down naturally at her sides with safe outward clearance (~14° outward)
+  // preventing arms from clipping into skirts, dresses, coats, or thighs
+  leftUpperArm: new THREE.Euler(0.06, 0.08, -1.32),
+  rightUpperArm: new THREE.Euler(0.06, -0.08, 1.32),
+  // Lower arms have a gentle natural flex at the elbow (~8-10° bend) hanging straight down beside her body
+  leftLowerArm: new THREE.Euler(0.12, 0.12, -0.08),
+  rightLowerArm: new THREE.Euler(0.12, -0.12, 0.08),
+  // Hands hang naturally alongside hips/thighs, palms facing softly inward towards the thighs
+  leftHand: new THREE.Euler(0.06, 0.10, -0.08),
+  rightHand: new THREE.Euler(0.06, -0.10, 0.08),
   spine: new THREE.Euler(0.02, 0, 0),
   chest: new THREE.Euler(-0.025, 0, 0),
   upperChest: new THREE.Euler(-0.015, 0, 0),
@@ -25,20 +29,30 @@ export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
   const isLeft = side === 'left';
   const sign = isLeft ? 1 : -1;
 
-  // 1. Wrist (Hand bone)
+  // 1. Wrist (Hand bone) - Oriented so hands hang naturally beside hips/thighs
   const handBone = h.getNormalizedBoneNode(`${side}Hand` as any);
   if (handBone) {
-    handBone.rotation.set(0.08, 0.06 * sign, 0.05 * sign);
+    if (isLeft) {
+      handBone.rotation.copy(HUMAN_REST_EULERS.leftHand);
+    } else {
+      handBone.rotation.copy(HUMAN_REST_EULERS.rightHand);
+    }
   }
 
-  // 2. Natural finger curl parameters for human anatomy
-  // Pinky and Ring curl deeper at rest than Index and Middle; fingers splay gently toward palm center
-  const fingerCurvature: Record<string, { x: [number, number, number]; y: number; z: number }> = {
-    Index: { x: [0.26, 0.38, 0.24], y: 0.04 * sign, z: 0.03 * sign },
-    Middle: { x: [0.32, 0.48, 0.30], y: 0, z: 0 },
-    Ring: { x: [0.40, 0.58, 0.34], y: -0.03 * sign, z: -0.02 * sign },
-    Little: { x: [0.46, 0.66, 0.38], y: -0.06 * sign, z: -0.04 * sign },
-  };
+  // 2. Natural relaxed finger curvature for hands resting beside thighs
+  const fingerCurvature: Record<string, { x: [number, number, number]; y: number; z: number }> = isLeft
+    ? {
+        Index: { x: [0.18, 0.24, 0.16], y: 0.01, z: 0.01 },
+        Middle: { x: [0.22, 0.28, 0.18], y: 0.0, z: 0.0 },
+        Ring: { x: [0.25, 0.32, 0.20], y: -0.01, z: -0.01 },
+        Little: { x: [0.28, 0.36, 0.22], y: -0.02, z: -0.02 },
+      }
+    : {
+        Index: { x: [0.18, 0.24, 0.16], y: -0.01, z: -0.01 },
+        Middle: { x: [0.22, 0.28, 0.18], y: 0.0, z: 0.0 },
+        Ring: { x: [0.25, 0.32, 0.20], y: 0.01, z: 0.01 },
+        Little: { x: [0.28, 0.36, 0.22], y: 0.02, z: 0.02 },
+      };
 
   const segments = ['Proximal', 'Intermediate', 'Distal'];
 
@@ -48,7 +62,6 @@ export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
       const bone = h.getNormalizedBoneNode(boneName);
       if (bone) {
         const curlX = config.x[i];
-        // Primary curl is local X, with slight lateral fan on proximal joint
         if (i === 0) {
           bone.rotation.set(curlX, config.y, config.z);
         } else {
@@ -58,19 +71,19 @@ export function applyRelaxedHandPose(vrm: VRM, side: 'left' | 'right') {
     });
   });
 
-  // 3. Thumb opposition and gentle resting flex
+  // 3. Thumb resting naturally alongside index finger
   const thumbProximal = h.getNormalizedBoneNode(`${side}ThumbProximal` as any);
   const thumbIntermediate = h.getNormalizedBoneNode(`${side}ThumbIntermediate` as any);
   const thumbDistal = h.getNormalizedBoneNode(`${side}ThumbDistal` as any);
 
   if (thumbProximal) {
-    thumbProximal.rotation.set(0.22, 0.25 * sign, -0.30 * sign);
+    thumbProximal.rotation.set(0.14, 0.12 * sign, -0.14 * sign);
   }
   if (thumbIntermediate) {
-    thumbIntermediate.rotation.set(0.18, 0.08 * sign, -0.15 * sign);
+    thumbIntermediate.rotation.set(0.10, 0.04 * sign, -0.08 * sign);
   }
   if (thumbDistal) {
-    thumbDistal.rotation.set(0.20, 0, -0.10 * sign);
+    thumbDistal.rotation.set(0.10, 0, -0.04 * sign);
   }
 }
 
@@ -87,6 +100,8 @@ export function applyRestPose(vrm: VRM) {
   const rightUpperArm = h.getNormalizedBoneNode('rightUpperArm');
   const leftLowerArm = h.getNormalizedBoneNode('leftLowerArm');
   const rightLowerArm = h.getNormalizedBoneNode('rightLowerArm');
+  const leftHand = h.getNormalizedBoneNode('leftHand');
+  const rightHand = h.getNormalizedBoneNode('rightHand');
   const spine = h.getNormalizedBoneNode('spine');
   const chest = h.getNormalizedBoneNode('chest');
   const upperChest = h.getNormalizedBoneNode('upperChest');
@@ -99,6 +114,8 @@ export function applyRestPose(vrm: VRM) {
   if (rightUpperArm) rightUpperArm.rotation.copy(HUMAN_REST_EULERS.rightUpperArm);
   if (leftLowerArm) leftLowerArm.rotation.copy(HUMAN_REST_EULERS.leftLowerArm);
   if (rightLowerArm) rightLowerArm.rotation.copy(HUMAN_REST_EULERS.rightLowerArm);
+  if (leftHand) leftHand.rotation.copy(HUMAN_REST_EULERS.leftHand);
+  if (rightHand) rightHand.rotation.copy(HUMAN_REST_EULERS.rightHand);
   if (spine) spine.rotation.copy(HUMAN_REST_EULERS.spine);
   if (chest) chest.rotation.copy(HUMAN_REST_EULERS.chest);
   if (upperChest) upperChest.rotation.copy(HUMAN_REST_EULERS.upperChest);

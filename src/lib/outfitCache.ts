@@ -128,7 +128,7 @@ export function preloadAllOutfits(caller = 'root'): Promise<Record<string, Cache
         try {
           const idleUrl = new URL(`../assets/animations/mixamo/idle.fbx`, import.meta.url).href;
           const idleClip = await loadMixamoAnimation(idleUrl, vrm);
-          if (idleClip) clips['idle'] = idleClip;
+          if (idleClip) clips['mixamo_idle'] = idleClip;
         } catch (animErr) {
           // Silently ignore optional anim load failure
         }

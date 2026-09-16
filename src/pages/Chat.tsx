@@ -711,15 +711,18 @@ export default function Chat() {
     queuedChunksRef.current = 0;
     isStreamFinishedRef.current = true;
     window.dispatchEvent(new CustomEvent('lyraSpeak', { detail: 'neutral' }));
+    window.dispatchEvent(new CustomEvent('lyraSpeechEnd'));
   };
 
   const speakTextChunk = (text: string, enqueue = true) => {
-    if (!companionProfileRef.current || isMutedRef.current) {
-       return;
-    }
-
     const cleanText = sanitizeSpeechText(text);
     if (!cleanText) {
+      return;
+    }
+
+    if (!companionProfileRef.current || isMutedRef.current) {
+      // When muted, display subtitle caption only without audio or lip sync - normal resting mode
+      triggerCaption(cleanText);
       return;
     }
     
@@ -1471,6 +1474,7 @@ export default function Chat() {
                 isPortraitMode={isPortraitMode}
                 isProcessing={isLoading}
                 isListening={isListening}
+                isMuted={isMuted}
                 transparentBg={false}
                 isActive={isChatActive}
                 onModelLoaded={handleModelLoaded}
@@ -1751,6 +1755,7 @@ export default function Chat() {
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
                   isListening={isListening}
+                  isMuted={isMuted}
                   transparentBg={false}
                   isActive={isChatActive}
                   onModelLoaded={handleModelLoaded}
