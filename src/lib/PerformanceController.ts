@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { getAudioContext } from './audioContext';
+import { resetToNeutralExpression } from './poseUtils';
 
 export const GESTURE_POOL: Record<string, string[]> = {
   happy: ['gesture_happy_01', 'gesture_happy_02', 'gesture_wave', 'cheer', 'laugh'],
@@ -13,8 +14,98 @@ export const GESTURE_POOL: Record<string, string[]> = {
   shy: ['gesture_look_up', 'gesture_chin_touch', 'gesture_soft_nod', 'think'],
 };
 
+export interface WordBoundary {
+  word: string;
+  offsetMs: number;
+  durationMs?: number;
+}
+
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+export function canStartNewGesture(currentGesturePhaseEndTime: number, now: number): boolean {
+  return now >= currentGesturePhaseEndTime;
+}
+
+/**
+ * Rebuilt as a research-grounded Four-Phase Gesture Sequence:
+ * 1. Preparation: Moving into position (~180ms)
+ * 2. Stroke: Meaningful expressive peak (~220ms, peak reached partway through)
+ * 3. Hold: Brief pause at the peak (~100ms)
+ * 4. Retraction: Slower return to resting state (~350ms)
+ * 
+ * McNeill's Phonological Synchrony Rule:
+ * The gesture stroke peak must land at or slightly before the stressed/target word, never after it.
+ */
+export class PhasedGesture {
+  public action: THREE.AnimationAction;
+  private mixer: THREE.AnimationMixer;
+
+  constructor(mixer: THREE.AnimationMixer, clip: THREE.AnimationClip) {
+    this.mixer = mixer;
+    this.action = mixer.clipAction(clip);
+  }
+
+  // targetTime: the timestamp (ms, relative to audio start) the STROKE peak should land at
+  public playTimedTo(
+    targetTime: number,
+    onStart?: (action: THREE.AnimationAction) => void,
+    onFinish?: () => void
+  ): {
+    timeoutId: number;
+    startTime: number;
+    strokePeakTime: number;
+    retractEndTime: number;
+    action: THREE.AnimationAction;
+  } {
+    const prepDuration = 180;    // moving into position, brief
+    const strokeDuration = 220;  // the actual expressive peak
+    const holdDuration = 100;    // brief pause at the peak
+    const retractDuration = 350; // return to rest, slower and softer than the stroke itself
+
+    // Schedule so the STROKE's peak lands exactly at or just before targetTime,
+    // per McNeill's synchrony rule, never after.
+    const strokeLeadTime = strokeDuration * 0.4; // stroke peak is reached partway through the stroke phase
+    const startTime = targetTime - prepDuration - strokeLeadTime;
+
+    const delay = Math.max(0, startTime);
+    const strokePeakTime = delay + prepDuration + strokeLeadTime;
+    const totalGestureDuration = prepDuration + strokeDuration + holdDuration + retractDuration;
+    const retractEndTime = delay + totalGestureDuration;
+
+    const timeoutId = window.setTimeout(() => {
+      this.action.reset();
+      this.action.setLoop(THREE.LoopOnce, 1);
+      this.action.clampWhenFinished = false;
+      this.action.fadeIn(prepDuration / 1000);
+      this.action.play();
+
+      if (onStart) {
+        onStart(this.action);
+      }
+
+      // Automatically transition to soft retraction after hold
+      window.setTimeout(() => {
+        this.action.fadeOut(retractDuration / 1000);
+      }, prepDuration + strokeDuration + holdDuration);
+
+      // Clean completion
+      window.setTimeout(() => {
+        if (onFinish) {
+          onFinish();
+        }
+      }, totalGestureDuration);
+    }, delay);
+
+    return {
+      timeoutId,
+      startTime: delay,
+      strokePeakTime,
+      retractEndTime,
+      action: this.action,
+    };
+  }
 }
 
 export class PerformanceController {
@@ -168,10 +259,7 @@ export class PerformanceController {
     }
   }
 
-  public playGesture(emotionTag: string) {
-    if (!this.mixer) return;
-    this.currentEmotion = emotionTag;
-
+  public pickGestureClip(emotionTag: string): THREE.AnimationClip | null {
     const pool = GESTURE_POOL[emotionTag] || GESTURE_POOL.calm;
     const clipName = pool[Math.floor(Math.random() * pool.length)];
 
@@ -184,7 +272,14 @@ export class PerformanceController {
       else if (clipName.includes('cheer') || clipName.includes('hands')) clip = this.animationClips['cheer'] || this.animationClips['gesture_hands_up'];
       else clip = this.animationClips['wave'] || this.animationClips['nod'] || this.animationClips['procedural_idle'];
     }
+    return clip || null;
+  }
 
+  public playGesture(emotionTag: string) {
+    if (!this.mixer) return;
+    this.currentEmotion = emotionTag;
+
+    const clip = this.pickGestureClip(emotionTag);
     if (!clip) return;
 
     if (this.activeGestureListener && this.mixer) {
@@ -197,11 +292,11 @@ export class PerformanceController {
     action.reset();
     action.setLoop(THREE.LoopOnce, 1);
     action.clampWhenFinished = false; // CRITICAL: do not hold the last frame
-    action.fadeIn(0.35); // crossfade in, never a hard cut
+    action.fadeIn(0.18); // crossfade in, four-phase preparation
 
     const currentAction = this.currentGestureAction;
     if (currentAction && currentAction !== action) {
-      currentAction.fadeOut(0.35);
+      currentAction.fadeOut(0.25);
     }
 
     action.play();
@@ -213,9 +308,9 @@ export class PerformanceController {
     const onFinish = (e: THREE.Event & { action?: THREE.AnimationAction }) => {
       if (e.action === action) {
         if (idleAction) {
-          idleAction.reset().fadeIn(0.4).play();
+          idleAction.reset().fadeIn(0.35).play();
         }
-        action.fadeOut(0.4);
+        action.fadeOut(0.35);
         mixer.removeEventListener('finished', onFinish as any);
         if (this.activeGestureListener === onFinish as any) {
           this.activeGestureListener = null;
@@ -250,34 +345,140 @@ export class PerformanceController {
     this.vrm.expressionManager.setValue('surprised', target.surprised);
   }
 
-  public scheduleGestureBeats(text: string, emotionTag: string, audioDuration: number) {
+  /**
+   * Generates calculated word boundaries when TTS word-level data is unavailable,
+   * weighting word length and punctuation pauses to maintain synchrony.
+   */
+  public extractOrEstimateWordBoundaries(text: string, audioDurationMs: number): WordBoundary[] {
+    if (!text || text.trim().length === 0) return [];
+
+    const rawWords = text.trim().split(/\s+/);
+    if (rawWords.length === 0) return [];
+
+    let totalWeight = 0;
+    const wordWeights = rawWords.map((w) => {
+      let weight = Math.max(1, w.length);
+      if (/[.!?,;:]$/.test(w)) {
+        weight += 3; // pause weight
+      }
+      totalWeight += weight;
+      return weight;
+    });
+
+    let currentMs = 120; // brief audio start lead-in
+    const availableMs = Math.max(100, audioDurationMs - 200);
+
+    return rawWords.map((word, i) => {
+      const fraction = wordWeights[i] / (totalWeight || 1);
+      const duration = fraction * availableMs;
+      const offsetMs = currentMs;
+      currentMs += duration;
+      return {
+        word,
+        offsetMs,
+        durationMs: duration,
+      };
+    });
+  }
+
+  /**
+   * Schedule gestures from real or estimated word-boundary data,
+   * landing the stroke peak at or slightly before emphasized/stressed words,
+   * while ensuring retraction completes fully before the next gesture begins.
+   */
+  public scheduleGesturesFromWordBoundaries(
+    wordBoundaries: WordBoundary[],
+    emotionTag: string,
+    audioDuration: number
+  ) {
     this.clearScheduledBeats();
-    console.log(`[PerformanceController] Scheduling gesture beats. Emotion: ${emotionTag}, Duration: ${audioDuration}s, Text: "${text.substring(0, 40)}..."`);
-    
+    if (!this.mixer) return;
+
+    const audioDurationMs = audioDuration * 1000;
     this.applyEmotionState(emotionTag);
 
-    if (!text || !audioDuration || audioDuration <= 0) {
-      this.playGesture(emotionTag);
-      return;
-    }
-
-    const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0);
-    if (sentences.length === 0) {
-      this.playGesture(emotionTag);
-      return;
-    }
-
-    const timePerSentence = (audioDuration * 1000) / sentences.length;
-
-    sentences.forEach((_, i) => {
-      const timeoutId = window.setTimeout(() => {
-        if (this.isSpeaking) {
-          console.log(`[PerformanceController] Executing sentence beat ${i + 1}/${sentences.length} for emotion: ${emotionTag}`);
-          this.playGesture(emotionTag);
-        }
-      }, i * timePerSentence);
-      this.gestureTimeouts.push(timeoutId);
+    // Identify likely emphasis points: longer words, words before punctuation, or stressed tokens
+    const emphasisWords = wordBoundaries.filter((w) => {
+      const isBeforePunctuation = /[.!?,]$/.test(w.word);
+      const isLongWord = w.word.replace(/[^\w]/g, '').length > 5;
+      return isBeforePunctuation || isLongWord;
     });
+
+    const candidateWords = emphasisWords.length > 0
+      ? emphasisWords
+      : wordBoundaries.filter((_, idx) => idx % Math.max(1, Math.floor(wordBoundaries.length / 3)) === 0);
+
+    let currentGesturePhaseEndTime = 0;
+
+    for (const word of candidateWords) {
+      const clip = this.pickGestureClip(emotionTag);
+      if (!clip) continue;
+
+      const prepDuration = 180;
+      const strokeDuration = 220;
+      const strokeLeadTime = strokeDuration * 0.4;
+      let targetTime = word.offsetMs;
+      let calculatedStartTime = targetTime - prepDuration - strokeLeadTime;
+
+      // Retraction Non-Overlap Rule:
+      // If a new gesture's calculated start time would overlap with the previous gesture's
+      // retraction phase still finishing, delay the new one slightly rather than cutting retraction short.
+      if (!canStartNewGesture(currentGesturePhaseEndTime, calculatedStartTime)) {
+        calculatedStartTime = currentGesturePhaseEndTime + 60; // graceful transition margin
+        targetTime = calculatedStartTime + prepDuration + strokeLeadTime;
+      }
+
+      // Do not schedule gestures past the end of speech
+      if (calculatedStartTime > audioDurationMs - 450) {
+        break;
+      }
+
+      const phasedGesture = new PhasedGesture(this.mixer, clip);
+      const scheduled = phasedGesture.playTimedTo(
+        targetTime,
+        (action) => {
+          if (this.currentGestureAction && this.currentGestureAction !== action) {
+            this.currentGestureAction.fadeOut(0.2);
+          }
+          this.currentGestureAction = action;
+          if (this.idleAction) {
+            this.idleAction.fadeOut(0.25);
+          }
+        },
+        () => {
+          if (this.currentGestureAction === scheduled.action) {
+            this.currentGestureAction = null;
+          }
+          if (this.idleAction && !this.currentGestureAction) {
+            this.idleAction.reset().fadeIn(0.35).play();
+          }
+        }
+      );
+
+      currentGesturePhaseEndTime = scheduled.retractEndTime;
+      this.gestureTimeouts.push(scheduled.timeoutId);
+    }
+  }
+
+  public scheduleGestureBeats(
+    text: string,
+    emotionTag: string,
+    audioDuration: number,
+    wordBoundaries?: WordBoundary[]
+  ) {
+    this.clearScheduledBeats();
+    console.log(`[PerformanceController] Scheduling synchronized gestures. Emotion: ${emotionTag}, Duration: ${audioDuration}s`);
+
+    const boundaries = (wordBoundaries && wordBoundaries.length > 0)
+      ? wordBoundaries
+      : this.extractOrEstimateWordBoundaries(text, audioDuration * 1000);
+
+    if (boundaries.length === 0) {
+      this.playGesture(emotionTag);
+      return;
+    }
+
+    this.scheduleGesturesFromWordBoundaries(boundaries, emotionTag, audioDuration);
   }
 
   public clearScheduledBeats() {
@@ -285,11 +486,17 @@ export class PerformanceController {
     this.gestureTimeouts = [];
   }
 
-  public startSpeechPerformance(audioElement: HTMLAudioElement, text: string, emotionTag: string, duration: number) {
+  public startSpeechPerformance(
+    audioElement: HTMLAudioElement,
+    text: string,
+    emotionTag: string,
+    duration: number,
+    wordBoundaries?: WordBoundary[]
+  ) {
     this.isSpeaking = true;
     console.log('[PerformanceController] Speech performance started. Audio duration:', duration, 'Emotion:', emotionTag);
     this.setAudioElement(audioElement);
-    this.scheduleGestureBeats(text, emotionTag, duration);
+    this.scheduleGestureBeats(text, emotionTag, duration, wordBoundaries);
   }
 
   public stopSpeechPerformance() {
@@ -303,11 +510,8 @@ export class PerformanceController {
     if (this.idleAction) {
       this.idleAction.reset().fadeIn(0.4).play();
     }
-    if (this.vrm && this.vrm.expressionManager) {
-      this.vrm.expressionManager.setValue('aa', 0);
-      this.vrm.expressionManager.setValue('happy', 0);
-      this.vrm.expressionManager.setValue('relaxed', 0);
-      this.vrm.expressionManager.setValue('surprised', 0);
+    if (this.vrm) {
+      resetToNeutralExpression(this.vrm);
     }
   }
 

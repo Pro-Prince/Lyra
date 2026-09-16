@@ -108,7 +108,35 @@ export function applyRestPose(vrm: VRM) {
   applyRelaxedHandPose(vrm, 'left');
   applyRelaxedHandPose(vrm, 'right');
 
+  resetToNeutralExpression(vrm);
+
   h.update();
+}
+
+/**
+ * Resets all expression blendshapes to their natural resting baseline:
+ * eyes open (blink: 0), mouth closed (aa/ih/ou/ee/oh: 0), subtle natural pleasant warmth (happy: 0.15)
+ */
+export function resetToNeutralExpression(vrm: VRM | null | undefined): void {
+  if (!vrm || !vrm.expressionManager) return;
+  try {
+    vrm.expressionManager.setValue('blink', 0);
+    vrm.expressionManager.setValue('blinkLeft', 0);
+    vrm.expressionManager.setValue('blinkRight', 0);
+    vrm.expressionManager.setValue('aa', 0);      // mouth-open viseme, must be 0 when not speaking
+    vrm.expressionManager.setValue('ih', 0);
+    vrm.expressionManager.setValue('ou', 0);
+    vrm.expressionManager.setValue('ee', 0);
+    vrm.expressionManager.setValue('oh', 0);
+    vrm.expressionManager.setValue('happy', 0.15); // a small, natural pleasant resting expression, NOT a full smile
+    vrm.expressionManager.setValue('angry', 0);
+    vrm.expressionManager.setValue('sad', 0);
+    vrm.expressionManager.setValue('relaxed', 0);
+    vrm.expressionManager.setValue('surprised', 0);
+    vrm.expressionManager.update();
+  } catch (err) {
+    console.warn('[resetToNeutralExpression] Handled expression reset exception:', err);
+  }
 }
 
 /**

@@ -410,6 +410,17 @@ function playWebSpeechFemaleFallback(item: QueuedSpeechItem): Promise<void> {
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.volume = Math.max(0, Math.min(1, item.volume));
 
+    const wordBoundaries: Array<{ word: string; offsetMs: number }> = [];
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        const word = item.text.substring(event.charIndex, event.charIndex + (event.charLength || 6));
+        wordBoundaries.push({
+          word,
+          offsetMs: event.elapsedTime,
+        });
+      }
+    };
+
     // Get all system voices and strictly filter to female voices
     const allVoices = window.speechSynthesis.getVoices();
     const allowedFemaleVoices = filterAllowedVoices(allVoices, 'en');

@@ -13,7 +13,7 @@ import { RotateCcw } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useCompanionMovement } from '../hooks/useCompanionMovement';
 import { RoomEnvironment } from './RoomEnvironment';
-import { applyRestPose, settleVRMPhysics } from '../lib/poseUtils';
+import { applyRestPose, settleVRMPhysics, resetToNeutralExpression } from '../lib/poseUtils';
 import { getCachedOutfit, preloadAllOutfits } from '../lib/outfitCache';
 import { loadCompanionModel, safeUpdateMatrixWorld, safeSetFromObject, safeUpdateVRM, disposeVRM } from '../lib/companionRenderer';
 import { vrmAudioSync } from '../lib/vrmAudioSync';
@@ -49,13 +49,13 @@ interface EmotionExpressionMap {
 }
 
 const EMOTION_EXPRESSIONS: Record<string, EmotionExpressionMap> = {
-  warm: { happy: 0.35, relaxed: 0.45, surprised: 0.0, neutral: 0.2, sad: 0.0 },
-  playful: { happy: 0.75, relaxed: 0.1, surprised: 0.25, neutral: 0.0, sad: 0.0 },
-  thoughtful: { happy: 0.05, relaxed: 0.25, surprised: 0.05, neutral: 0.65, sad: 0.0 },
-  excited: { happy: 0.9, relaxed: 0.0, surprised: 0.45, neutral: 0.0, sad: 0.0 },
-  calm: { happy: 0.2, relaxed: 0.75, surprised: 0.0, neutral: 0.3, sad: 0.0 },
-  affectionate: { happy: 0.8, relaxed: 0.2, surprised: 0.0, neutral: 0.0, sad: 0.0 },
-  shy: { happy: 0.2, relaxed: 0.0, surprised: 0.1, neutral: 0.4, sad: 0.0 }
+  warm: { happy: 0.15, relaxed: 0.25, surprised: 0.0, neutral: 0.75, sad: 0.0 },
+  playful: { happy: 0.65, relaxed: 0.1, surprised: 0.15, neutral: 0.0, sad: 0.0 },
+  thoughtful: { happy: 0.05, relaxed: 0.2, surprised: 0.05, neutral: 0.65, sad: 0.0 },
+  excited: { happy: 0.8, relaxed: 0.0, surprised: 0.35, neutral: 0.0, sad: 0.0 },
+  calm: { happy: 0.15, relaxed: 0.5, surprised: 0.0, neutral: 0.3, sad: 0.0 },
+  affectionate: { happy: 0.65, relaxed: 0.2, surprised: 0.0, neutral: 0.0, sad: 0.0 },
+  shy: { happy: 0.15, relaxed: 0.0, surprised: 0.1, neutral: 0.4, sad: 0.0 }
 };
 
 import { HUMAN_REST_EULERS } from '../lib/poseUtils';
@@ -668,6 +668,82 @@ function useIdleWatchdog(vrm: VRM | null) {
   }, [vrm]);
 }
 
+/**
+ * Human research-accurate blink interval:
+ * Conversation rate: ~26/min => avg ~2.3s
+ * Resting rate: ~16/min => avg ~3.75s
+ */
+function getBlinkInterval(isSpeaking: boolean): number {
+  const avgInterval = isSpeaking ? 2300 : 3750;
+  return avgInterval * (0.6 + Math.random() * 0.8);
+}
+
+function useHumanBlinking(vrm: VRM | null, isSpeakingRef: React.MutableRefObject<boolean>) {
+  useEffect(() => {
+    if (!vrm || !vrm.expressionManager) return;
+
+    let timeoutId: any = null;
+    let doubleBlinkTimeoutId: any = null;
+    let animFrameId: number | null = null;
+    let isDisposed = false;
+    let blinkLocked = false; // prevents an overlapping blink from firing mid-blink
+
+    function performBlink() {
+      if (isDisposed || !vrm?.expressionManager || blinkLocked) return;
+      blinkLocked = true;
+      const duration = 130 + Math.random() * 100; // 130-230ms, research-correct physiological range
+      const start = performance.now();
+
+      function animateBlink(time: number) {
+        if (isDisposed || !vrm?.expressionManager) return;
+        const t = Math.min((time - start) / duration, 1);
+        const closeAmount = t < 0.5 ? t * 2 : (1 - t) * 2;
+        vrm.expressionManager.setValue('blink', closeAmount);
+
+        if (t < 1) {
+          animFrameId = requestAnimationFrame(animateBlink);
+        } else {
+          vrm.expressionManager.setValue('blink', 0); // explicit reset, never left ambiguous or stale
+          blinkLocked = false;
+
+          // Natural double-blinks happen rarely (~8%)
+          if (Math.random() < 0.08 && !isDisposed) {
+            doubleBlinkTimeoutId = setTimeout(() => {
+              if (!isDisposed && !blinkLocked) {
+                performBlink();
+              }
+            }, 150);
+          }
+        }
+      }
+      animFrameId = requestAnimationFrame(animateBlink);
+    }
+
+    function scheduleNextBlink() {
+      if (isDisposed) return;
+      timeoutId = setTimeout(() => {
+        if (!isDisposed) {
+          if (!blinkLocked) performBlink();
+          scheduleNextBlink();
+        }
+      }, getBlinkInterval(isSpeakingRef.current));
+    }
+
+    vrm.expressionManager.setValue('blink', 0);
+    scheduleNextBlink();
+
+    return () => {
+      isDisposed = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (doubleBlinkTimeoutId) clearTimeout(doubleBlinkTimeoutId);
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (vrm.expressionManager) {
+        vrm.expressionManager.setValue('blink', 0);
+      }
+    };
+  }, [vrm, isSpeakingRef]);
+}
+
 function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = false, onProgress, onLoaded, onReset, onError, retryKey = 0 }: VRMModelProps) {
   const { camera, gl } = useThree();
   const [vrm, setVrm] = useState<VRM | null>(null);
@@ -700,6 +776,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         // Apply rest pose & pre-settle physics (skirts, hair, ribbons)
         applyRestPose(vrmInstance);
         settleVRMPhysics(vrmInstance, 90, 0.016);
+        resetToNeutralExpression(vrmInstance);
 
         // Detailed Diagnostics for Checks 1, 2, 3
         // removed console.log
@@ -889,6 +966,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         if (onProgress) onProgress(100);
         if (onLoaded) onLoaded(vrmInstance.scene);
 
+        resetToNeutralExpression(vrmInstance);
         setVrm(vrmInstance);
       } catch (err: any) {
         if (isCancelled) return;
@@ -916,13 +994,8 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
     };
   }, [url, retryKey]);
 
-  const blinkState = useRef({
-    nextBlinkTime: 2 + Math.random() * 3.5,
-    isBlinking: false,
-    blinkStartTime: 0,
-    blinkDuration: 0.13,
-    doubleBlinkPending: false,
-  });
+  const isSpeakingRef = useRef(false);
+  useHumanBlinking(vrm, isSpeakingRef);
 
   const saccadeState = useRef({
     nextSaccadeTime: 0.2 + Math.random() * 0.4,
@@ -944,18 +1017,23 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
 
   useEffect(() => {
     const handleSpeechStart = (e: any) => {
-      const { audioElement, text, duration, emotion: emotionTag } = e.detail || {};
-      console.log('Response received / Speech Start:', { emotionTag: emotionTag || emotion, textLength: text?.length, duration, hasAudioElement: !!audioElement });
+      isSpeakingRef.current = true;
+      const { audioElement, text, duration, emotion: emotionTag, wordBoundaries } = e.detail || {};
+      console.log('Response received / Speech Start:', { emotionTag: emotionTag || emotion, textLength: text?.length, duration, hasAudioElement: !!audioElement, wordCount: wordBoundaries?.length });
       if (audioElement) {
-        performanceController.startSpeechPerformance(audioElement, text || '', emotionTag || emotion, duration || 2.0);
+        performanceController.startSpeechPerformance(audioElement, text || '', emotionTag || emotion, duration || 2.0, wordBoundaries);
       } else {
-        performanceController.scheduleGestureBeats(text || '', emotionTag || emotion, duration || 2.0);
+        performanceController.scheduleGestureBeats(text || '', emotionTag || emotion, duration || 2.0, wordBoundaries);
       }
     };
 
     const handleSpeechEnd = () => {
       console.log('Speech Ended / Stopped');
+      isSpeakingRef.current = false;
       performanceController.stopSpeechPerformance();
+      if (vrm) {
+        resetToNeutralExpression(vrm);
+      }
     };
 
     window.addEventListener('lyraSpeechStart', handleSpeechStart);
@@ -965,7 +1043,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
       window.removeEventListener('lyraSpeechStart', handleSpeechStart);
       window.removeEventListener('lyraSpeechEnd', handleSpeechEnd);
     };
-  }, [emotion]);
+  }, [emotion, vrm]);
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
@@ -1062,41 +1140,6 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         lookTarget.current.position.lerp(_tempGaze.current, 0.09);
       }
 
-      // Natural Blinking with variable duration and double-blink chance
-      const bState = blinkState.current;
-      if (time > bState.nextBlinkTime && !bState.isBlinking) {
-        bState.isBlinking = true;
-        bState.blinkStartTime = time;
-      }
-
-      if (bState.isBlinking) {
-        const blinkProgress = (time - bState.blinkStartTime) / bState.blinkDuration;
-        let blinkValue = 0;
-        if (blinkProgress >= 1) {
-          if (bState.doubleBlinkPending) {
-            bState.doubleBlinkPending = false;
-            bState.blinkStartTime = time + 0.05;
-            bState.blinkDuration = 0.11;
-          } else {
-            bState.isBlinking = false;
-            const hasDouble = Math.random() < 0.18;
-            if (hasDouble) {
-              bState.doubleBlinkPending = true;
-              bState.blinkStartTime = time + 0.06;
-              bState.blinkDuration = 0.11;
-              bState.isBlinking = true;
-            } else {
-              bState.nextBlinkTime = time + 2.2 + Math.random() * 3.8;
-            }
-          }
-        } else if (blinkProgress >= 0) {
-          blinkValue = Math.sin(Math.min(Math.max(blinkProgress, 0), 1) * Math.PI);
-        }
-        if (vrm.expressionManager) {
-          vrm.expressionManager.setValue('blink', blinkValue);
-        }
-      }
-
       // Emotion & Lip Sync (expression blendshapes) - Throttled on mobile
       if (vrm.expressionManager && (!isMobile || frameCountRef.current % 2 === 0)) {
         const targetExpr = EMOTION_EXPRESSIONS[emotion] || EMOTION_EXPRESSIONS.warm;
@@ -1120,7 +1163,7 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
         let visemeWeights = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
         let hasAudio = false;
 
-        if (analyser && (!isMobile || frameCountRef.current % 3 === 0)) {
+        if (analyser && isSpeakingRef.current && (!isMobile || frameCountRef.current % 3 === 0)) {
           const bufferLength = analyser.frequencyBinCount;
           if (!audioBufferRef.current || audioBufferRef.current.length !== bufferLength) {
             audioBufferRef.current = new Uint8Array(bufferLength);
@@ -1188,6 +1231,17 @@ function VRMModel({ url, emotion = 'warm', isProcessing = false, isListening = f
 
             if (Math.abs(currentWeight - targetWeight) > 0.01) {
               vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, targetWeight, safeDelta * 18));
+            }
+          }
+        } else if (!isSpeakingRef.current) {
+          // When not speaking, actively decay all mouth visemes back to closed 0
+          for (let i = 0; i < VISEMES.length; i++) {
+            const v = VISEMES[i];
+            const currentWeight = vrm.expressionManager.getValue(v) || 0;
+            if (currentWeight > 0.01) {
+              vrm.expressionManager.setValue(v, THREE.MathUtils.lerp(currentWeight, 0, safeDelta * 15));
+            } else if (currentWeight !== 0) {
+              vrm.expressionManager.setValue(v, 0);
             }
           }
         }
