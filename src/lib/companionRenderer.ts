@@ -337,6 +337,7 @@ export async function renderStaticPortrait(
   if (shouldDispose) {
     try {
       r.dispose();
+      r.forceContextLoss();
     } catch {}
   }
   return dataUrl;

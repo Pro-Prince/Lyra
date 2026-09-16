@@ -158,10 +158,8 @@ export function WardrobeCard({
     }
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        setIsInView(true);
-      }
-    }, { threshold: 0, rootMargin: '200px' });
+      setIsInView(entries[0].isIntersecting);
+    }, { threshold: 0, rootMargin: '600px' });
 
     observer.observe(container);
     return () => observer.disconnect();
@@ -314,6 +312,7 @@ export function WardrobeCard({
       if (rendererRef.current) {
         try {
           rendererRef.current.dispose();
+          rendererRef.current.forceContextLoss();
         } catch {}
         if (rendererRef.current.domElement?.parentElement) {
           rendererRef.current.domElement.parentElement.removeChild(rendererRef.current.domElement);

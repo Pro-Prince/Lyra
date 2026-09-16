@@ -1470,7 +1470,7 @@ export default function Chat() {
                 scenery={scenery} 
                 outfitUrl={outfit} 
                 emotion={currentEmotion}
-                isWardrobeOpen={isWardrobeOpen}
+                isWardrobeOpen={false}
                 isPortraitMode={isPortraitMode}
                 isProcessing={isLoading}
                 isListening={isListening}
@@ -1751,7 +1751,7 @@ export default function Chat() {
                   scenery={scenery} 
                   outfitUrl={outfit} 
                   emotion={currentEmotion}
-                  isWardrobeOpen={isWardrobeOpen || isSettingsOpen}
+                  isWardrobeOpen={false}
                   isPortraitMode={isPortraitMode}
                   isProcessing={isLoading}
                   isListening={isListening}

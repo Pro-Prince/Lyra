@@ -73,6 +73,7 @@ export async function renderPosedOutfit(
   if (shouldDispose) {
     try {
       r.dispose();
+      r.forceContextLoss();
     } catch {}
   }
 
