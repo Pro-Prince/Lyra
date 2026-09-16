@@ -34,8 +34,6 @@ function SubtitleAndSpectrumComponent({ subtitles, appState, speechPulse }: Subt
       const intensity = Math.max(0, speechPulse - 1); 
       const randomFactor = Math.random() * 0.8 + 0.2;
       height = 4 + (intensity * 32 * randomFactor);
-    } else if (isListening) {
-      activeClass = "bg-[var(--text-primary)]/70";
     }
     
     return { id: i, height, activeClass };

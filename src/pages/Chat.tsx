@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, PhoneOff, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, MessageSquare } from "lucide-react";
+import { Home, X, ChevronUp, ChevronDown, Settings, Mic, MicOff, Send, Square, Volume2, Volume1, VolumeX, Phone, Sparkles, Shirt, Video, VideoOff, Camera, Scan, Eye, EyeOff, CheckCircle2, Menu, User, LogOut, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import CompanionStage from "../components/CompanionStage";
 import DoubleCheckIcon from "../components/DoubleCheckIcon";
@@ -768,59 +768,9 @@ export default function Chat() {
     });
   };
 
-  const toggleCallMode = () => {
-    setIsCallMode(prev => {
-      const next = !prev;
-      isCallModeRef.current = next;
-      if (next) {
-        setIsChatDrawerOpen(false);
-        showInfo("Entered 1-on-1 Live Voice Call Mode");
-        if (appStateRef.current === AppState.IDLE) {
-          setTimeout(() => {
-            micTranscriptRef.current = "";
-            manualMicStopRef.current = false;
-            cancelSpeech();
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (SpeechRecognition) {
-              if (!recognitionRef.current) setupSpeechRecognition();
-              try {
-                recognitionRef.current?.start();
-                setAppState(AppState.LISTENING);
-              } catch (e) {}
-            }
-          }, 300);
-        }
-      } else {
-        cancelSpeech();
-        if (recognitionRef.current) {
-          try { recognitionRef.current.stop(); } catch(e) {}
-        }
-        setAppState(AppState.IDLE);
-        showInfo("Ended Live Call Mode");
-      }
-      return next;
-    });
-  };
-
   useEffect(() => {
     const handleSpeechEnd = () => {
       setAppState(AppState.IDLE);
-      if (isCallModeRef.current && !isMutedRef.current) {
-        setTimeout(() => {
-          if (isCallModeRef.current && appStateRef.current === AppState.IDLE) {
-            micTranscriptRef.current = "";
-            manualMicStopRef.current = false;
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (SpeechRecognition) {
-              if (!recognitionRef.current) setupSpeechRecognition();
-              try {
-                recognitionRef.current?.start();
-                setAppState(AppState.LISTENING);
-              } catch (e) {}
-            }
-          }
-        }, 350);
-      }
     };
     window.addEventListener('lyraSpeechEnd', handleSpeechEnd);
     return () => window.removeEventListener('lyraSpeechEnd', handleSpeechEnd);
@@ -958,6 +908,12 @@ export default function Chat() {
     if (!textToSend.trim() || isSubmittingRef.current || appStateRef.current === AppState.PROCESSING) return;
     isSubmittingRef.current = true;
     inputSourceRef.current = source;
+
+    if (source === 'voice' && isMutedRef.current) {
+      setIsMuted(false);
+      isMutedRef.current = false;
+      showInfo("Auto-unmuted • Lyra will respond with voice");
+    }
 
     if (isListening) {
       recognitionRef.current?.stop();
@@ -1550,68 +1506,9 @@ export default function Chat() {
                 onStop={handleStopSpeaking}
                 onToggleView={toggleView}
                 isPortraitMode={isPortraitMode}
-                isCallMode={isCallMode}
-                onToggleCallMode={toggleCallMode}
               />
             </div>
           </div>
-
-          {/* 1-on-1 Live Voice Call Overlay (Mobile) */}
-          <AnimatePresence>
-            {isCallMode && (
-              <motion.div 
-                initial={{ opacity: 0, y: -15, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -15, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="absolute top-14 left-1/2 -translate-x-1/2 z-40 bg-[#160f17]/95 backdrop-blur-xl border border-rose-500/40 px-4 py-2 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex items-center gap-2.5 max-w-[92vw]"
-              >
-                <div className="relative flex items-center shrink-0">
-                  <img src="/images/Logo.png" alt="Lyra" className="w-7 h-7 rounded-full border border-rose-400/80 object-cover" />
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#160f17] ${
-                    isListening ? 'bg-rose-500 animate-ping' : isLyraSpeaking ? 'bg-emerald-400 animate-pulse' : isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'
-                  }`} />
-                </div>
-
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-white tracking-wide font-display">Lyra</span>
-                    <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wider">
-                      Live Call
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-1 text-[11px] text-white/80">
-                    {isListening ? (
-                      <span className="flex items-center gap-1 text-rose-300 font-medium animate-pulse">
-                        <span>Listening...</span>
-                      </span>
-                    ) : isLoading ? (
-                      <span className="text-amber-300 font-medium flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 animate-spin" /> Thinking...
-                      </span>
-                    ) : isLyraSpeaking ? (
-                      <span className="text-emerald-300 font-medium flex items-center gap-1">
-                        <Volume2 className="w-3 h-3 animate-pulse" /> Speaking...
-                      </span>
-                    ) : (
-                      <span className="text-white/60">Tap mic or speak</span>
-                    )}
-                  </div>
-                </div>
-
-                <button 
-                  type="button" 
-                  onClick={toggleCallMode}
-                  className="ml-0.5 w-7 h-7 rounded-full bg-rose-600/80 hover:bg-rose-700 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
-                  title="End Live Call"
-                  aria-label="End Live Call"
-                >
-                  <PhoneOff className="w-3.5 h-3.5" />
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Floating Subtitle for Latest Message (Above Lyra's Head) */}
           <AnimatePresence mode="wait">
@@ -1622,7 +1519,7 @@ export default function Chat() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 1.05 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className={`absolute ${isCallMode ? 'top-[116px]' : 'top-[72px] sm:top-[110px]'} left-6 right-6 mx-auto max-w-[320px] bg-[#160f17]/85 backdrop-blur-xl px-5 py-3 rounded-2xl text-center z-30 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none transition-all duration-300`}
+                className="absolute top-[80px] sm:top-[120px] left-6 right-6 mx-auto max-w-[320px] bg-[#160f17]/85 backdrop-blur-xl px-5 py-3 rounded-2xl text-center z-30 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-none"
               >
                 <p className="text-[13px] sm:text-sm text-[var(--text-primary)] font-medium leading-relaxed drop-shadow-sm">
                   {currentCaption}
@@ -1805,73 +1702,10 @@ export default function Chat() {
           </AnimatePresence>
         </div>
         ) : (
-          /* ========================================================= */
-          /* DESKTOP LAYOUT (>= 768px): Side-by-Side Companion & Panel  */
-          /* ========================================================= */
-          <div className="flex flex-row w-full h-full relative">
-            {/* 1-on-1 Live Voice Call Header Overlay */}
-            <AnimatePresence>
-              {isCallMode && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-40 bg-[#160f17]/90 backdrop-blur-xl border border-rose-500/40 px-5 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.6)] flex items-center gap-3.5 max-w-[92vw]"
-                >
-                  <div className="relative flex items-center shrink-0">
-                    <img src="/images/Logo.png" alt="Lyra" className="w-8 h-8 rounded-full border border-rose-400/80 object-cover" />
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#160f17] ${
-                      isListening ? 'bg-rose-500 animate-ping' : isLyraSpeaking ? 'bg-emerald-400 animate-pulse' : isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'
-                    }`} />
-                  </div>
-
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white tracking-wide font-display">Lyra</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wider">
-                        Live Call
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-1.5 text-xs text-white/80">
-                      {isListening ? (
-                        <span className="flex items-center gap-1 text-rose-300 font-medium animate-pulse">
-                          <span>Listening...</span>
-                          <span className="inline-flex items-center gap-0.5 ml-1">
-                            <span className="w-0.5 h-3 bg-rose-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-0.5 h-4 bg-rose-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-0.5 h-2 bg-rose-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </span>
-                        </span>
-                      ) : isLoading ? (
-                        <span className="text-amber-300 font-medium flex items-center gap-1">
-                          <Sparkles className="w-3.5 h-3.5 animate-spin" /> Thinking...
-                        </span>
-                      ) : isLyraSpeaking ? (
-                        <span className="text-emerald-300 font-medium flex items-center gap-1">
-                          <Volume2 className="w-3.5 h-3.5 animate-pulse" /> Speaking out loud...
-                        </span>
-                      ) : (
-                        <span className="text-white/60">Tap microphone or speak</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <button 
-                    type="button" 
-                    onClick={toggleCallMode}
-                    className="ml-1 w-8 h-8 rounded-full bg-rose-600/80 hover:bg-rose-700 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
-                    title="End 1-on-1 Call"
-                    aria-label="End 1-on-1 Call"
-                  >
-                    <PhoneOff className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
+        /* ========================================================= */
+        /* DESKTOP LAYOUT (>= 768px): Side-by-Side Companion & Panel  */
+        /* ========================================================= */
+        <div className="flex flex-row w-full h-full relative">
           {/* DESKTOP LEFT PANEL: 3D STAGE & HUD */}
           <div className="companion-screen flex-1 bg-[#ede2dc] group relative overflow-hidden">
             <div className="companion-viewport w-full h-full relative">
@@ -1954,8 +1788,6 @@ export default function Chat() {
                 onStop={handleStopSpeaking}
                 onToggleView={toggleView}
                 isPortraitMode={isPortraitMode}
-                isCallMode={isCallMode}
-                onToggleCallMode={toggleCallMode}
               />
             </div>
 
@@ -1965,7 +1797,7 @@ export default function Chat() {
           </div>
 
           {/* DESKTOP RIGHT PANEL: CHAT DRAWER PANEL */}
-          <div className={`${isCallMode ? 'hidden' : 'chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[var(--bg-base)] border-l border-[var(--text-primary)]/5 flex flex-col z-10 shadow-2xl relative shrink-0 h-full'}`}>
+          <div className="chat-drawer-panel w-full md:w-[420px] lg:w-[480px] bg-[var(--bg-base)] border-l border-[var(--text-primary)]/5 flex flex-col z-10 shadow-2xl relative shrink-0 h-full">
             {/* Tabs */}
             <div className="flex px-6 pt-2 border-b border-[var(--text-primary)]/5 shrink-0">
                <button 
