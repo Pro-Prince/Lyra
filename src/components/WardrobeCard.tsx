@@ -171,7 +171,7 @@ export function WardrobeCard({
     onDragDeltaRef.current?.(deltaX);
   });
 
-  const handleRetry = (e?: React.MouseEvent) => {
+  const handleRetry = (e?: React.MouseEvent | React.SyntheticEvent) => {
     e?.stopPropagation();
     setError(null);
     setLoading(true);
@@ -237,7 +237,7 @@ export function WardrobeCard({
           }
         }, 12000);
 
-        if (loadDelay > 0) {
+        if (loadDelay > 0 && retryKey === 0) {
           await new Promise((r) => {
             delayTimer = setTimeout(r, loadDelay);
           });
@@ -363,11 +363,20 @@ export function WardrobeCard({
 
         {/* Error Fallback with Try Again button */}
         {error && !loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 p-3 text-center z-10">
+          <div 
+            className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--bg-surface)]/90 p-3 text-center z-20"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={handleRetry}
-              className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)]/15 hover:bg-[var(--accent-primary)]/25 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] text-[12px] font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm"
+              className="px-3.5 py-2 rounded-xl bg-[var(--accent-primary)]/15 hover:bg-[var(--accent-primary)]/25 border border-[var(--accent-primary)]/40 text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm relative z-30"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Try Again</span>
