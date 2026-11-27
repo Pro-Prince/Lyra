@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import AppHeader from "./components/AppHeader";
 import InstallBanner from "./components/InstallBanner";
 import Landing from "./pages/Landing";
@@ -188,6 +189,7 @@ export default function App() {
           <InstallBanner />
         </Router>
       </ToastProvider>
+      <SpeedInsights />
     </AppSplash>
   );
 }
